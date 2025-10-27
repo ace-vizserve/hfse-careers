@@ -1,6 +1,8 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Feather, Search } from 'lucide-react';
 import Navbar from '../components/navbar';
+import Featured from '../Featured/page';
+import Footer from '../components/footer';
 
 // Main Page Component
 const Page = () => {
@@ -34,7 +36,7 @@ const Page = () => {
                   className="w-full px-5 py-4 border-2 border-blue-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
               </div>
-              <button className="bg-blue-600 text-white px-10 py-4 rounded-lg hover:bg-blue-700 font-medium whitespace-nowrap">
+              <button className="bg-cyan-400 text-white px-10 py-4 rounded-lg hover:bg-blue-700 font-medium whitespace-nowrap">
                 Search
               </button>
             </div>
@@ -95,6 +97,9 @@ const Page = () => {
 
         </div>
       </div>
+
+      <Featured/>
+      <Footer/>
     </div>
   );
 };

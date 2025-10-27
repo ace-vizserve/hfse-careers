@@ -150,7 +150,7 @@ const Navbar = () => {
                 Sign Up
               </button>
 
-              <button className="px-6 py-2.5 bg-indigo-700 text-white rounded-lg font-semibold hover:bg-indigo-800 active:bg-indigo-900 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-700 focus:ring-offset-2">
+              <button className="px-6 py-2.5 bg-[#312B66] text-white rounded-lg font-semibold hover:bg-indigo-800 active:bg-indigo-900 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-700 focus:ring-offset-2">
                 Sign In
               </button>
             </div>
