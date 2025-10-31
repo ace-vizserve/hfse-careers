@@ -1,2 +1,6 @@
 @import "tailwindcss";
 
+/* Apply Roboto globally */
+body {
+  font-family: var(--font-roboto), system-ui, sans-serif;
+}

@@ -7,7 +7,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#312B66] text-white">
+    <footer className="bg-[#4359A5] text-white">
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
@@ -21,7 +21,7 @@ const Footer = () => {
               className="h-16 w-auto object-contain brightness-0 invert"
             />
             <p className="text-white/80 text-sm leading-relaxed">
-              Connecting talented professionals with outstanding opportunities. Your career journey starts here.
+              Connecting talented professionals with outstanding opportunities. Your team-building journey starts here.
             </p>
             {/* Social Media */}
             <div className="flex items-center space-x-2 pt-2">
@@ -68,7 +68,7 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2.5">
-              {["Vizserve Official Website", "Team Builder", "Contact Us"].map((link) => (
+              {["Vizserve Official Website", "Careers", "Contact Us"].map((link) => (
                 <li key={link}>
                   <a
                     href="#"
@@ -125,7 +125,7 @@ const Footer = () => {
               <li>
                 <div className="flex items-start space-x-3 text-white/80 text-sm">
                   <MapPin className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                  <span>Level 39 Marina Bay Financial Tower 2<br />10 Marina Bay Boulevard 018983</span>
+                  <span>Level 39 Marina Bay Financial Tower 2 ,10 Marina Bay Boulevard 018983</span>
                 </div>
               </li>
             </ul>
