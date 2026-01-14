@@ -1,10 +1,68 @@
-import React from 'react'
+"use client"
+
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Navbar from '../components/navbar'
 import Footer from '../components/footer'
 
+interface Job {
+  id?: number
+  position_name?: string
+  title?: string
+  location?: string
+  employment_type?: string
+  description?: string
+}
 
 const Page = () => {
-  // ✅ Talent Data Array
+  const router = useRouter()
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch jobs from Manatal API
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setLoading(true)
+        
+        const response = await fetch('/api/jobs', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch jobs')
+        }
+
+        const data = await response.json()
+        
+        // Handle different possible response structures
+        let jobsList = []
+        if (Array.isArray(data)) {
+          jobsList = data
+        } else if (data.results && Array.isArray(data.results)) {
+          jobsList = data.results
+        } else if (data.data && Array.isArray(data.data)) {
+          jobsList = data.data
+        } else if (data.jobs && Array.isArray(data.jobs)) {
+          jobsList = data.jobs
+        }
+        
+        setJobs(jobsList)
+        setLoading(false)
+      } catch (err) {
+        console.error('Error fetching jobs:', err)
+        setError(err instanceof Error ? err.message : 'An error occurred')
+        setLoading(false)
+      }
+    }
+
+    fetchJobs()
+  }, [])
+
   const talents = [
     {
       img: '/assets/talent-accounting.png',
@@ -38,25 +96,23 @@ const Page = () => {
     }
   ]
 
-  // ✅ Perfect Match Data Array
-const perfectMatches = [
-  {
-    img: '/assets/match-1.png',
-    title: 'Collaborative Teams',
-    desc: 'Empower your organization with high-performing teams built on trust, collaboration, and shared goals. We connect the right talents to achieve extraordinary results together.'
-  },
-  {
-    img: '/assets/match-2.png',
-    title: 'Tailored Talent Matching',
-    desc: 'We go beyond resumes—our smart matching process ensures each team member complements the others’ strengths, creating a balanced and productive workforce.'
-  },
-  {
-    img: '/assets/match-3.png',
-    title: 'Sustainable Growth',
-    desc: 'Build teams that grow with your business. Our approach focuses on long-term success through engagement, alignment, and continuous development.'
-  }
-];
-
+  const perfectMatches = [
+    {
+      img: '/assets/match-1.png',
+      title: 'Collaborative Teams',
+      desc: 'Empower your organization with high-performing teams built on trust, collaboration, and shared goals. We connect the right talents to achieve extraordinary results together.'
+    },
+    {
+      img: '/assets/match-2.png',
+      title: 'Tailored Talent Matching',
+      desc: 'We go beyond resumes—our smart matching process ensures each team member complements the others\' strengths, creating a balanced and productive workforce.'
+    },
+    {
+      img: '/assets/match-3.png',
+      title: 'Sustainable Growth',
+      desc: 'Build teams that grow with your business. Our approach focuses on long-term success through engagement, alignment, and continuous development.'
+    }
+  ]
 
   return (
     <div>
@@ -108,6 +164,81 @@ const perfectMatches = [
           </div>
         </div>
       </div>
+
+      {/* Live Job Openings from Manatal */}
+      <div className="bg-gray-50 py-16 lg:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#4359A5] mb-4">
+              Current Job Openings
+            </h2>
+            <div className="flex justify-center">
+              <div className="border-b-4 border-[#4359A5] w-32"></div>
+            </div>
+            <p className="text-gray-600 mt-4 text-lg">
+              Browse our latest opportunities
+            </p>
+          </div>
+
+          {loading && (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#4359A5]"></div>
+              <p className="mt-4 text-gray-600">Loading jobs...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+              <p className="text-red-600">Error loading jobs: {error}</p>
+              <p className="text-sm text-gray-600 mt-2">Make sure your API endpoint is configured correctly</p>
+            </div>
+          )}
+
+          {!loading && !error && jobs.length === 0 && (
+            <div className="text-center py-12 text-gray-600">
+              No jobs available at the moment.
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {jobs.map((job, index) => (
+              <div 
+                key={job.id || index} 
+                className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+              >
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {job.position_name || job.title || 'Position Title'}
+                </h3>
+                <div className="text-sm text-gray-600 mb-4">
+                  <p className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {job.location || 'Location not specified'}
+                  </p>
+                  <p className="flex items-center gap-1 mt-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {job.employment_type || 'Full-time'}
+                  </p>
+                </div>
+                <p className="text-gray-700 mb-4 line-clamp-3">
+                  {job.description?.replace(/<[^>]*>/g, '').substring(0, 150) || 'No description available'}
+                  {job.description && job.description.length > 150 && '...'}
+                </p>
+                <button 
+                  onClick={() => router.push(`/jobs/${job.id}`)}
+                  className="w-full bg-[#312B66] text-white py-2 rounded-lg hover:bg-indigo-800 transition-colors"
+                >
+                  View Details
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
       
       {/* Don't Wait Section */}
       <div className="bg-[#4359A5] py-16 lg:py-24">
@@ -156,7 +287,8 @@ const perfectMatches = [
           </div>
         </div>
       </div>
-        {/* Get the Perfect Match Section */}
+
+      {/* Get the Perfect Match Section */}
       <div className="bg-white py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
@@ -190,6 +322,7 @@ const perfectMatches = [
           </div>
         </div>
       </div>
+
       <Footer />
     </div>
   )
