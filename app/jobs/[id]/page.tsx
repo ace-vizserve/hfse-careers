@@ -96,6 +96,18 @@ const JobApplicationForm = () => {
     description: ''
   }])
 
+   // Currency mapping helper function
+  const getCurrencyId = (currencyCode: string): string => {
+    const currencyMap: Record<string, string> = {
+      'SGD': '11',  // Singapore Dollar
+      'USD': '1',   // US Dollar
+      'EUR': '2',   // Euro
+      'GBP': '3',   // British Pound
+      'PHP': '13',  // Philippine Peso
+    }
+    return currencyMap[currencyCode] || '11' // Default to SGD
+  }
+
   const defaultFields: FormField[] = [
     { id: 'full_name', slug: 'full_name', label: 'Full Name', type: 'text', required: true },
     { id: 'email', slug: 'email', label: 'Email Address', type: 'email', required: true },
@@ -248,6 +260,9 @@ const JobApplicationForm = () => {
       const expField = formFields.find(isExperienceField)
       const eduField = formFields.find(isEducationField)
 
+      // Track if we found an expected salary field and its currency
+      let expectedCurrencyId: string | null = null
+
       formFields.forEach(field => {
         const fieldName = field.slug || field.name || field.id
 
@@ -260,32 +275,26 @@ const JobApplicationForm = () => {
         const value = simpleFormData[fieldName]
         let finalValue: string | number | null = ''
 
+        // Check if this is an expected salary field
+        const isExpectedSalary = field.slug?.toLowerCase().includes('expected_salary') ||
+                                field.name?.toLowerCase().includes('expected_salary') ||
+                                field.slug?.toLowerCase().includes('expectedsalary') ||
+                                field.slug?.toLowerCase() === 'salary_expected' ||
+                                (field.label?.toLowerCase().includes('expected') && 
+                                 field.label?.toLowerCase().includes('salary'))
+
         if (value && typeof value === 'string' && value.trim()) {
           const isDateField = field.label?.toLowerCase().includes('date') || 
                             field.label?.toLowerCase().includes('birth') || 
                             field.name?.toLowerCase().includes('date')
 
-          const isExpectedSalary = field.slug?.toLowerCase().includes('expected_salary') ||
-                                  field.name?.toLowerCase().includes('expected_salary') ||
-                                  field.slug?.toLowerCase().includes('expectedsalary') ||
-                                  field.slug?.toLowerCase() === 'salary_expected' ||
-                                  (field.label?.toLowerCase().includes('expected') && 
-                                   field.label?.toLowerCase().includes('salary'))
-
-          if (isExpectedSalary) {
-            const cleaned = value.trim().replace(/[^0-9]/g, '')
-            if (cleaned && cleaned.length <= 10) {
-              const numValue = Number(cleaned)
-              const currency = salaryCurrencies[field.id] || 'SGD'
-              
-              // Store as object with amount and currency
-              finalValue = JSON.stringify({
-                amount: numValue,
-                currency: currency
-              })
-            }
-          } else if (isDateField) {
+          if (isDateField) {
             finalValue = value.trim()
+          } else if (isExpectedSalary) {
+            // For expected salary, just send the numeric value
+            finalValue = value.trim()
+            // Store the currency ID mapping for this field
+            expectedCurrencyId = getCurrencyId(salaryCurrencies[field.id] || 'SGD')
           } else {
             finalValue = value.trim()
           }
@@ -363,6 +372,11 @@ const JobApplicationForm = () => {
       }
 
       formDataToSend.append('jobId', jobId)
+
+      // Add expected_currency if we found a salary field
+      if (expectedCurrencyId) {
+        formDataToSend.append('expected_currency', expectedCurrencyId)
+      }
 
       const response = await fetch('/api/applications', {
         method: 'POST',
