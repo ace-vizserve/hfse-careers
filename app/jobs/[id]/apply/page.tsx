@@ -1,5 +1,8 @@
 "use client";
 
+import { industry_list } from "@/app/constants";
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
+import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
 import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
@@ -49,6 +52,12 @@ export default function JobApplicationPage() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.id as string;
+  const resumeProps = useSupabaseUpload({
+    bucketName: "candidate-resume",
+    allowedMimeTypes: ["application/pdf"],
+    maxFiles: 1,
+    maxFileSize: 1000 * 1000 * 5,
+  });
 
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,6 +86,12 @@ export default function JobApplicationPage() {
       description: "",
     },
   ]);
+  const [nationalityQuery, setNationalityQuery] = useState("");
+  const [nationalityOptions, setNationalityOptions] = useState<{ id: string; common_name: string; demonym: string }[]>(
+    []
+  );
+  const [isSearchingNationalities, setIsSearchingNationalities] = useState(false);
+  const [showNationalityOptions, setShowNationalityOptions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +100,7 @@ export default function JobApplicationPage() {
     { id: "full_name", slug: "full_name", label: "Full Name", type: "text", required: true },
     { id: "email", slug: "email", label: "Email Address", type: "email", required: true },
     { id: "phone", slug: "phone", label: "Phone Number", type: "tel", required: true },
+    { id: "nationality", slug: "nationality", label: "Nationality", type: "text", required: false },
     { id: "linkedin", slug: "linkedin", label: "LinkedIn Profile", type: "url", required: false },
     { id: "resume", slug: "resume", label: "Resume/CV", type: "file", required: true },
     { id: "cover_letter", slug: "cover_letter", label: "Cover Letter", type: "textarea", required: false },
@@ -148,12 +164,55 @@ export default function JobApplicationPage() {
     fetchData();
   }, [jobId]);
 
+  useEffect(() => {
+    if (nationalityQuery.trim() === "") {
+      setNationalityOptions([]);
+      setShowNationalityOptions(false);
+      return;
+    }
+
+    const fetchNationalities = async () => {
+      setIsSearchingNationalities(true);
+      try {
+        const res = await fetch(`/api/nationalities/${nationalityQuery}`);
+        if (res.ok) {
+          const data = await res.json();
+          setNationalityOptions(data.nationalities || []);
+          setShowNationalityOptions(true);
+        } else {
+          setNationalityOptions([]);
+          setShowNationalityOptions(false);
+        }
+      } catch (error) {
+        setNationalityOptions([]);
+        setShowNationalityOptions(false);
+      } finally {
+        setIsSearchingNationalities(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchNationalities, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [nationalityQuery]);
+
   const isExpectedSalary = (field: FormField) =>
     field.slug?.toLowerCase().includes("expected_salary") ||
     field.name?.toLowerCase().includes("expected_salary") ||
     field.slug?.toLowerCase().includes("expectedsalary") ||
     (field.label?.toLowerCase().includes("expected") && field.label?.toLowerCase().includes("salary"));
 
+  const isNationalityField = (field: FormField) =>
+    field.slug?.toLowerCase() === "nationality" ||
+    field.name?.toLowerCase() === "nationality" ||
+    field.label?.toLowerCase() === "nationality";
+
+  const isIndustryField = (field: FormField) =>
+    field.slug?.toLowerCase() === "industry" ||
+    field.name?.toLowerCase() === "industries" ||
+    field.label?.toLowerCase() === "Work Industry";
+
+  const isCVField = (field: FormField) => field.id === "1741683";
   const getCurrencyId = (code: string) => {
     const map: Record<string, string> = {
       SGD: "11",
@@ -168,22 +227,6 @@ export default function JobApplicationPage() {
   const handleSimpleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setSimpleFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    const fieldName = e.target.name;
-    console.log("File input changed - Field name:", fieldName);
-    if (file) {
-      console.log("✓ File selected:", file.name, file.size, "bytes");
-      setSimpleFormData((prev) => {
-        const updated = { ...prev, [fieldName]: file };
-        console.log("Updated simpleFormData with file at key:", fieldName);
-        return updated;
-      });
-    } else {
-      console.log("❌ No file selected");
-    }
   };
 
   const updateExperience = (index: number, field: keyof Experience, value: any) => {
@@ -265,12 +308,7 @@ export default function JobApplicationPage() {
         const key = field.slug || field.name || field.id;
 
         // Skip experience, education, and file fields
-        if (field.id === expField?.id || field.id === eduField?.id) return;
-
-        // Skip file fields - check if this field is a file field
-        const isFileField = field.type === "file" || field.id === "1741683";
-        if (isFileField) {
-          console.log(`Skipping file field ${field.id} from application_data`);
+        if (field.id === expField?.id || field.id === eduField?.id || isCVField(field)) {
           return;
         }
 
@@ -283,6 +321,8 @@ export default function JobApplicationPage() {
           if (isExpectedSalary(field)) {
             expectedCurrencyId = getCurrencyId(salaryCurrencies[field.id] || "SGD");
           }
+        } else if (value) {
+          finalValue = value as string;
         }
 
         applicationData[field.id] = finalValue;
@@ -326,54 +366,25 @@ export default function JobApplicationPage() {
         }));
       }
 
+      if (resumeProps.successes.length > 0) {
+        const resumeField = formFields.find(isCVField);
+        if (resumeField) {
+          applicationData[resumeField.id] = resumeProps.successes[0];
+        }
+      } else {
+        const resumeField = formFields.find(isCVField);
+        if (resumeField?.required) {
+          throw new Error("Please upload a resume file");
+        }
+      }
+
       console.log("Application Data:", applicationData);
 
       formDataToSend.append("application_data", JSON.stringify(applicationData));
       formDataToSend.append("jobId", jobId);
 
-      // Append resume - try to find it in simpleFormData
-      // The file might be stored under different keys depending on the field configuration
-      let resumeFile: File | null = null;
-
-      console.log("Looking for resume file in simpleFormData...");
-      console.log("simpleFormData keys:", Object.keys(simpleFormData));
-
-      // Check all keys in simpleFormData for a File object
-      for (const [key, value] of Object.entries(simpleFormData)) {
-        console.log(`  Checking key "${key}":`, value instanceof File ? `File(${(value as File).name})` : typeof value);
-        if (value instanceof File) {
-          resumeFile = value;
-          console.log(`✓ Found resume file at key "${key}":`, resumeFile.name);
-          break;
-        }
-      }
-
-      if (!resumeFile) {
-        console.error("❌ No file found in simpleFormData");
-        console.error(
-          "Available form fields:",
-          formFields.map((f) => ({ id: f.id, label: f.label, type: f.type }))
-        );
-        throw new Error("Please upload a resume file");
-      }
-
-      console.log("✓ Resume file found:", resumeFile.name, resumeFile.size, "bytes");
-
-      // Append with the exact field name from Postman
-      formDataToSend.append("Resume", resumeFile);
-
       if (expectedCurrencyId) {
         formDataToSend.append("expected_currency", expectedCurrencyId);
-      }
-
-      // Debug: Log FormData contents
-      console.log("FormData contents:");
-      for (const [key, value] of formDataToSend.entries()) {
-        if (value instanceof File) {
-          console.log(`  ${key}: File(${value.name}, ${value.size} bytes)`);
-        } else {
-          console.log(`  ${key}: ${typeof value === "string" ? value.substring(0, 100) : value}`);
-        }
       }
 
       const response = await fetch("/api/applications", {
@@ -402,42 +413,73 @@ export default function JobApplicationPage() {
     const common =
       "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500";
 
-    // Check if this is explicitly a file type field
-    const isFileField = field.type === "file";
-
-    // Check if this is the CV field by ID (field 1741683 based on your data) or CV-related naming
-    const isCVField =
-      field.id === "1741683" ||
-      field.slug?.toLowerCase() === "cv" ||
-      field.slug?.toLowerCase() === "resume" ||
-      field.name?.toLowerCase() === "cv" ||
-      field.name?.toLowerCase() === "resume" ||
-      field.label?.toLowerCase() === "cv" ||
-      field.label?.toLowerCase() === "resume" ||
-      field.label?.toLowerCase() === "resume/cv" ||
-      field.label?.toLowerCase() === "upload resume";
-
-    if (isFileField || isCVField) {
+    if (isNationalityField(field)) {
       return (
-        <div>
+        <div className="relative">
           <input
-            type="file"
+            type="text"
             name={key}
-            id={`file-${field.id}`}
             required={isRequired}
-            onChange={handleFileChange}
-            accept=".pdf,.doc,.docx"
+            value={(simpleFormData[key] as string) || ""}
+            onChange={(e) => {
+              handleSimpleChange(e);
+              setNationalityQuery(e.target.value);
+            }}
+            onFocus={() => nationalityOptions.length > 0 && setShowNationalityOptions(true)}
+            onBlur={() => setTimeout(() => setShowNationalityOptions(false), 200)}
+            placeholder={field.placeholder || "Start typing to search..."}
             className={common}
+            autoComplete="off"
           />
-          {simpleFormData[key] instanceof File && (
-            <p className="mt-1 text-sm text-green-600">
-              ✓ {(simpleFormData[key] as File).name} ({((simpleFormData[key] as File).size / 1024).toFixed(2)} KB)
-            </p>
-          )}
-          {!simpleFormData[key] && isRequired && (
-            <p className="mt-1 text-sm text-gray-500">PDF, DOC, or DOCX files accepted</p>
+          {isSearchingNationalities && <div className="p-2 text-sm text-gray-500">Searching...</div>}
+          {showNationalityOptions && (
+            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-lg">
+              {nationalityOptions.length > 0 ? (
+                nationalityOptions.map((nat) => (
+                  <li
+                    key={nat.id}
+                    className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                    onMouseDown={() => {
+                      setSimpleFormData((prev) => ({ ...prev, [key]: nat.demonym }));
+                      setNationalityQuery(nat.demonym);
+                      setShowNationalityOptions(false);
+                    }}>
+                    {nat.demonym}
+                  </li>
+                ))
+              ) : (
+                <li className="px-4 py-2 text-gray-500">No results found</li>
+              )}
+            </ul>
           )}
         </div>
+      );
+    }
+
+    if (isIndustryField(field)) {
+      return (
+        <select
+          name={key}
+          required={isRequired}
+          value={(simpleFormData[key] as string) || ""}
+          onChange={handleSimpleChange}
+          className={common}>
+          <option value="">Select an industry</option>
+          {industry_list.map((industry) => (
+            <option key={industry.id} value={industry.id}>
+              {industry.name}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.type === "file" || isCVField(field)) {
+      return (
+        <Dropzone {...resumeProps}>
+          <DropzoneEmptyState />
+          <DropzoneContent />
+        </Dropzone>
       );
     }
 
@@ -540,6 +582,14 @@ export default function JobApplicationPage() {
             <button onClick={() => router.back()} className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
               ← Back to job
             </button>
+          </div>
+
+          <div className="p-8 flex justify-between items-center">
+            <div className="space-y-1">
+              <h1 className="text-[#1A4B8F] text-2xl font-black uppercase leading-tight">Submit Application</h1>
+              <p className="text-[#1A4B8F] text-lg font-semibold uppercase">{job?.position_name}</p>
+            </div>
+            <img src="/vizserve-logo.jpg" alt="VizServe Logo" className="h-32 w-auto object-contain" />
           </div>
 
           {submitSuccess ? (
