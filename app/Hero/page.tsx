@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronLeft, Loader2, Mail, Share2, BookOpen, DollarSign, Briefcase, CheckCircle, Zap, MapPin } from 'lucide-react'
 
 interface Job {
   id?: number
@@ -18,7 +19,9 @@ interface Job {
   currency?: string
   frequency?: string
   is_remote?: boolean | null
-  company?: { name: string }
+  company?: {
+    name: string
+  }
   requirements?: string[]
   benefits?: string[]
   urgently_hiring?: boolean
@@ -49,8 +52,8 @@ const Page = () => {
         }
 
         const data = await response.json()
-        
         let jobsList: Job[] = []
+
         if (Array.isArray(data)) {
           jobsList = data
         } else if (data.results && Array.isArray(data.results)) {
@@ -97,7 +100,7 @@ const Page = () => {
     const currencyCode = currency || 'PHP'
     const freq = frequency || 'month'
     const freqText = freq === 'hour' ? 'an hour' : 'a month'
-    
+
     if (min && max) {
       return `${currencyCode} ${min.toLocaleString()} - ${currencyCode} ${max.toLocaleString()} ${freqText}`
     }
@@ -115,7 +118,7 @@ const Page = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center gap-3">
             {showDetails && (
@@ -124,9 +127,7 @@ const Page = () => {
                 className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
                 aria-label="Back to job list"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                <ChevronLeft className="w-6 h-6" />
               </button>
             )}
             <div>
@@ -139,17 +140,16 @@ const Page = () => {
 
       <div className="max-w-[1400px] mx-auto">
         <div className="md:flex md:h-[calc(100vh-100px)]">
-          {/* Job List - Hidden on mobile when details are showing */}
-          <div className={`${showDetails ? 'hidden md:block' : 'block'} w-full md:w-[45%] md:border-r bg-white md:overflow-y-auto`}>
+          <div className={`${showDetails ? 'hidden md:block' : 'block'} w-full md:w-[45%] bg-white md:overflow-y-auto`}>
             <div className="p-3 sm:p-4">
               {loading && (
                 <div className="flex items-center justify-center py-20">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                  <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
                 </div>
               )}
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-4">
+                <div className="bg-red-50 rounded-lg p-4 m-4">
                   <p className="text-red-800 font-medium">Error loading jobs: {error}</p>
                   <p className="text-red-600 text-sm mt-1">Make sure your API endpoint is configured correctly</p>
                 </div>
@@ -166,10 +166,10 @@ const Page = () => {
                   <div
                     key={job.id}
                     onClick={() => handleJobClick(job)}
-                    className={`border rounded-lg p-3 sm:p-4 cursor-pointer transition-all hover:shadow-md ${
-                      selectedJob?.id === job.id 
-                        ? 'border-indigo-500 bg-indigo-50 shadow-sm' 
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    className={`rounded-lg p-3 sm:p-4 cursor-pointer transition-all hover:shadow-md ${
+                      selectedJob?.id === job.id
+                        ? 'bg-indigo-50 shadow-sm ring-2 ring-indigo-500'
+                        : 'bg-white hover:bg-gray-50 shadow-sm'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -183,10 +183,6 @@ const Page = () => {
                           {job.position_name || job.title || 'Position Title'}
                         </h3>
                       </div>
-                      <div className="flex gap-2 ml-2">
-            
-                    
-                      </div>
                     </div>
 
                     {job.company?.name && (
@@ -194,6 +190,7 @@ const Page = () => {
                         {job.company.name}
                       </p>
                     )}
+
                     <p className="text-gray-600 text-sm mb-2">{formatLocation(job)}</p>
 
                     {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency) && (
@@ -215,10 +212,7 @@ const Page = () => {
 
                     {job.easily_apply && (
                       <div className="flex items-center gap-1 text-sm text-indigo-600">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                        </svg>
+                        <Mail className="w-4 h-4" />
                         <span className="font-medium">Easily apply</span>
                       </div>
                     )}
@@ -228,16 +222,16 @@ const Page = () => {
             </div>
           </div>
 
-          {/* Job Details - Full screen on mobile when showing */}
           <div className={`${showDetails ? 'block' : 'hidden md:block'} w-full md:flex-1 bg-gray-50 overflow-y-auto`}>
             {selectedJob ? (
               <div className="p-4 sm:p-6">
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 border border-gray-200">
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                     {selectedJob.position_name || selectedJob.title}
                   </h1>
+
                   {selectedJob.company?.name && (
-                    <a 
+                    <a
                       href="#"
                       className="text-indigo-600 hover:underline font-medium text-base sm:text-lg mb-3 inline-block"
                     >
@@ -263,9 +257,7 @@ const Page = () => {
 
                   {selectedJob.urgently_hiring && (
                     <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
-                      <svg className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-                      </svg>
+                      <Zap className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
                       <span className="text-xs sm:text-sm">Responded to 75% or more applications in the past 30 days, typically within 1 day.</span>
                     </div>
                   )}
@@ -277,49 +269,39 @@ const Page = () => {
                     >
                       Apply now
                     </button>
-                  
-                    
                     <button
-                      className="p-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                      className="p-2.5 bg-white shadow-sm rounded-lg hover:bg-gray-50 transition"
                       aria-label="Share"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                      </svg>
+                      <Share2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 border border-gray-200">
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
                   <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Profile insights</h2>
                   <p className="text-xs sm:text-sm text-gray-600 mb-4">
                     Here's how the job qualifications align with your profile.
                   </p>
 
                   <div className="flex items-start gap-3 mb-4">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
+                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Education</p>
                       <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
-                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
                         <span className="text-xs sm:text-sm text-green-700 font-medium">Bachelor's</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200">
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
                   <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Job details</h2>
 
                   <div className="space-y-4 mb-6">
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
+                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Pay</p>
                         <p className="text-gray-700 text-sm sm:text-base">
@@ -329,37 +311,22 @@ const Page = () => {
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
+                      <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Job type</p>
                         <div className="flex flex-wrap gap-2">
                           <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
-                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
+                            <CheckCircle className="w-4 h-4 text-green-600" />
                             <span className="text-xs sm:text-sm text-green-700 font-medium">
                               {formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
                             </span>
                           </div>
-                          {selectedJob.is_remote && (
-                            <div className="inline-flex items-center gap-2 bg-blue-50 px-3 py-1 rounded">
-                              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                              <span className="text-xs sm:text-sm text-blue-700 font-medium">Remote</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      <div className="flex items-start gap-3">
+                     <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Location</p>
                         <p className="text-gray-700 text-sm sm:text-base">{formatLocation(selectedJob)}</p>
@@ -368,16 +335,26 @@ const Page = () => {
                   </div>
 
                   <div className="border-t pt-6">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Full Job Description</h3>
-                    <div 
-                      className="prose prose-sm max-w-none text-gray-700 leading-relaxed text-sm sm:text-base"
-                      dangerouslySetInnerHTML={{ 
-                        __html: selectedJob.description?.replace(/<[^>]*>/g, '') || 'No description available' 
-                      }} 
-                    />
+  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
+    Full Job Description
+  </h3>
+
+  <div className="space-y-4 text-gray-700 text-sm sm:text-base leading-relaxed">
+    {selectedJob?.description
+      ? selectedJob.description
+          .replace(/<[^>]*>/g, '')
+          .split(/\n+/)
+          .map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))
+      : (
+        <p className="italic text-gray-400">No description available.</p>
+      )}
+  </div>
                   </div>
 
-                  {selectedJob.requirements && selectedJob.requirements.length > 0 && (
+
+                   {selectedJob.requirements && selectedJob.requirements.length > 0 && (
                     <div className="border-t pt-6 mt-6">
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Requirements</h3>
                       <ul className="list-disc list-inside space-y-2 text-gray-700 text-sm sm:text-base">
@@ -407,7 +384,7 @@ const Page = () => {
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500 text-base sm:text-lg">Select a job to view details</p>
+                <p className="text-gray-500">Select a job to view details</p>
               </div>
             )}
           </div>
