@@ -7,10 +7,17 @@ interface Job {
   position_name?: string
   title?: string
   location?: string
+  city?: string
+  state?: string
+  country?: string
   employment_type?: string
+  contract_details?: string
   description?: string
   salary_min?: number
   salary_max?: number
+  currency?: string
+  frequency?: string
+  is_remote?: boolean | null
   company?: { name: string }
   requirements?: string[]
   benefits?: string[]
@@ -26,7 +33,6 @@ const Page = () => {
   const [error, setError] = useState<string | null>(null)
   const [savedJobs, setSavedJobs] = useState<Set<number>>(new Set())
 
-  // Fetch jobs from API
   useEffect(() => {
     const fetchJobs = async () => {
       try {
@@ -57,7 +63,7 @@ const Page = () => {
 
         setJobs(jobsList)
         if (jobsList.length > 0) {
-          setSelectedJob(jobsList[0]) // Select first job by default
+          setSelectedJob(jobsList[0])
         }
         setLoading(false)
       } catch (err) {
@@ -82,9 +88,43 @@ const Page = () => {
     })
   }
 
+  const formatEmploymentType = (contractDetails?: string, employmentType?: string) => {
+    if (contractDetails) {
+      const formatted = contractDetails.replace(/_/g, '-')
+      return formatted.split('-').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join('-')
+    }
+    return employmentType || 'Full-time'
+  }
+
+  const formatLocation = (job: Job) => {
+    if (job.is_remote) {
+      return 'Remote'
+    }
+    return job.country || 'On-site'
+  }
+
+  const getCompanyName = (job: Job) => {
+    if (job.company?.name) {
+      return job.company.name
+    }
+    return job.is_remote ? 'Remote' : 'On-site'
+  }
+
+  const formatSalary = (min?: number, max?: number, currency?: string, frequency?: string) => {
+    const currencyCode = currency || 'PHP'
+    const freq = frequency || 'month'
+    const freqText = freq === 'hour' ? 'an hour' : 'a month'
+    
+    if (min && max) {
+      return `${currencyCode} ${min.toLocaleString()} - ${currencyCode} ${max.toLocaleString()} ${freqText}`
+    }
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-[1400px] mx-auto px-6 py-4">
           <h1 className="text-2xl font-bold text-gray-900">Jobs for you</h1>
@@ -92,10 +132,8 @@ const Page = () => {
         </div>
       </div>
 
-      {/* Main Split Layout */}
       <div className="max-w-[1400px] mx-auto">
         <div className="flex h-[calc(100vh-100px)]">
-          {/* Left Side - Job Listings */}
           <div className="w-[45%] border-r bg-white overflow-y-auto">
             <div className="p-4">
               {loading && (
@@ -117,7 +155,6 @@ const Page = () => {
                 </div>
               )}
 
-              {/* Job Cards */}
               <div className="space-y-3">
                 {jobs.map((job) => (
                   <div
@@ -169,21 +206,28 @@ const Page = () => {
                       </div>
                     </div>
 
-                    <p className="text-gray-700 font-medium mb-1">
-                      {job.company?.name || 'Ready Talent'}
-                    </p>
-                    <p className="text-gray-600 text-sm mb-2">{job.location || 'Remote'}</p>
+                    {job.company?.name && (
+                      <p className="text-gray-700 font-medium mb-1">
+                        {job.company.name}
+                      </p>
+                    )}
+                    <p className="text-gray-600 text-sm mb-2">{formatLocation(job)}</p>
 
-                    {(job.salary_min || job.salary_max) && (
+                    {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency) && (
                       <p className="text-gray-800 font-medium text-sm mb-2">
-                        PHP {job.salary_min?.toLocaleString()} - PHP {job.salary_max?.toLocaleString()} a month
+                        {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency)}
                       </p>
                     )}
 
                     <div className="flex flex-wrap gap-2 text-sm mb-3">
                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                        {job.employment_type || 'Full-time'}
+                        {formatEmploymentType(job.contract_details, job.employment_type)}
                       </span>
+                      {job.is_remote && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                          Remote
+                        </span>
+                      )}
                     </div>
 
                     {job.easily_apply && (
@@ -201,27 +245,34 @@ const Page = () => {
             </div>
           </div>
 
-          {/* Right Side - Job Details */}
           <div className="flex-1 bg-gray-50 overflow-y-auto">
             {selectedJob ? (
               <div className="p-6">
-                {/* Job Header */}
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-4 border border-gray-200">
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     {selectedJob.position_name || selectedJob.title}
                   </h1>
-                  <a 
-                    href="#"
-                    className="text-indigo-600 hover:underline font-medium text-lg mb-3 inline-block"
-                  >
-                    {selectedJob.company?.name || 'Ready Talent'}
-                  </a>
+                  {selectedJob.company?.name && (
+                    <a 
+                      href="#"
+                      className="text-indigo-600 hover:underline font-medium text-lg mb-3 inline-block"
+                    >
+                      {selectedJob.company.name}
+                    </a>
+                  )}
 
                   <div className="mb-4 text-gray-700">
-                    <p className="mb-1">{selectedJob.location || 'Remote'}</p>
-                    {(selectedJob.salary_min || selectedJob.salary_max) && (
+                    <div className="flex items-center gap-2 mb-1">
+                      <p>{formatLocation(selectedJob)}</p>
+                      {selectedJob.is_remote && (
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                          Remote
+                        </span>
+                      )}
+                    </div>
+                    {formatSalary(selectedJob.salary_min, selectedJob.salary_max, selectedJob.currency, selectedJob.frequency) && (
                       <p className="font-semibold text-gray-900 text-lg">
-                        PHP {selectedJob.salary_min?.toLocaleString()} - PHP {selectedJob.salary_max?.toLocaleString()} a month
+                        {formatSalary(selectedJob.salary_min, selectedJob.salary_max, selectedJob.currency, selectedJob.frequency)}
                       </p>
                     )}
                   </div>
@@ -235,7 +286,6 @@ const Page = () => {
                     </div>
                   )}
 
-                  {/* Action Buttons */}
                   <div className="flex flex-wrap items-center gap-3 pt-4">
                     <button
                       onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
@@ -275,7 +325,6 @@ const Page = () => {
                   </div>
                 </div>
 
-                {/* Profile Insights */}
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-4 border border-gray-200">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Profile insights</h2>
                   <p className="text-sm text-gray-600 mb-4">
@@ -298,7 +347,6 @@ const Page = () => {
                   </div>
                 </div>
 
-                {/* Job Details */}
                 <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">Job details</h2>
 
@@ -310,10 +358,7 @@ const Page = () => {
                       <div>
                         <p className="font-semibold text-gray-900 mb-1">Pay</p>
                         <p className="text-gray-700">
-                          {selectedJob.salary_min && selectedJob.salary_max 
-                            ? `PHP ${selectedJob.salary_min.toLocaleString()} - PHP ${selectedJob.salary_max.toLocaleString()} a month`
-                            : 'Competitive salary'
-                          }
+                          {formatSalary(selectedJob.salary_min, selectedJob.salary_max, selectedJob.currency, selectedJob.frequency) || 'Competitive salary'}
                         </p>
                       </div>
                     </div>
@@ -324,14 +369,35 @@ const Page = () => {
                       </svg>
                       <div>
                         <p className="font-semibold text-gray-900 mb-1">Job type</p>
-                        <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
-                          <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-sm text-green-700 font-medium">
-                            {selectedJob.employment_type || 'Full-time'}
-                          </span>
+                        <div className="flex flex-wrap gap-2">
+                          <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
+                            <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-sm text-green-700 font-medium">
+                              {formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
+                            </span>
+                          </div>
+                          {selectedJob.is_remote && (
+                            <div className="inline-flex items-center gap-2 bg-blue-50 px-3 py-1 rounded">
+                              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-sm text-blue-700 font-medium">Remote</span>
+                            </div>
+                          )}
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <svg className="w-6 h-6 text-gray-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold text-gray-900 mb-1">Location</p>
+                        <p className="text-gray-700">{formatLocation(selectedJob)}</p>
                       </div>
                     </div>
                   </div>
