@@ -102,7 +102,7 @@ const Page = () => {
       {/* Main container: height = viewport - navbar */}
       <div className="max-w-[1800px] mx-auto mt-[136px] md:flex" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
         {/* Job List */}
-        <div className={`${showDetails ? "hidden md:block" : "block"} w-full md:w-[45%] bg-white md:overflow-y-auto`}>
+        <div className={`${showDetails ? "hidden md:block" : "block"} w-full md:w-[45%] bg-white md:overflow-y-auto scrollbar-hide`}>
           <div className="p-3 sm:p-4">
             {loading && (
               <div className="flex items-center justify-center py-20">
@@ -180,7 +180,7 @@ const Page = () => {
         </div>
 
         {/* Job Details */}
-        <div className={`${showDetails ? "block" : "hidden md:block"} w-full md:flex-1 bg-gray-50 md:overflow-y-auto`}>
+        <div className={`${showDetails ? "block" : "hidden md:block"} w-full md:flex-1 bg-gray-50 md:overflow-y-auto scrollbar-hide`}>
           {selectedJob ? (
             <div className="p-4 sm:p-6">
               {/* Job Header */}
@@ -360,6 +360,19 @@ const Page = () => {
           )}
         </div>
       </div>
+
+      <style jsx global>{`
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .scrollbar-hide {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+      `}</style>
     </div>
   );
 };
