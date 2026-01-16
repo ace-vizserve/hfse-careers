@@ -212,7 +212,17 @@ export default function JobApplicationPage() {
     field.name?.toLowerCase() === "industries" ||
     field.label?.toLowerCase() === "Work Industry";
 
-  const isCVField = (field: FormField) => field.id === "1741683";
+  const isCVField = (field: FormField) =>
+    field.id === "1741683" ||
+    field.slug?.toLowerCase() === "cv" ||
+    field.slug?.toLowerCase() === "resume" ||
+    field.name?.toLowerCase() === "cv" ||
+    field.name?.toLowerCase() === "resume" ||
+    field.label?.toLowerCase() === "cv" ||
+    field.label?.toLowerCase() === "resume" ||
+    field.label?.toLowerCase() === "resume/cv" ||
+    field.label?.toLowerCase() === "upload resume";
+
   const getCurrencyId = (code: string) => {
     const map: Record<string, string> = {
       SGD: "11",
@@ -582,14 +592,6 @@ export default function JobApplicationPage() {
             <button onClick={() => router.back()} className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
               ← Back to job
             </button>
-          </div>
-
-          <div className="p-8 flex justify-between items-center">
-            <div className="space-y-1">
-              <h1 className="text-[#1A4B8F] text-2xl font-black uppercase leading-tight">Submit Application</h1>
-              <p className="text-[#1A4B8F] text-lg font-semibold uppercase">{job?.position_name}</p>
-            </div>
-            <img src="/vizserve-logo.jpg" alt="VizServe Logo" className="h-32 w-auto object-contain" />
           </div>
 
           {submitSuccess ? (
