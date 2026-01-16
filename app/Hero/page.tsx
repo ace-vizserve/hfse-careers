@@ -1,7 +1,19 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Loader2, Mail, Share2, BookOpen, DollarSign, Briefcase, CheckCircle, Zap, MapPin } from 'lucide-react'
+import {
+  ChevronLeft,
+  Loader2,
+  Mail,
+  Share2,
+  BookOpen,
+  DollarSign,
+  Briefcase,
+  CheckCircle,
+  Zap,
+  MapPin
+} from 'lucide-react'
+import Navbar from '../components/navbar'
 
 interface Job {
   id?: number
@@ -28,6 +40,8 @@ interface Job {
   easily_apply?: boolean
 }
 
+const NAVBAR_HEIGHT = 136 // top bar + main navbar
+
 const Page = () => {
   const router = useRouter()
   const [jobs, setJobs] = useState<Job[]>([])
@@ -42,32 +56,18 @@ const Page = () => {
         setLoading(true)
         const response = await fetch('/api/jobs', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
+          headers: { 'Content-Type': 'application/json' }
         })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch jobs')
-        }
-
+        if (!response.ok) throw new Error('Failed to fetch jobs')
         const data = await response.json()
         let jobsList: Job[] = []
-
-        if (Array.isArray(data)) {
-          jobsList = data
-        } else if (data.results && Array.isArray(data.results)) {
-          jobsList = data.results
-        } else if (data.data && Array.isArray(data.data)) {
-          jobsList = data.data
-        } else if (data.jobs && Array.isArray(data.jobs)) {
-          jobsList = data.jobs
-        }
+        if (Array.isArray(data)) jobsList = data
+        else if (data.results && Array.isArray(data.results)) jobsList = data.results
+        else if (data.data && Array.isArray(data.data)) jobsList = data.data
+        else if (data.jobs && Array.isArray(data.jobs)) jobsList = data.jobs
 
         setJobs(jobsList)
-        if (jobsList.length > 0) {
-          setSelectedJob(jobsList[0])
-        }
+        if (jobsList.length > 0) setSelectedJob(jobsList[0])
         setLoading(false)
       } catch (err) {
         console.error('Error fetching jobs:', err)
@@ -75,35 +75,26 @@ const Page = () => {
         setLoading(false)
       }
     }
-
     fetchJobs()
   }, [])
 
   const formatEmploymentType = (contractDetails?: string, employmentType?: string) => {
     if (contractDetails) {
       const formatted = contractDetails.replace(/_/g, '-')
-      return formatted.split('-').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join('-')
+      return formatted
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('-')
     }
     return employmentType || 'Full-time'
   }
 
-  const formatLocation = (job: Job) => {
-    if (job.is_remote) {
-      return 'Remote'
-    }
-    return job.country || 'On-site'
-  }
+  const formatLocation = (job: Job) => (job.is_remote ? 'Remote' : job.country || 'On-site')
 
   const formatSalary = (min?: number, max?: number, currency?: string, frequency?: string) => {
     const currencyCode = currency || 'PHP'
-    const freq = frequency || 'month'
-    const freqText = freq === 'hour' ? 'an hour' : 'a month'
-
-    if (min && max) {
-      return `${currencyCode} ${min.toLocaleString()} - ${currencyCode} ${max.toLocaleString()} ${freqText}`
-    }
+    const freqText = frequency === 'hour' ? 'an hour' : 'a month'
+    if (min && max) return `${currencyCode} ${min.toLocaleString()} - ${currencyCode} ${max.toLocaleString()} ${freqText}`
     return null
   }
 
@@ -112,282 +103,279 @@ const Page = () => {
     setShowDetails(true)
   }
 
-  const handleBack = () => {
-    setShowDetails(false)
-  }
+  const handleBack = () => setShowDetails(false)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-3">
-            {showDetails && (
-              <button
-                onClick={handleBack}
-                className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
-                aria-label="Back to job list"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
+    <div className="bg-gray-50">
+      <Navbar />
+
+      {/* Main container: height = viewport - navbar */}
+      <div
+        className="max-w-[1800px] mx-auto mt-[136px] md:flex"
+        style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}
+      >
+        {/* Job List */}
+        <div
+          className={`${showDetails ? 'hidden md:block' : 'block'} w-full md:w-[45%] bg-white md:overflow-y-auto`}
+        >
+          <div className="p-3 sm:p-4">
+            {loading && (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+              </div>
             )}
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Jobs for you</h1>
-              <p className="text-xs sm:text-sm text-gray-600 mt-1">Jobs based on your activity on Indeed</p>
+
+            {error && (
+              <div className="bg-red-50 rounded-lg p-4 m-4">
+                <p className="text-red-800 font-medium">Error loading jobs: {error}</p>
+                <p className="text-red-600 text-sm mt-1">
+                  Make sure your API endpoint is configured correctly
+                </p>
+              </div>
+            )}
+
+            {!loading && !error && jobs.length === 0 && (
+              <div className="text-center py-20">
+                <p className="text-gray-500 text-lg">No jobs available at the moment.</p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {jobs.map(job => (
+                <div
+                  key={job.id}
+                  onClick={() => handleJobClick(job)}
+                  className={`rounded-lg p-3 sm:p-4 cursor-pointer transition-all hover:shadow-md ${
+                    selectedJob?.id === job.id
+                      ? 'bg-indigo-50 shadow-sm ring-2 ring-indigo-500'
+                      : 'bg-white hover:bg-gray-50 shadow-sm'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      {job.urgently_hiring && (
+                        <span className="inline-block text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded mb-2">
+                          Urgently hiring
+                        </span>
+                      )}
+                      <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-1 hover:underline">
+                        {job.position_name || job.title || 'Position Title'}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {job.company?.name && (
+                    <p className="text-gray-700 font-medium mb-1 text-sm sm:text-base">{job.company.name}</p>
+                  )}
+
+                  <p className="text-gray-600 text-sm mb-2">{formatLocation(job)}</p>
+
+                  {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency) && (
+                    <p className="text-gray-800 font-medium text-sm mb-2">
+                      {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency)}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 text-sm mb-3">
+                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs sm:text-sm">
+                      {formatEmploymentType(job.contract_details, job.employment_type)}
+                    </span>
+                    {job.is_remote && (
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs sm:text-sm">
+                        Remote
+                      </span>
+                    )}
+                  </div>
+
+                  {job.easily_apply && (
+                    <div className="flex items-center gap-1 text-sm text-indigo-600">
+                      <Mail className="w-4 h-4" />
+                      <span className="font-medium">Easily apply</span>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-[1400px] mx-auto">
-        <div className="md:flex md:h-[calc(100vh-100px)]">
-          <div className={`${showDetails ? 'hidden md:block' : 'block'} w-full md:w-[45%] bg-white md:overflow-y-auto`}>
-            <div className="p-3 sm:p-4">
-              {loading && (
-                <div className="flex items-center justify-center py-20">
-                  <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-                </div>
-              )}
+        {/* Job Details */}
+        <div
+          className={`${showDetails ? 'block' : 'hidden md:block'} w-full md:flex-1 bg-gray-50 md:overflow-y-auto`}
+        >
+          {selectedJob ? (
+            <div className="p-4 sm:p-6">
+              {/* Job Header */}
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                  {selectedJob.position_name || selectedJob.title}
+                </h1>
 
-              {error && (
-                <div className="bg-red-50 rounded-lg p-4 m-4">
-                  <p className="text-red-800 font-medium">Error loading jobs: {error}</p>
-                  <p className="text-red-600 text-sm mt-1">Make sure your API endpoint is configured correctly</p>
-                </div>
-              )}
-
-              {!loading && !error && jobs.length === 0 && (
-                <div className="text-center py-20">
-                  <p className="text-gray-500 text-lg">No jobs available at the moment.</p>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {jobs.map((job) => (
-                  <div
-                    key={job.id}
-                    onClick={() => handleJobClick(job)}
-                    className={`rounded-lg p-3 sm:p-4 cursor-pointer transition-all hover:shadow-md ${
-                      selectedJob?.id === job.id
-                        ? 'bg-indigo-50 shadow-sm ring-2 ring-indigo-500'
-                        : 'bg-white hover:bg-gray-50 shadow-sm'
-                    }`}
+                {selectedJob.company?.name && (
+                  <a
+                    href="#"
+                    className="text-indigo-600 hover:underline font-medium text-base sm:text-lg mb-3 inline-block"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        {job.urgently_hiring && (
-                          <span className="inline-block text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded mb-2">
-                            Urgently hiring
-                          </span>
-                        )}
-                        <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-1 hover:underline">
-                          {job.position_name || job.title || 'Position Title'}
-                        </h3>
-                      </div>
-                    </div>
+                    {selectedJob.company.name}
+                  </a>
+                )}
 
-                    {job.company?.name && (
-                      <p className="text-gray-700 font-medium mb-1 text-sm sm:text-base">
-                        {job.company.name}
-                      </p>
-                    )}
-
-                    <p className="text-gray-600 text-sm mb-2">{formatLocation(job)}</p>
-
-                    {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency) && (
-                      <p className="text-gray-800 font-medium text-sm mb-2">
-                        {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency)}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 text-sm mb-3">
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs sm:text-sm">
-                        {formatEmploymentType(job.contract_details, job.employment_type)}
+                <div className="mb-4 text-gray-700">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm sm:text-base">{formatLocation(selectedJob)}</p>
+                    {selectedJob.is_remote && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                        Remote
                       </span>
-                      {job.is_remote && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs sm:text-sm">
-                          Remote
-                        </span>
-                      )}
-                    </div>
-
-                    {job.easily_apply && (
-                      <div className="flex items-center gap-1 text-sm text-indigo-600">
-                        <Mail className="w-4 h-4" />
-                        <span className="font-medium">Easily apply</span>
-                      </div>
                     )}
                   </div>
-                ))}
+                  {formatSalary(
+                    selectedJob.salary_min,
+                    selectedJob.salary_max,
+                    selectedJob.currency,
+                    selectedJob.frequency
+                  ) && (
+                    <p className="font-semibold text-gray-900 text-base sm:text-lg">
+                      {formatSalary(
+                        selectedJob.salary_min,
+                        selectedJob.salary_max,
+                        selectedJob.currency,
+                        selectedJob.frequency
+                      )}
+                    </p>
+                  )}
+                </div>
+
+                {selectedJob.urgently_hiring && (
+                  <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
+                    <Zap className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-xs sm:text-sm">
+                      Responded to 75% or more applications in the past 30 days, typically within 1 day.
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-4">
+                  <button
+                    onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
+                    className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm text-sm sm:text-base"
+                  >
+                    Apply now
+                  </button>
+                  <button className="p-2.5 bg-white shadow-sm rounded-lg hover:bg-gray-50 transition" aria-label="Share">
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className={`${showDetails ? 'block' : 'hidden md:block'} w-full md:flex-1 bg-gray-50 overflow-y-auto`}>
-            {selectedJob ? (
-              <div className="p-4 sm:p-6">
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                    {selectedJob.position_name || selectedJob.title}
-                  </h1>
-
-                  {selectedJob.company?.name && (
-                    <a
-                      href="#"
-                      className="text-indigo-600 hover:underline font-medium text-base sm:text-lg mb-3 inline-block"
-                    >
-                      {selectedJob.company.name}
-                    </a>
-                  )}
-
-                  <div className="mb-4 text-gray-700">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm sm:text-base">{formatLocation(selectedJob)}</p>
-                      {selectedJob.is_remote && (
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded font-medium">
-                          Remote
-                        </span>
-                      )}
+              {/* Profile Insights */}
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Profile insights</h2>
+                <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                  Here's how the job qualifications align with your profile.
+                </p>
+                <div className="flex items-start gap-3 mb-4">
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Education</p>
+                    <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-xs sm:text-sm text-green-700 font-medium">Bachelor's</span>
                     </div>
-                    {formatSalary(selectedJob.salary_min, selectedJob.salary_max, selectedJob.currency, selectedJob.frequency) && (
-                      <p className="font-semibold text-gray-900 text-base sm:text-lg">
-                        {formatSalary(selectedJob.salary_min, selectedJob.salary_max, selectedJob.currency, selectedJob.frequency)}
-                      </p>
-                    )}
-                  </div>
-
-                  {selectedJob.urgently_hiring && (
-                    <div className="flex items-start gap-2 text-sm text-gray-600 mb-4">
-                      <Zap className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-xs sm:text-sm">Responded to 75% or more applications in the past 30 days, typically within 1 day.</span>
-                    </div>
-                  )}
-
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-4">
-                    <button
-                      onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
-                      className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm text-sm sm:text-base"
-                    >
-                      Apply now
-                    </button>
-                    <button
-                      className="p-2.5 bg-white shadow-sm rounded-lg hover:bg-gray-50 transition"
-                      aria-label="Share"
-                    >
-                      <Share2 className="w-5 h-5" />
-                    </button>
                   </div>
                 </div>
+              </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Profile insights</h2>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-4">
-                    Here's how the job qualifications align with your profile.
-                  </p>
+              {/* Job Details */}
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Job details</h2>
 
-                  <div className="flex items-start gap-3 mb-4">
-                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 mt-0.5 flex-shrink-0" />
+                <div className="space-y-4 mb-6">
+                  {/* Pay */}
+                  <div className="flex items-start gap-3">
+                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Education</p>
-                      <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-xs sm:text-sm text-green-700 font-medium">Bachelor's</span>
-                      </div>
+                      <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Pay</p>
+                      <p className="text-gray-700 text-sm sm:text-base">
+                        {formatSalary(
+                          selectedJob.salary_min,
+                          selectedJob.salary_max,
+                          selectedJob.currency,
+                          selectedJob.frequency
+                        ) || 'Competitive salary'}
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-                  <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Job details</h2>
-
-                  <div className="space-y-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Pay</p>
-                        <p className="text-gray-700 text-sm sm:text-base">
-                          {formatSalary(selectedJob.salary_min, selectedJob.salary_max, selectedJob.currency, selectedJob.frequency) || 'Competitive salary'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Job type</p>
-                        <div className="flex flex-wrap gap-2">
-                          <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-xs sm:text-sm text-green-700 font-medium">
-                              {formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
-                            </span>
-                          </div>
+                  {/* Job Type */}
+                  <div className="flex items-start gap-3">
+                    <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Job type</p>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="inline-flex items-center gap-2 bg-green-50 px-3 py-1 rounded">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-xs sm:text-sm text-green-700 font-medium">
+                            {formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
+                          </span>
                         </div>
                       </div>
                     </div>
-
-                      <div className="flex items-start gap-3">
-                     <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Location</p>
-                        <p className="text-gray-700 text-sm sm:text-base">{formatLocation(selectedJob)}</p>
-                      </div>
-                    </div>
                   </div>
 
-                  <div className="border-t pt-6">
-  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
-    Full Job Description
-  </h3>
-
-  <div className="space-y-4 text-gray-700 text-sm sm:text-base leading-relaxed">
-    {selectedJob?.description
-      ? selectedJob.description
-          .replace(/<[^>]*>/g, '')
-          .split(/\n+/)
-          .map((paragraph, index) => (
-            <p key={index}>{paragraph}</p>
-          ))
-      : (
-        <p className="italic text-gray-400">No description available.</p>
-      )}
-  </div>
+                  {/* Location */}
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">Location</p>
+                      <p className="text-gray-700 text-sm sm:text-base">{formatLocation(selectedJob)}</p>
+                    </div>
                   </div>
-
-
-                   {selectedJob.requirements && selectedJob.requirements.length > 0 && (
-                    <div className="border-t pt-6 mt-6">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Requirements</h3>
-                      <ul className="list-disc list-inside space-y-2 text-gray-700 text-sm sm:text-base">
-                        {selectedJob.requirements.map((req, idx) => (
-                          <li key={idx}>{req}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                    <div className="border-t pt-6 mt-6">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Benefits</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedJob.benefits.map((benefit, idx) => (
-                          <span 
-                            key={idx}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-xs sm:text-sm"
-                          >
-                            {benefit}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {/* Full Description */}
+                <div className="border-t pt-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Full Job Description</h3>
+                  <div className="space-y-4 text-gray-700 text-sm sm:text-base leading-relaxed">
+                    {selectedJob.description
+                      ? selectedJob.description
+                          .replace(/<[^>]*>/g, '')
+                          .split(/\n+/)
+                          .map((paragraph, idx) => <p key={idx}>{paragraph}</p>)
+                      : <p className="italic text-gray-400">No description available.</p>}
+                  </div>
+                </div>
+
+                {/* Requirements */}
+                {selectedJob.requirements && selectedJob.requirements.length > 0 && (
+                  <div className="border-t pt-6 mt-6">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Requirements</h3>
+                    <ul className="list-disc list-inside space-y-2 text-gray-700 text-sm sm:text-base">
+                      {selectedJob.requirements.map((req, idx) => <li key={idx}>{req}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Benefits */}
+                {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+                  <div className="border-t pt-6 mt-6">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Benefits</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedJob.benefits.map((benefit, idx) => (
+                        <span key={idx} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-xs sm:text-sm">
+                          {benefit}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500">Select a job to view details</p>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">Select a job to view details</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
