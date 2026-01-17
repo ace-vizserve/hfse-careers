@@ -3,6 +3,7 @@ import { BookOpen, Briefcase, CheckCircle, DollarSign, Loader2, Mail, MapPin, Sh
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "../components/navbar";
+import PopupModal from "../components/ui/PopupModal";
 
 interface Job {
   id?: number;
@@ -38,6 +39,7 @@ const Page = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -80,13 +82,31 @@ const Page = () => {
 
   const formatLocation = (job: Job) => (job.is_remote ? "Remote" : job.country || "On-site");
 
-  const formatSalary = (min?: number, max?: number, currency?: string, frequency?: string) => {
-    const currencyCode = currency || "PHP";
-    const freqText = frequency === "hour" ? "an hour" : "a month";
-    if (min && max)
-      return `${currencyCode} ${min.toLocaleString()} - ${currencyCode} ${max.toLocaleString()} ${freqText}`;
-    return null;
-  };
+  const formatSalary = (
+  min?: number,
+  max?: number,
+  currency?: string,
+  frequency?: string
+) => {
+  if (!min && !max) return null;
+
+  const currencyCode = currency || "PHP";
+
+  const formatter = new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: currencyCode,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const freqText = frequency === "hour" ? " / hour" : " / month";
+
+  if (min && max) {
+    return `${formatter.format(min)} - ${formatter.format(max)}${freqText}`;
+  }
+
+  return `${formatter.format(min || max!)}${freqText}`;
+};
 
   const handleJobClick = (job: Job) => {
     setSelectedJob(job);
@@ -94,6 +114,19 @@ const Page = () => {
   };
 
   const handleBack = () => setShowDetails(false);
+
+  const handleShare = async () => {
+  if (!selectedJob?.id) return;
+
+  const jobUrl = `${window.location.origin}/jobs/${selectedJob.id}`;
+
+  try {
+    await navigator.clipboard.writeText(jobUrl);
+    setShareModalOpen(true);
+  } catch (err) {
+    console.error("Failed to copy:", err);
+  }
+};
 
   return (
     <div className="bg-gray-50">
@@ -236,11 +269,22 @@ const Page = () => {
                     className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm text-sm sm:text-base">
                     Apply now
                   </button>
-                  <button
-                    className="p-2.5 bg-white shadow-sm rounded-lg hover:bg-gray-50 transition"
-                    aria-label="Share">
-                    <Share2 className="w-5 h-5" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={handleShare}
+                      className="p-2.5 bg-white shadow-sm rounded-lg hover:bg-gray-50 transition"
+                      aria-label="Share">
+                      <Share2 className="w-5 h-5" />
+                    </button>
+
+                  <PopupModal
+                    open={shareModalOpen}
+                    onClose={() => setShareModalOpen(false)}
+                    title="Link copied"
+                    message="The job link has been copied to your clipboard."
+                  />
+
+                  </div>
                 </div>
               </div>
 
