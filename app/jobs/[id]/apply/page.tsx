@@ -121,6 +121,20 @@ export default function JobApplicationPage() {
     { id: "cover_letter", slug: "cover_letter", label: "Cover Letter", type: "textarea", required: false },
   ];
 
+  const declarationQuestions = [
+  "Have you been or are you suffering from any disease/major medical condition/mental illness or physical impairment?",
+  "Have you been discharged or dismissed from the service of your previous employers?",
+  "Have you been convicted in a Court of law in any country or any ongoing legal proceedings?",
+  "Have you been served with a Garnishee Order by any organisation or been declared a bankrupt?",
+  "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
+];
+
+const [declarationAnswers, setDeclarationAnswers] = useState<Record<number, string>>({});
+
+const handleDeclarationChange = (index: number, value: string) => {
+  setDeclarationAnswers(prev => ({ ...prev, [index]: value }));
+};
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -379,7 +393,7 @@ const removeReference = (index: number) => {
           if (exp.salary?.trim()) {
             cleanSalary = exp.salary.trim().replace(/[^0-9]/g, "");
           }
-
+applicationData["declaration"] = declarationAnswers;
           const data: any = {
             title: exp.title.trim(),
             employer: exp.employer.trim(),
@@ -659,6 +673,10 @@ if (resumeProps.successes.length > 0) {
     </div>
   )}
 
+
+
+
+
   {/* ===== MAIN FORM FIELDS (2 COLUMN GRID) ===== */}
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 {formFields
@@ -679,6 +697,35 @@ if (resumeProps.successes.length > 0) {
         </div>
       ))}
   </div>
+
+
+
+{/* ===== DECLARATION SECTION ===== */}
+<div className="border rounded-xl p-6 bg-gray-50">
+  <h3 className="text-xl font-bold mb-5">Declaration</h3>
+
+  {declarationQuestions.map((question, i) => (
+    <div key={i} className="mb-4">
+      <p className="text-gray-700 mb-1">{i + 1}. {question} <span className="text-red-600">*</span></p>
+      <div className="flex gap-6">
+        {["Yes", "No"].map(option => (
+          <label key={option} className="flex items-center gap-2">
+            <input
+              type="radio"
+              name={`declaration_${i}`}
+              value={option}
+              checked={declarationAnswers[i] === option}
+              onChange={() => handleDeclarationChange(i, option)}
+              required
+              className="accent-indigo-600"
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+    </div>
+  ))}
+</div>
 
 
  {/* ===== Character Reference New ===== */}
