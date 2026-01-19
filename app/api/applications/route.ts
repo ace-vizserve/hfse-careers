@@ -95,6 +95,28 @@ export async function POST(request: Request) {
       }
     }
 
+    // Format character references as HTML for Manatal
+if (applicationData["character_references"] && Array.isArray(applicationData["character_references"])) {
+  const references = applicationData["character_references"];
+  
+  const formattedReferences = references
+    .map((ref: any) => `
+      <li>
+        <ul>
+          <li>Name : ${ref.name || ''}</li>
+          <li>Email : ${ref.email || ''}</li>
+          <li>Contact Number : ${ref.contact_no || ''}</li>
+          <li>Occupation & Company : ${ref.company_occupation || ''}</li>
+          <li>Relationship to Applicant : ${ref.relationship || ''}</li>
+        </ul>
+      </li>
+    `)
+    .join('');
+  
+  applicationData["character_references"] = `<ol>${formattedReferences}</ol>`;
+  console.log("✅ Formatted character references as HTML");
+}
+
     // Get expected_currency from formData
     const expectedCurrencyValue = formData.get("expected_currency");
     const expectedCurrency = typeof expectedCurrencyValue === "string" ? expectedCurrencyValue : null;

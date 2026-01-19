@@ -34,17 +34,26 @@ export async function GET(request, { params }) {
 
     console.log("Form fields retrieved for job", id, ":", formFields.length, "fields");
 
-    // Transform Manatal fields to our format
-    const transformedFields = formFields.map((field) => ({
-      id: field.id,
-      name: field.slug,
-      label: field.label,
-      type: mapFieldType(field.type, field.display_type),
-      required: field.is_required,
-      options: field.options || [],
-      placeholder: generatePlaceholder(field.label, field.type),
-      fieldCategory: field.field_category,
-    }));
+   // Transform Manatal fields to our format and filter out Character References
+const transformedFields = formFields
+  .filter((field) => {
+    // Remove Character References field - it's now handled separately
+    const isCharacterRef = 
+      field.slug?.toLowerCase().includes("character") ||
+      field.slug?.toLowerCase().includes("reference") ||
+      field.label?.toLowerCase().includes("character reference");
+    return !isCharacterRef;
+  })
+  .map((field) => ({
+    id: field.id,
+    name: field.slug,
+    label: field.label,
+    type: mapFieldType(field.type, field.display_type),
+    required: field.is_required,
+    options: field.options || [],
+    placeholder: generatePlaceholder(field.label, field.type),
+    fieldCategory: field.field_category,
+  }));
 
     console.log(transformedFields);
 

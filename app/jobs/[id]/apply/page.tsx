@@ -48,6 +48,21 @@ interface Education {
   description?: string;
 }
 
+interface CharacterReference {
+  name: string;
+  email: string;
+  contact_no: string;
+  company_occupation: string;
+  relationship: string;
+}
+
+const isCharacterReferenceField = (field: FormField) =>
+  field.slug?.toLowerCase().includes("character") ||
+  field.slug?.toLowerCase().includes("reference") ||
+  field.name?.toLowerCase().includes("character") ||
+  field.label?.toLowerCase().includes("character reference");
+
+
 export default function JobApplicationPage() {
   const params = useParams();
   const router = useRouter();
@@ -191,7 +206,7 @@ export default function JobApplicationPage() {
       }
     };
 
-    const debounceTimer = setTimeout(fetchNationalities, 3000);
+    const debounceTimer = setTimeout(fetchNationalities, 1500);
 
     return () => clearTimeout(debounceTimer);
   }, [nationalityQuery]);
@@ -293,7 +308,25 @@ export default function JobApplicationPage() {
     f.label?.toLowerCase() === "experiences" ||
     f.label?.toLowerCase() === "work experience";
 
-  const isEducationField = (f: FormField) =>
+
+  const [references, setReferences] = useState<CharacterReference[]>([
+  { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
+  ]);
+
+  const updateReference = (index: number, field: keyof CharacterReference, value: string) => {
+  setReferences(prev => prev.map((ref, i) => i === index ? { ...ref, [field]: value } : ref));
+};
+
+const addReference = () => {
+  setReferences(prev => [...prev, { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" }]);
+};
+
+const removeReference = (index: number) => {
+  if (references.length <= 1) return;
+  setReferences(prev => prev.filter((_, i) => i !== index));
+};
+
+  const isEducationField = (f: FormField) => 
     (f.name || "").toLowerCase() === "education" ||
     (f.slug || "").toLowerCase() === "education" ||
     f.label?.toLowerCase() === "educational profile" ||
@@ -361,6 +394,15 @@ export default function JobApplicationPage() {
           return data;
         });
       }
+
+// Add character references as array (will be formatted to HTML in backend)
+const validReferences = references.filter(ref => 
+  ref.name.trim() || ref.email.trim() || ref.contact_no.trim()
+);
+
+if (validReferences.length > 0) {
+  applicationData["character_references"] = validReferences;
+}
 
       // Process education with correct field names matching Postman
       if (eduField) {
@@ -619,9 +661,13 @@ if (resumeProps.successes.length > 0) {
 
   {/* ===== MAIN FORM FIELDS (2 COLUMN GRID) ===== */}
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {formFields
-      .filter((f) => !isExperienceField(f) && !isEducationField(f))
-      .map((field) => (
+{formFields
+  .filter((f) => 
+    !isExperienceField(f) && 
+    !isEducationField(f) && 
+    !isCharacterReferenceField(f)
+  )
+  .map((field) => (
         <div key={field.id} className="w-full">
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
             {field.label}
@@ -633,6 +679,85 @@ if (resumeProps.successes.length > 0) {
         </div>
       ))}
   </div>
+
+
+ {/* ===== Character Reference New ===== */}
+      <div className="border rounded-xl p-6 bg-gray-50">
+  <h3 className="text-xl font-bold mb-5">Character References</h3>
+
+  {references.map((ref, i) => (
+    <div key={i} className="mb-6 p-4 border rounded-lg bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+      <div>
+        <label className="block text-sm font-medium mb-1">Name</label>
+        <input
+          type="text"
+          value={ref.name}
+          onChange={(e) => updateReference(i, "name", e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Email</label>
+        <input
+          type="email"
+          value={ref.email}
+          onChange={(e) => updateReference(i, "email", e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Contact No.</label>
+        <input
+          type="text"
+          value={ref.contact_no}
+          onChange={(e) => updateReference(i, "contact_no", e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Company & Occupation</label>
+        <input
+          type="text"
+          value={ref.company_occupation}
+          onChange={(e) => updateReference(i, "company_occupation", e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg"
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label className="block text-sm font-medium mb-1">Relationship to Applicant</label>
+        <input
+          type="text"
+          value={ref.relationship}
+          onChange={(e) => updateReference(i, "relationship", e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg"
+        />
+      </div>
+
+      {references.length > 1 && (
+        <button
+          type="button"
+          onClick={() => removeReference(i)}
+          className="mt-2 text-red-600 hover:text-red-800 text-sm"
+        >
+          Remove
+        </button>
+      )}
+    </div>
+  ))}
+
+  <button
+    type="button"
+    onClick={addReference}
+    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+  >
+    + Add Reference
+  </button>
+</div>
 
   {/* ===== WORK EXPERIENCE (UNCHANGED) ===== */}
   {hasExp && (
