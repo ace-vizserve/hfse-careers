@@ -191,7 +191,7 @@ export default function JobApplicationPage() {
       }
     };
 
-    const debounceTimer = setTimeout(fetchNationalities, 300);
+    const debounceTimer = setTimeout(fetchNationalities, 3000);
 
     return () => clearTimeout(debounceTimer);
   }, [nationalityQuery]);
@@ -376,17 +376,17 @@ export default function JobApplicationPage() {
         }));
       }
 
-      if (resumeProps.successes.length > 0) {
-        const resumeField = formFields.find(isCVField);
-        if (resumeField) {
-          applicationData[resumeField.id] = resumeProps.successes[0];
-        }
-      } else {
-        const resumeField = formFields.find(isCVField);
-        if (resumeField?.required) {
-          throw new Error("Please upload a resume file");
-        }
-      }
+if (resumeProps.successes.length > 0) {
+  const resumeField = formFields.find(isCVField);
+  if (resumeField) {
+    applicationData[resumeField.id] = resumeProps.successes[0];
+  }
+} else {
+  const resumeField = formFields.find(isCVField);
+  if (resumeField?.required || resumeField?.is_required) {
+    throw new Error("Please upload a resume file");
+  }
+}
 
       console.log("Application Data:", applicationData);
 
@@ -582,7 +582,7 @@ export default function JobApplicationPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-6 border-b bg-gray-50">
             <h1 className="text-2xl md:text-3xl font-bold">Application</h1>
@@ -604,223 +604,285 @@ export default function JobApplicationPage() {
               <h2 className="text-2xl font-bold mb-3">Application Submitted!</h2>
               <p className="text-gray-600 mb-8">Thank you! We'll get back to you soon.</p>
               <button
-                onClick={() => router.push("/jobs")}
+                onClick={() => router.push("/Hero")}
                 className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                 Browse More Jobs
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
-              {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">{error}</div>}
+  {error && (
+    <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+      {error}
+    </div>
+  )}
 
-              {formFields
-                .filter((f) => !isExperienceField(f) && !isEducationField(f))
-                .map((field) => (
-                  <div key={field.id}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      {field.label}
-                      {(field.required || field.is_required) && <span className="text-red-600 ml-1">*</span>}
-                    </label>
-                    {renderField(field)}
-                  </div>
-                ))}
+  {/* ===== MAIN FORM FIELDS (2 COLUMN GRID) ===== */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {formFields
+      .filter((f) => !isExperienceField(f) && !isEducationField(f))
+      .map((field) => (
+        <div key={field.id} className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {field.label}
+            {(field.required || field.is_required) && (
+              <span className="text-red-600 ml-1">*</span>
+            )}
+          </label>
+          {renderField(field)}
+        </div>
+      ))}
+  </div>
 
-              {hasExp && (
-                <div className="border rounded-xl p-6 bg-gray-50">
-                  <h3 className="text-xl font-bold mb-5">Work Experience</h3>
-                  {experiences.map((exp, i) => (
-                    <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Job Title</label>
-                          <input
-                            type="text"
-                            value={exp.title}
-                            onChange={(e) => updateExperience(i, "title", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Company</label>
-                          <input
-                            type="text"
-                            value={exp.employer}
-                            onChange={(e) => updateExperience(i, "employer", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Salary</label>
-                          <input
-                            type="text"
-                            value={exp.salary}
-                            onChange={(e) => updateExperience(i, "salary", e.target.value)}
-                            placeholder="e.g. 5000"
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={exp.is_current_employer}
-                            onChange={(e) => updateExperience(i, "is_current_employer", e.target.checked)}
-                            className="mr-2"
-                          />
-                          <label className="text-sm">Currently working here</label>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Start Date</label>
-                          <input
-                            type="date"
-                            value={exp.started_at}
-                            onChange={(e) => updateExperience(i, "started_at", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">End Date</label>
-                          <input
-                            type="date"
-                            value={exp.ended_at || ""}
-                            onChange={(e) => updateExperience(i, "ended_at", e.target.value)}
-                            disabled={exp.is_current_employer}
-                            className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium mb-1">Description</label>
-                        <textarea
-                          value={exp.description}
-                          onChange={(e) => updateExperience(i, "description", e.target.value)}
-                          rows={3}
-                          className="w-full px-3 py-2 border rounded-lg"
-                        />
-                      </div>
-                      {experiences.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeExperience(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-sm">
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addExperience}
-                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
-                    + Add Experience
-                  </button>
-                </div>
-              )}
+  {/* ===== WORK EXPERIENCE (UNCHANGED) ===== */}
+  {hasExp && (
+    <div className="border rounded-xl p-6 bg-gray-50">
+      <h3 className="text-xl font-bold mb-5">Work Experience</h3>
 
-              {hasEdu && (
-                <div className="border rounded-xl p-6 bg-gray-50">
-                  <h3 className="text-xl font-bold mb-5">Education</h3>
-                  {educations.map((edu, i) => (
-                    <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-1">School</label>
-                          <input
-                            type="text"
-                            value={edu.school}
-                            onChange={(e) => updateEducation(i, "school", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Degree</label>
-                          <input
-                            type="text"
-                            value={edu.degree_name}
-                            onChange={(e) => updateEducation(i, "degree_name", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Field of Study</label>
-                          <input
-                            type="text"
-                            value={edu.specialization}
-                            onChange={(e) => updateEducation(i, "specialization", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Location</label>
-                          <input
-                            type="text"
-                            value={edu.location}
-                            onChange={(e) => updateEducation(i, "location", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Start Date</label>
-                          <input
-                            type="date"
-                            value={edu.started_at}
-                            onChange={(e) => updateEducation(i, "started_at", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-1">End Date</label>
-                          <input
-                            type="date"
-                            value={edu.ended_at || ""}
-                            onChange={(e) => updateEducation(i, "ended_at", e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg"
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium mb-1">Description</label>
-                        <textarea
-                          value={edu.description}
-                          onChange={(e) => updateEducation(i, "description", e.target.value)}
-                          rows={3}
-                          className="w-full px-3 py-2 border rounded-lg"
-                        />
-                      </div>
-                      {educations.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeEducation(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-sm">
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={addEducation}
-                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
-                    + Add Education
-                  </button>
-                </div>
-              )}
+      {experiences.map((exp, i) => (
+        <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Job Title</label>
+              <input
+                type="text"
+                value={exp.title}
+                onChange={(e) => updateExperience(i, "title", e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t">
-                <button
-                  type="button"
-                  onClick={() => router.back()}
-                  disabled={submitting}
-                  className="flex-1 py-3.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 py-3.5 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 font-semibold disabled:opacity-50">
-                  {submitting ? "Submitting..." : "Submit Application"}
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="block text-sm font-medium mb-1">Company</label>
+              <input
+                type="text"
+                value={exp.employer}
+                onChange={(e) => updateExperience(i, "employer", e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Salary</label>
+              <input
+                type="text"
+                value={exp.salary}
+                onChange={(e) => updateExperience(i, "salary", e.target.value)}
+                placeholder="e.g. 5000"
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={exp.is_current_employer}
+                onChange={(e) =>
+                  updateExperience(i, "is_current_employer", e.target.checked)
+                }
+                className="mr-2"
+              />
+              <label className="text-sm">Currently working here</label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Start Date</label>
+              <input
+                type="date"
+                value={exp.started_at}
+                onChange={(e) =>
+                  updateExperience(i, "started_at", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">End Date</label>
+              <input
+                type="date"
+                value={exp.ended_at || ""}
+                onChange={(e) =>
+                  updateExperience(i, "ended_at", e.target.value)
+                }
+                disabled={exp.is_current_employer}
+                className="w-full px-3 py-2 border rounded-lg disabled:bg-gray-100"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              value={exp.description}
+              onChange={(e) =>
+                updateExperience(i, "description", e.target.value)
+              }
+              rows={3}
+              className="w-full px-3 py-2 border rounded-lg"
+            />
+          </div>
+
+          {experiences.length > 1 && (
+            <button
+              type="button"
+              onClick={() => removeExperience(i)}
+              className="mt-3 text-red-600 hover:text-red-800 text-lg"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={addExperience}
+        className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+      >
+        + Add Experience
+      </button>
+    </div>
+  )}
+
+  {/* ===== EDUCATION (UNCHANGED) ===== */}
+  {hasEdu && (
+    <div className="border rounded-xl p-6 bg-gray-50">
+      <h3 className="text-xl font-bold mb-5">Education</h3>
+
+      {educations.map((edu, i) => (
+        <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">School</label>
+              <input
+                type="text"
+                value={edu.school}
+                onChange={(e) =>
+                  updateEducation(i, "school", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Degree</label>
+              <input
+                type="text"
+                value={edu.degree_name}
+                onChange={(e) =>
+                  updateEducation(i, "degree_name", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Field of Study
+              </label>
+              <input
+                type="text"
+                value={edu.specialization}
+                onChange={(e) =>
+                  updateEducation(i, "specialization", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Location</label>
+              <input
+                type="text"
+                value={edu.location}
+                onChange={(e) =>
+                  updateEducation(i, "location", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Start Date</label>
+              <input
+                type="date"
+                value={edu.started_at}
+                onChange={(e) =>
+                  updateEducation(i, "started_at", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">End Date</label>
+              <input
+                type="date"
+                value={edu.ended_at || ""}
+                onChange={(e) =>
+                  updateEducation(i, "ended_at", e.target.value)
+                }
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              value={edu.description}
+              onChange={(e) =>
+                updateEducation(i, "description", e.target.value)
+              }
+              rows={3}
+              className="w-full px-3 py-2 border rounded-lg"
+            />
+          </div>
+
+          {educations.length > 1 && (
+            <button
+              type="button"
+              onClick={() => removeEducation(i)}
+              className="mt-3 text-red-600 hover:text-red-800 text-lg"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={addEducation}
+        className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+      >
+        + Add Education
+      </button>
+    </div>
+  )}
+
+  {/* ===== ACTION BUTTONS ===== */}
+  <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t">
+    <button
+      type="button"
+      onClick={() => router.back()}
+      disabled={submitting}
+      className="flex-1 py-3.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+    >
+      Cancel
+    </button>
+
+    <button
+      type="submit"
+      disabled={submitting}
+      className="flex-1 py-3.5 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 font-semibold disabled:opacity-50"
+    >
+      {submitting ? "Submitting..." : "Submit Application"}
+    </button>
+  </div>
+</form>
+
           )}
         </div>
       </div>
