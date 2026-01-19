@@ -3,6 +3,7 @@
 import { industry_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
+import { formatReferencesToHTML, generateDeclarationList } from "@/lib/utils";
 import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
@@ -47,6 +48,20 @@ interface Education {
   location: string;
   description?: string;
 }
+
+interface CharacterReference {
+  name: string;
+  email: string;
+  contact_no: string;
+  company_occupation: string;
+  relationship: string;
+}
+
+const isCharacterReferenceField = (field: FormField) =>
+  field.slug?.toLowerCase().includes("character") ||
+  field.slug?.toLowerCase().includes("reference") ||
+  field.name?.toLowerCase().includes("character") ||
+  field.label?.toLowerCase().includes("character reference");
 
 export default function JobApplicationPage() {
   const params = useParams();
@@ -105,6 +120,20 @@ export default function JobApplicationPage() {
     { id: "resume", slug: "resume", label: "Resume/CV", type: "file", required: true },
     { id: "cover_letter", slug: "cover_letter", label: "Cover Letter", type: "textarea", required: false },
   ];
+
+  const declarationQuestions = [
+    "Have you been or are you suffering from any disease/major medical condition/mental illness or physical impairment?",
+    "Have you been discharged or dismissed from the service of your previous employers?",
+    "Have you been convicted in a Court of law in any country or any ongoing legal proceedings?",
+    "Have you been served with a Garnishee Order by any organisation or been declared a bankrupt?",
+    "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
+  ];
+
+  const [declarationAnswers, setDeclarationAnswers] = useState<Record<number, string>>({});
+
+  const handleDeclarationChange = (index: number, value: string) => {
+    setDeclarationAnswers((prev) => ({ ...prev, [index]: value }));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -191,7 +220,7 @@ export default function JobApplicationPage() {
       }
     };
 
-    const debounceTimer = setTimeout(fetchNationalities, 300);
+    const debounceTimer = setTimeout(fetchNationalities, 1500);
 
     return () => clearTimeout(debounceTimer);
   }, [nationalityQuery]);
@@ -293,6 +322,26 @@ export default function JobApplicationPage() {
     f.label?.toLowerCase() === "experiences" ||
     f.label?.toLowerCase() === "work experience";
 
+  const [references, setReferences] = useState<CharacterReference[]>([
+    { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
+  ]);
+
+  const updateReference = (index: number, field: keyof CharacterReference, value: string) => {
+    setReferences((prev) => prev.map((ref, i) => (i === index ? { ...ref, [field]: value } : ref)));
+  };
+
+  const addReference = () => {
+    setReferences((prev) => [
+      ...prev,
+      { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
+    ]);
+  };
+
+  const removeReference = (index: number) => {
+    if (references.length <= 1) return;
+    setReferences((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const isEducationField = (f: FormField) =>
     (f.name || "").toLowerCase() === "education" ||
     (f.slug || "").toLowerCase() === "education" ||
@@ -346,7 +395,7 @@ export default function JobApplicationPage() {
           if (exp.salary?.trim()) {
             cleanSalary = exp.salary.trim().replace(/[^0-9]/g, "");
           }
-
+          applicationData["1741708"] = generateDeclarationList(declarationAnswers);
           const data: any = {
             title: exp.title.trim(),
             employer: exp.employer.trim(),
@@ -360,6 +409,13 @@ export default function JobApplicationPage() {
 
           return data;
         });
+      }
+
+      // Add character references as array (will be formatted to HTML in backend)
+      const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
+
+      if (validReferences.length > 0) {
+        applicationData["1741707"] = formatReferencesToHTML(validReferences);
       }
 
       // Process education with correct field names matching Postman
@@ -383,7 +439,7 @@ export default function JobApplicationPage() {
         }
       } else {
         const resumeField = formFields.find(isCVField);
-        if (resumeField?.required) {
+        if (resumeField?.required || resumeField?.is_required) {
           throw new Error("Please upload a resume file");
         }
       }
@@ -582,7 +638,7 @@ export default function JobApplicationPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-6 py-6 border-b bg-gray-50">
             <h1 className="text-2xl md:text-3xl font-bold">Application</h1>
@@ -604,7 +660,7 @@ export default function JobApplicationPage() {
               <h2 className="text-2xl font-bold mb-3">Application Submitted!</h2>
               <p className="text-gray-600 mb-8">Thank you! We'll get back to you soon.</p>
               <button
-                onClick={() => router.push("/jobs")}
+                onClick={() => router.push("/Hero")}
                 className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                 Browse More Jobs
               </button>
@@ -613,21 +669,130 @@ export default function JobApplicationPage() {
             <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
               {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">{error}</div>}
 
-              {formFields
-                .filter((f) => !isExperienceField(f) && !isEducationField(f))
-                .map((field) => (
-                  <div key={field.id}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      {field.label}
-                      {(field.required || field.is_required) && <span className="text-red-600 ml-1">*</span>}
-                    </label>
-                    {renderField(field)}
+              {/* ===== MAIN FORM FIELDS (2 COLUMN GRID) ===== */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {formFields
+                  .filter((f) => !isExperienceField(f) && !isEducationField(f) && !isCharacterReferenceField(f))
+                  .map((field) => (
+                    <div key={field.id} className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        {field.label}
+                        {(field.required || field.is_required) && <span className="text-red-600 ml-1">*</span>}
+                      </label>
+                      {renderField(field)}
+                    </div>
+                  ))}
+              </div>
+
+              {/* ===== DECLARATION SECTION ===== */}
+              <div className="border rounded-xl p-6 bg-gray-50">
+                <h3 className="text-xl font-bold mb-5">Declaration</h3>
+
+                {declarationQuestions.map((question, i) => (
+                  <div key={i} className="mb-4">
+                    <p className="text-gray-700 mb-1">
+                      {i + 1}. {question} <span className="text-red-600">*</span>
+                    </p>
+                    <div className="flex gap-6">
+                      {["Yes", "No"].map((option) => (
+                        <label key={option} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name={`declaration_${i}`}
+                            value={option}
+                            checked={declarationAnswers[i] === option}
+                            onChange={() => handleDeclarationChange(i, option)}
+                            required
+                            className="accent-indigo-600"
+                          />
+                          {option}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ===== Character Reference New ===== */}
+              <div className="border rounded-xl p-6 bg-gray-50">
+                <h3 className="text-xl font-bold mb-5">Character References</h3>
+
+                {references.map((ref, i) => (
+                  <div key={i} className="mb-6 p-4 border rounded-lg bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Name</label>
+                      <input
+                        type="text"
+                        value={ref.name}
+                        onChange={(e) => updateReference(i, "name", e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={ref.email}
+                        onChange={(e) => updateReference(i, "email", e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Contact No.</label>
+                      <input
+                        type="text"
+                        value={ref.contact_no}
+                        onChange={(e) => updateReference(i, "contact_no", e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Company & Occupation</label>
+                      <input
+                        type="text"
+                        value={ref.company_occupation}
+                        onChange={(e) => updateReference(i, "company_occupation", e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">Relationship to Applicant</label>
+                      <input
+                        type="text"
+                        value={ref.relationship}
+                        onChange={(e) => updateReference(i, "relationship", e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+
+                    {references.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeReference(i)}
+                        className="mt-2 text-red-600 hover:text-red-800 text-sm">
+                        Remove
+                      </button>
+                    )}
                   </div>
                 ))}
 
+                <button
+                  type="button"
+                  onClick={addReference}
+                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
+                  + Add Reference
+                </button>
+              </div>
+
+              {/* ===== WORK EXPERIENCE (UNCHANGED) ===== */}
               {hasExp && (
                 <div className="border rounded-xl p-6 bg-gray-50">
                   <h3 className="text-xl font-bold mb-5">Work Experience</h3>
+
                   {experiences.map((exp, i) => (
                     <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -640,6 +805,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">Company</label>
                           <input
@@ -649,6 +815,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">Salary</label>
                           <input
@@ -659,6 +826,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div className="flex items-center">
                           <input
                             type="checkbox"
@@ -668,6 +836,7 @@ export default function JobApplicationPage() {
                           />
                           <label className="text-sm">Currently working here</label>
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">Start Date</label>
                           <input
@@ -677,6 +846,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">End Date</label>
                           <input
@@ -688,6 +858,7 @@ export default function JobApplicationPage() {
                           />
                         </div>
                       </div>
+
                       <div className="mt-4">
                         <label className="block text-sm font-medium mb-1">Description</label>
                         <textarea
@@ -697,16 +868,18 @@ export default function JobApplicationPage() {
                           className="w-full px-3 py-2 border rounded-lg"
                         />
                       </div>
+
                       {experiences.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeExperience(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-sm">
+                          className="mt-3 text-red-600 hover:text-red-800 text-lg">
                           Remove
                         </button>
                       )}
                     </div>
                   ))}
+
                   <button
                     type="button"
                     onClick={addExperience}
@@ -716,9 +889,11 @@ export default function JobApplicationPage() {
                 </div>
               )}
 
+              {/* ===== EDUCATION (UNCHANGED) ===== */}
               {hasEdu && (
                 <div className="border rounded-xl p-6 bg-gray-50">
                   <h3 className="text-xl font-bold mb-5">Education</h3>
+
                   {educations.map((edu, i) => (
                     <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -731,6 +906,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">Degree</label>
                           <input
@@ -740,6 +916,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">Field of Study</label>
                           <input
@@ -749,6 +926,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">Location</label>
                           <input
@@ -758,6 +936,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">Start Date</label>
                           <input
@@ -767,6 +946,7 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
+
                         <div>
                           <label className="block text-sm font-medium mb-1">End Date</label>
                           <input
@@ -777,6 +957,7 @@ export default function JobApplicationPage() {
                           />
                         </div>
                       </div>
+
                       <div className="mt-4">
                         <label className="block text-sm font-medium mb-1">Description</label>
                         <textarea
@@ -786,16 +967,18 @@ export default function JobApplicationPage() {
                           className="w-full px-3 py-2 border rounded-lg"
                         />
                       </div>
+
                       {educations.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeEducation(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-sm">
+                          className="mt-3 text-red-600 hover:text-red-800 text-lg">
                           Remove
                         </button>
                       )}
                     </div>
                   ))}
+
                   <button
                     type="button"
                     onClick={addEducation}
@@ -805,6 +988,7 @@ export default function JobApplicationPage() {
                 </div>
               )}
 
+              {/* ===== ACTION BUTTONS ===== */}
               <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t">
                 <button
                   type="button"
@@ -813,6 +997,7 @@ export default function JobApplicationPage() {
                   className="flex-1 py-3.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={submitting}
