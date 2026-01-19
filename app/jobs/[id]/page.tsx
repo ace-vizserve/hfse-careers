@@ -54,6 +54,43 @@ export default function JobDetailPage() {
     return `${formatter.format(min || max!)}${freqText}`;
   };
 
+  // ADD THIS HELPER FUNCTION
+  const renderJobDescription = (description: string) => {
+    const text = description.replace(/<[^>]*>/g, "");
+    const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
+
+    return sections.map((section, sectionIdx) => {
+      if (!section.trim()) return null;
+
+      if (section.startsWith('JOB QUALIFICATIONS:') || section.startsWith('JOB DETAILS:')) {
+        const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
+        const header = headerMatch ? headerMatch[0] : '';
+        const content = section.replace(header, '').trim();
+
+        const items = content
+          .split(/(?=[A-Z][a-z]{2,})/)
+          .map(item => item.trim())
+          .filter(item => {
+            const wordCount = item.split(/\s+/).length;
+            return wordCount >= 5;
+          });
+
+        return (
+          <div key={sectionIdx} className="mb-6">
+            <p className="font-bold mb-2">{header}</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              {items.map((item, idx) => (
+                <li key={idx} className="text-gray-700">{item}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+
+      return <p key={sectionIdx} className="text-gray-700 mb-2">{section}</p>;
+    });
+  };
+
   useEffect(() => {
     const fetchJob = async () => {
       try {
@@ -107,7 +144,6 @@ export default function JobDetailPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 py-16 md:py-20 relative overflow-hidden">
-        {/* Decorative background elements */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
           <div className="absolute bottom-10 left-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
@@ -168,37 +204,10 @@ export default function JobDetailPage() {
               <h2 className="text-2xl font-bold text-gray-900">Job Description</h2>
             </div>
             
-            <style jsx>{`
-              .job-content p {
-                margin-bottom: 1rem;
-                line-height: 1.75;
-                color: #374151;
-              }
-              .job-content h1, .job-content h2, .job-content h3, .job-content h4, .job-content h5, .job-content h6 {
-                font-weight: 700;
-                color: #111827;
-                margin-top: 2rem;
-                margin-bottom: 1rem;
-              }
-              .job-content h1:first-child, .job-content h2:first-child, .job-content h3:first-child {
-                margin-top: 0;
-              }
-              .job-content ul, .job-content ol {
-                margin-bottom: 1.5rem;
-                padding-left: 1.5rem;
-              }
-              .job-content li {
-                margin-bottom: 0.5rem;
-                line-height: 1.75;
-                color: #374151;
-              }
-              .job-content strong {
-                font-weight: 600;
-                color: #111827;
-              }
-            `}</style>
-            
-            <div className="job-content" dangerouslySetInnerHTML={{ __html: job.description || '' }} />
+            {/* REPLACE dangerouslySetInnerHTML with renderJobDescription */}
+            <div className="text-gray-700">
+              {renderJobDescription(job.description || '')}
+            </div>
           </div>
 
           {/* Quick Info Cards */}
