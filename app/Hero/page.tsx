@@ -357,14 +357,47 @@ const Page = () => {
                 <div className="border-t pt-6">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Full Job Description</h3>
                   <div className="space-y-4 text-gray-700 text-sm sm:text-base leading-relaxed">
-                    {selectedJob.description ? (
-                      selectedJob.description
-                        .replace(/<[^>]*>/g, "")
-                        .split(/\n+/)
-                        .map((paragraph, idx) => <p key={idx}>{paragraph}</p>)
-                    ) : (
-                      <p className="italic text-gray-400">No description available.</p>
-                    )}
+{selectedJob.description ? (
+  (() => {
+    const text = selectedJob.description.replace(/<[^>]*>/g, "");
+    const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
+    
+    return sections.map((section, sectionIdx) => {
+      if (!section.trim()) return null;
+      
+      // Check if this is a section header
+      if (section.startsWith('JOB QUALIFICATIONS:') || section.startsWith('JOB DETAILS:')) {
+        const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
+        const header = headerMatch ? headerMatch[0] : '';
+        const content = section.replace(header, '').trim();
+        
+        // Split by capital letters followed by at least 3 letters
+        const items = content
+          .split(/(?=[A-Z][a-z]{2,})/)
+          .map(item => item.trim())
+          .filter(item => {
+            const wordCount = item.split(/\s+/).length;
+            return wordCount >= 5; // Only keep items with 5 or more words
+          });
+        
+        return (
+          <div key={sectionIdx} className="mb-6">
+            <p className="font-bold mb-2">{header}</p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              {items.map((item, idx) => (
+                <li key={idx} className="text-gray-700">{item}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
+      
+      return <p key={sectionIdx}>{section}</p>;
+    });
+  })()
+) : (
+  <p className="italic text-gray-400">No description available.</p>
+)}
                   </div>
                 </div>
 
