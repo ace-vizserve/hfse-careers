@@ -1,10 +1,16 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+/* ===========================
+   TAILWIND CLASS MERGE
+=========================== */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/* ===========================
+   CHARACTER REFERENCES
+=========================== */
 type Reference = {
   name: string;
   email: string;
@@ -21,11 +27,11 @@ export function formatReferencesToHTML(refs: Reference[]): string {
       (ref) => `
     <li>
       <ul>
-        <li>Name : ${ref.name}</li>
-        <li>Email : ${ref.email}</li>
-        <li>Contact Number : ${ref.contact_no}</li>
-        <li>Occupation & Company : ${ref.company_occupation}</li>
-        <li>Relationship to Applicant : ${ref.relationship}</li>
+        <li><strong>Name:</strong> ${ref.name}</li>
+        <li><strong>Email:</strong> ${ref.email}</li>
+        <li><strong>Contact Number:</strong> ${ref.contact_no}</li>
+        <li><strong>Occupation & Company:</strong> ${ref.company_occupation}</li>
+        <li><strong>Relationship to Applicant:</strong> ${ref.relationship}</li>
       </ul>
     </li>
   `
@@ -35,8 +41,17 @@ export function formatReferencesToHTML(refs: Reference[]): string {
 `.trim();
 }
 
-export function generateDeclarationList(declarations: Record<number, string>) {
-  const answers = Object.values(declarations);
+/* ===========================
+   DECLARATIONS
+=========================== */
+type DeclarationAnswer = {
+  answer: "Yes" | "No";
+  details?: string;
+};
+
+export function generateDeclarationList(
+  declarations: Record<number, DeclarationAnswer>
+): string {
   const declarationQuestions = [
     "Have you been or are you suffering from any disease/major medical condition/mental illness or physical impairment?",
     "Have you been discharged or dismissed from the service of your previous employers?",
@@ -46,22 +61,26 @@ export function generateDeclarationList(declarations: Record<number, string>) {
   ];
 
   return `
-    <ol>
-      ${declarationQuestions
-        .map((declaration, idx) => {
-          const answer = answers[idx];
+<ol>
+  ${declarationQuestions
+    .map((question, idx) => {
+      const data = declarations[idx];
 
-          return `
-        <li>
-          ${declaration}
-          <ul>
-            <li><strong>Answer:</strong> ${answer || "-"}</li>
-           
-          </ul>
-        </li>
-      `;
-        })
-        .join("")}
-    </ol>
+      return `
+    <li>
+      ${question}
+      <ul>
+        <li><strong>Answer:</strong> ${data?.answer || "-"}</li>
+        ${
+          data?.answer === "Yes" && data.details?.trim()
+            ? `<li><strong>Details:</strong> ${data.details}</li>`
+            : ""
+        }
+      </ul>
+    </li>
   `;
+    })
+    .join("")}
+</ol>
+`.trim();
 }

@@ -129,11 +129,29 @@ export default function JobApplicationPage() {
     "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
   ];
 
-  const [declarationAnswers, setDeclarationAnswers] = useState<Record<number, string>>({});
+ const [declarationAnswers, setDeclarationAnswers] = useState<
+  Record<number, { answer: "Yes" | "No"; details?: string }>
+>({});
 
-  const handleDeclarationChange = (index: number, value: string) => {
-    setDeclarationAnswers((prev) => ({ ...prev, [index]: value }));
-  };
+ const handleDeclarationChange = (index: number, value: "Yes" | "No") => {
+  setDeclarationAnswers((prev) => ({
+    ...prev,
+    [index]: {
+      answer: value,
+      details: value === "Yes" ? prev[index]?.details || "" : "",
+    },
+  }));
+};
+
+const handleDeclarationDetailsChange = (index: number, value: string) => {
+  setDeclarationAnswers((prev) => ({
+    ...prev,
+    [index]: {
+      ...prev[index],
+      details: value,
+    },
+  }));
+};
 
   useEffect(() => {
     const fetchData = async () => {
@@ -688,29 +706,45 @@ export default function JobApplicationPage() {
               <div className="border rounded-xl p-6 bg-gray-50">
                 <h3 className="text-xl font-bold mb-5">Declaration</h3>
 
-                {declarationQuestions.map((question, i) => (
-                  <div key={i} className="mb-4">
-                    <p className="text-gray-700 mb-1">
-                      {i + 1}. {question} <span className="text-red-600">*</span>
-                    </p>
-                    <div className="flex gap-6">
-                      {["Yes", "No"].map((option) => (
-                        <label key={option} className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name={`declaration_${i}`}
-                            value={option}
-                            checked={declarationAnswers[i] === option}
-                            onChange={() => handleDeclarationChange(i, option)}
-                            required
-                            className="accent-indigo-600"
-                          />
-                          {option}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+ {declarationQuestions.map((question, i) => {
+  const current = declarationAnswers[i];
+
+  return (
+    <div key={i} className="mb-5">
+      <p className="text-gray-700 mb-2">
+        {i + 1}. {question} <span className="text-red-600">*</span>
+      </p>
+
+      <div className="flex gap-6 mb-2">
+        {["Yes", "No"].map((option) => (
+          <label key={option} className="flex items-center gap-2">
+            <input
+              type="radio"
+              name={`declaration_${i}`}
+              value={option}
+              checked={current?.answer === option}
+              onChange={() => handleDeclarationChange(i, option as "Yes" | "No")}
+              required
+              className="accent-indigo-600"
+            />
+            {option}
+          </label>
+        ))}
+      </div>
+
+      {current?.answer === "Yes" && (
+        <textarea
+          required
+          rows={3}
+          placeholder="Please provide details..."
+          value={current.details || ""}
+          onChange={(e) => handleDeclarationDetailsChange(i, e.target.value)}
+          className="w-full mt-2 px-3 py-2 border rounded-lg"
+        />
+      )}
+    </div>
+  );
+})}
               </div>
 
               {/* ===== Character Reference New ===== */}

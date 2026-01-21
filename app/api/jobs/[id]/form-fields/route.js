@@ -37,12 +37,21 @@ export async function GET(request, { params }) {
    // Transform Manatal fields to our format and filter out Character References
 const transformedFields = formFields
   .filter((field) => {
-    // Remove Character References field - it's now handled separately
-    const isCharacterRef = 
-      field.slug?.toLowerCase().includes("character") ||
-      field.slug?.toLowerCase().includes("reference") ||
-      field.label?.toLowerCase().includes("character reference");
-    return !isCharacterRef;
+    const slug = field.slug?.toLowerCase() || "";
+    const label = field.label?.toLowerCase() || "";
+
+    // ❌ Remove Character References (handled separately)
+    const isCharacterRef =
+      slug.includes("character") ||
+      slug.includes("reference") ||
+      label.includes("character reference");
+
+    // ❌ Remove Declaration text field from Manatal
+    const isDeclaration =
+      slug === "declaration" ||
+      label === "declaration";
+
+    return !isCharacterRef && !isDeclaration;
   })
   .map((field) => ({
     id: field.id,
@@ -54,6 +63,7 @@ const transformedFields = formFields
     placeholder: generatePlaceholder(field.label, field.type),
     fieldCategory: field.field_category,
   }));
+
 
     console.log(transformedFields);
 
