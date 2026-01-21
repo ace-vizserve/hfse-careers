@@ -63,6 +63,21 @@ const isCharacterReferenceField = (field: FormField) =>
   field.name?.toLowerCase().includes("character") ||
   field.label?.toLowerCase().includes("character reference");
 
+// ────────────────────────────────────────────────
+// Helper to detect NRIC / FIN fields
+// ────────────────────────────────────────────────
+const isNricFinField = (field: FormField) =>
+  field.slug?.toLowerCase()?.includes("nric") ||
+  field.slug?.toLowerCase()?.includes("fin") ||
+  field.name?.toLowerCase()?.includes("nric") ||
+  field.name?.toLowerCase()?.includes("fin") ||
+  field.label?.toLowerCase().includes("nric") ||
+  field.label?.toLowerCase().includes("fin") ||
+  field.label?.toLowerCase().includes("identification") ||
+  field.label?.toLowerCase().includes("singapore id") ||
+  field.label?.toLowerCase().includes("pink ic") ||
+  field.label?.toLowerCase().includes("nrric");
+
 export default function JobApplicationPage() {
   const params = useParams();
   const router = useRouter();
@@ -129,29 +144,29 @@ export default function JobApplicationPage() {
     "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
   ];
 
- const [declarationAnswers, setDeclarationAnswers] = useState<
-  Record<number, { answer: "Yes" | "No"; details?: string }>
->({});
+  const [declarationAnswers, setDeclarationAnswers] = useState<
+    Record<number, { answer: "Yes" | "No"; details?: string }>
+  >({});
 
- const handleDeclarationChange = (index: number, value: "Yes" | "No") => {
-  setDeclarationAnswers((prev) => ({
-    ...prev,
-    [index]: {
-      answer: value,
-      details: value === "Yes" ? prev[index]?.details || "" : "",
-    },
-  }));
-};
+  const handleDeclarationChange = (index: number, value: "Yes" | "No") => {
+    setDeclarationAnswers((prev) => ({
+      ...prev,
+      [index]: {
+        answer: value,
+        details: value === "Yes" ? prev[index]?.details || "" : "",
+      },
+    }));
+  };
 
-const handleDeclarationDetailsChange = (index: number, value: string) => {
-  setDeclarationAnswers((prev) => ({
-    ...prev,
-    [index]: {
-      ...prev[index],
-      details: value,
-    },
-  }));
-};
+  const handleDeclarationDetailsChange = (index: number, value: string) => {
+    setDeclarationAnswers((prev) => ({
+      ...prev,
+      [index]: {
+        ...prev[index],
+        details: value,
+      },
+    }));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -380,11 +395,9 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
 
       let expectedCurrencyId: string | null = null;
 
-      // Process regular form fields
       formFields.forEach((field) => {
         const key = field.slug || field.name || field.id;
 
-        // Skip experience, education, and file fields
         if (field.id === expField?.id || field.id === eduField?.id || isCVField(field)) {
           return;
         }
@@ -405,7 +418,6 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
         applicationData[field.id] = finalValue;
       });
 
-      // Process experience with correct field names matching Postman
       if (expField) {
         const valid = experiences.filter((e) => e.title.trim() || e.employer.trim());
         applicationData[expField.id] = valid.map((exp) => {
@@ -413,7 +425,6 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
           if (exp.salary?.trim()) {
             cleanSalary = exp.salary.trim().replace(/[^0-9]/g, "");
           }
-          applicationData["1741708"] = generateDeclarationList(declarationAnswers);
           const data: any = {
             title: exp.title.trim(),
             employer: exp.employer.trim(),
@@ -429,14 +440,12 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
         });
       }
 
-      // Add character references as array (will be formatted to HTML in backend)
       const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
 
       if (validReferences.length > 0) {
         applicationData["1741707"] = formatReferencesToHTML(validReferences);
       }
 
-      // Process education with correct field names matching Postman
       if (eduField) {
         const valid = educations.filter((e) => e.school.trim() || e.degree_name.trim());
         applicationData[eduField.id] = valid.map((edu) => ({
@@ -497,6 +506,117 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
     const common =
       "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500";
 
+    // ────────────────────────────────────────────────
+    // NRIC / FIN - Singapore Identification Number
+    // ────────────────────────────────────────────────
+    if (isNricFinField(field)) {
+      return (
+        <div className="relative">
+          <input
+            type="text"
+            inputMode="text"
+            pattern="[STFGMstfgm]\d{7}[A-Za-z]"
+            name={key}
+            required={isRequired}
+            value={(simpleFormData[key] as string)?.toUpperCase() || ""}
+            onChange={(e) => {
+              const value = e.target.value.toUpperCase();
+              if (/^[STFGMstfgm]?[\d]{0,7}[A-Za-z]?$/i.test(value)) {
+                setSimpleFormData((prev) => ({ ...prev, [key]: value }));
+              }
+            }}
+            onKeyPress={(e) => {
+              if (!/[STFGMstfgm0-9A-Za-z]/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onBlur={(e) => {
+              const cleaned = e.target.value.trim().toUpperCase();
+              setSimpleFormData((prev) => ({ ...prev, [key]: cleaned }));
+            }}
+            placeholder={field.placeholder || "e.g. S1234567A or T9876543Z"}
+            className={`${common} uppercase tracking-wider font-mono`}
+            maxLength={9}
+            title="Format: S/T/F/G/M + 7 digits + 1 uppercase letter (e.g. S1234567A)"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Singapore NRIC / FIN (9 characters)
+          </p>
+        </div>
+      );
+    }
+
+    // ────────────────────────────────────────────────
+    // PHONE NUMBER
+    // ────────────────────────────────────────────────
+    if (key === "phone" || field.label?.toLowerCase().includes("phone")) {
+      return (
+        <input
+          type="tel"
+          inputMode="tel"
+          pattern="[0-9\s\-\+\(\)]*"
+          name={key}
+          required={isRequired}
+          value={(simpleFormData[key] as string) || ""}
+          onChange={handleSimpleChange}
+          onKeyPress={(e) => {
+            if (!/[0-9\s+\-()]/.test(e.key)) {
+              e.preventDefault();
+            }
+          }}
+          placeholder={field.placeholder || "+31 6 1234 5678"}
+          className={common}
+          maxLength={20}
+        />
+      );
+    }
+
+    // ────────────────────────────────────────────────
+    // EXPECTED SALARY
+    // ────────────────────────────────────────────────
+    if (isExpectedSalary(field)) {
+      return (
+        <div className="flex gap-2">
+          <select
+            value={salaryCurrencies[field.id] || "SGD"}
+            onChange={(e) => setSalaryCurrencies((prev) => ({ ...prev, [field.id]: e.target.value }))}
+            className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[90px]"
+          >
+            <option value="SGD">SGD</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="PHP">PHP</option>
+          </select>
+
+          <input
+            type="text"
+            inputMode="decimal"
+            pattern="[0-9]*\.?[0-9]*"
+            name={key}
+            required={isRequired}
+            value={(simpleFormData[key] as string) || ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (/^\d*\.?\d{0,2}$/.test(val)) {
+                handleSimpleChange(e);
+              }
+            }}
+            onKeyPress={(e) => {
+              if (!/[0-9.]/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            placeholder="e.g. 5000 or 5500.50"
+            className={`flex-1 ${common}`}
+          />
+        </div>
+      );
+    }
+
+    // ────────────────────────────────────────────────
+    // NATIONALITY
+    // ────────────────────────────────────────────────
     if (isNationalityField(field)) {
       return (
         <div className="relative">
@@ -527,7 +647,8 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                       setSimpleFormData((prev) => ({ ...prev, [key]: nat.demonym }));
                       setNationalityQuery(nat.demonym);
                       setShowNationalityOptions(false);
-                    }}>
+                    }}
+                  >
                     {nat.demonym}
                   </li>
                 ))
@@ -540,6 +661,9 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
       );
     }
 
+    // ────────────────────────────────────────────────
+    // INDUSTRY
+    // ────────────────────────────────────────────────
     if (isIndustryField(field)) {
       return (
         <select
@@ -547,7 +671,8 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
           required={isRequired}
           value={(simpleFormData[key] as string) || ""}
           onChange={handleSimpleChange}
-          className={common}>
+          className={common}
+        >
           <option value="">Select an industry</option>
           {industry_list.map((industry) => (
             <option key={industry.id} value={industry.id}>
@@ -558,6 +683,9 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
       );
     }
 
+    // ────────────────────────────────────────────────
+    // FILE / RESUME
+    // ────────────────────────────────────────────────
     if (field.type === "file" || isCVField(field)) {
       return (
         <Dropzone {...resumeProps}>
@@ -567,6 +695,9 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
       );
     }
 
+    // ────────────────────────────────────────────────
+    // TEXTAREA
+    // ────────────────────────────────────────────────
     if (field.type === "textarea" || field.type === "longtext") {
       return (
         <textarea
@@ -581,6 +712,9 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
       );
     }
 
+    // ────────────────────────────────────────────────
+    // DROPDOWN
+    // ────────────────────────────────────────────────
     if (field.type === "dropdown" && field.options) {
       return (
         <select
@@ -588,7 +722,8 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
           required={isRequired}
           value={(simpleFormData[key] as string) || ""}
           onChange={handleSimpleChange}
-          className={common}>
+          className={common}
+        >
           <option value="">Select an option</option>
           {field.options.map((option) => (
             <option key={option} value={option}>
@@ -599,32 +734,9 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
       );
     }
 
-    if (isExpectedSalary(field)) {
-      return (
-        <div className="flex gap-2">
-          <select
-            value={salaryCurrencies[field.id] || "SGD"}
-            onChange={(e) => setSalaryCurrencies((prev) => ({ ...prev, [field.id]: e.target.value }))}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="SGD">SGD</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-            <option value="PHP">PHP</option>
-          </select>
-          <input
-            type="text"
-            name={key}
-            required={isRequired}
-            value={(simpleFormData[key] as string) || ""}
-            onChange={handleSimpleChange}
-            placeholder="e.g. 5000"
-            className={`flex-1 ${common}`}
-          />
-        </div>
-      );
-    }
-
+    // ────────────────────────────────────────────────
+    // DEFAULT INPUT (with date detection)
+    // ────────────────────────────────────────────────
     const isDate =
       field.label?.toLowerCase().includes("date") ||
       field.label?.toLowerCase().includes("birth") ||
@@ -679,7 +791,8 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
               <p className="text-gray-600 mb-8">Thank you! We'll get back to you soon.</p>
               <button
                 onClick={() => router.push("/Hero")}
-                className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
                 Browse More Jobs
               </button>
             </div>
@@ -687,7 +800,7 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
             <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
               {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">{error}</div>}
 
-              {/* ===== MAIN FORM FIELDS (2 COLUMN GRID) ===== */}
+              {/* ===== MAIN FORM FIELDS ===== */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {formFields
                   .filter((f) => !isExperienceField(f) && !isEducationField(f) && !isCharacterReferenceField(f))
@@ -706,48 +819,48 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
               <div className="border rounded-xl p-6 bg-gray-50">
                 <h3 className="text-xl font-bold mb-5">Declaration</h3>
 
- {declarationQuestions.map((question, i) => {
-  const current = declarationAnswers[i];
+                {declarationQuestions.map((question, i) => {
+                  const current = declarationAnswers[i];
 
-  return (
-    <div key={i} className="mb-5">
-      <p className="text-gray-700 mb-2">
-        {i + 1}. {question} <span className="text-red-600">*</span>
-      </p>
+                  return (
+                    <div key={i} className="mb-5">
+                      <p className="text-gray-700 mb-2">
+                        {i + 1}. {question} <span className="text-red-600">*</span>
+                      </p>
 
-      <div className="flex gap-6 mb-2">
-        {["Yes", "No"].map((option) => (
-          <label key={option} className="flex items-center gap-2">
-            <input
-              type="radio"
-              name={`declaration_${i}`}
-              value={option}
-              checked={current?.answer === option}
-              onChange={() => handleDeclarationChange(i, option as "Yes" | "No")}
-              required
-              className="accent-indigo-600"
-            />
-            {option}
-          </label>
-        ))}
-      </div>
+                      <div className="flex gap-6 mb-2">
+                        {["Yes", "No"].map((option) => (
+                          <label key={option} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`declaration_${i}`}
+                              value={option}
+                              checked={current?.answer === option}
+                              onChange={() => handleDeclarationChange(i, option as "Yes" | "No")}
+                              required
+                              className="accent-indigo-600"
+                            />
+                            {option}
+                          </label>
+                        ))}
+                      </div>
 
-      {current?.answer === "Yes" && (
-        <textarea
-          required
-          rows={3}
-          placeholder="Please provide details..."
-          value={current.details || ""}
-          onChange={(e) => handleDeclarationDetailsChange(i, e.target.value)}
-          className="w-full mt-2 px-3 py-2 border rounded-lg"
-        />
-      )}
-    </div>
-  );
-})}
+                      {current?.answer === "Yes" && (
+                        <textarea
+                          required
+                          rows={3}
+                          placeholder="Please provide details..."
+                          value={current.details || ""}
+                          onChange={(e) => handleDeclarationDetailsChange(i, e.target.value)}
+                          className="w-full mt-2 px-3 py-2 border rounded-lg"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* ===== Character Reference New ===== */}
+              {/* ===== CHARACTER REFERENCES ===== */}
               <div className="border rounded-xl p-6 bg-gray-50">
                 <h3 className="text-xl font-bold mb-5">Character References</h3>
 
@@ -807,7 +920,8 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                       <button
                         type="button"
                         onClick={() => removeReference(i)}
-                        className="mt-2 text-red-600 hover:text-red-800 text-sm">
+                        className="mt-2 text-red-600 hover:text-red-800 text-sm"
+                      >
                         Remove
                       </button>
                     )}
@@ -817,12 +931,13 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                 <button
                   type="button"
                   onClick={addReference}
-                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
+                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+                >
                   + Add Reference
                 </button>
               </div>
 
-              {/* ===== WORK EXPERIENCE (UNCHANGED) ===== */}
+              {/* ===== WORK EXPERIENCE ===== */}
               {hasExp && (
                 <div className="border rounded-xl p-6 bg-gray-50">
                   <h3 className="text-xl font-bold mb-5">Work Experience</h3>
@@ -854,8 +969,19 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                           <label className="block text-sm font-medium mb-1">Salary</label>
                           <input
                             type="text"
-                            value={exp.salary}
-                            onChange={(e) => updateExperience(i, "salary", e.target.value)}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={exp.salary || ""}
+                            onChange={(e) => {
+                              if (/^\d*$/.test(e.target.value)) {
+                                updateExperience(i, "salary", e.target.value);
+                              }
+                            }}
+                            onKeyPress={(e) => {
+                              if (!/[0-9]/.test(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
                             placeholder="e.g. 5000"
                             className="w-full px-3 py-2 border rounded-lg"
                           />
@@ -907,7 +1033,8 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                         <button
                           type="button"
                           onClick={() => removeExperience(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-lg">
+                          className="mt-3 text-red-600 hover:text-red-800 text-lg"
+                        >
                           Remove
                         </button>
                       )}
@@ -917,13 +1044,14 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                   <button
                     type="button"
                     onClick={addExperience}
-                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
+                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+                  >
                     + Add Experience
                   </button>
                 </div>
               )}
 
-              {/* ===== EDUCATION (UNCHANGED) ===== */}
+              {/* ===== EDUCATION ===== */}
               {hasEdu && (
                 <div className="border rounded-xl p-6 bg-gray-50">
                   <h3 className="text-xl font-bold mb-5">Education</h3>
@@ -1006,7 +1134,8 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                         <button
                           type="button"
                           onClick={() => removeEducation(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-lg">
+                          className="mt-3 text-red-600 hover:text-red-800 text-lg"
+                        >
                           Remove
                         </button>
                       )}
@@ -1016,26 +1145,29 @@ const handleDeclarationDetailsChange = (index: number, value: string) => {
                   <button
                     type="button"
                     onClick={addEducation}
-                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
+                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+                  >
                     + Add Education
                   </button>
                 </div>
               )}
 
-              {/* ===== ACTION BUTTONS ===== */}
+              {/* ===== SUBMIT / CANCEL ===== */}
               <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t">
                 <button
                   type="button"
                   onClick={() => router.back()}
                   disabled={submitting}
-                  className="flex-1 py-3.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                  className="flex-1 py-3.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-3.5 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 font-semibold disabled:opacity-50">
+                  className="flex-1 py-3.5 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 font-semibold disabled:opacity-50"
+                >
                   {submitting ? "Submitting..." : "Submit Application"}
                 </button>
               </div>
