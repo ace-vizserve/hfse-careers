@@ -1,7 +1,7 @@
 "use client";
 import { BookOpen, Briefcase, CheckCircle, DollarSign, Loader2, Mail, MapPin, Share2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Navbar from "../components/navbar";
 import PopupModal from "../components/ui/PopupModal";
 
@@ -30,7 +30,13 @@ interface Job {
   easily_apply?: boolean;
 }
 
-const NAVBAR_HEIGHT = 136; // top bar + main navbar
+interface FilterOptions {
+  location: string;
+  employmentType: string;
+  isRemote: boolean | null;
+}
+
+const NAVBAR_HEIGHT = 136;
 
 const Page = () => {
   const router = useRouter();
@@ -40,6 +46,54 @@ const Page = () => {
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState<FilterOptions>({
+    location: "",
+    employmentType: "",
+    isRemote: null,
+  });
+
+  // Helper functions - defined before useMemo
+  const formatEmploymentType = (contractDetails?: string, employmentType?: string) => {
+    if (contractDetails) {
+      const formatted = contractDetails.replace(/_/g, "-");
+      return formatted
+        .split("-")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join("-");
+    }
+    return employmentType || "Full-Time";
+  };
+
+  const formatLocation = (job: Job) => (job.is_remote ? "Remote" : job.country || "On-site");
+
+  const formatSalary = (
+    min?: number,
+    max?: number,
+    currency?: string,
+    frequency?: string
+  ) => {
+    if (!min && !max) return null;
+
+    const currencyCode = currency || "PHP";
+
+    const formatter = new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    const freqText = frequency === "hour" ? " / hour" : " / month";
+
+    if (min && max) {
+      return `${formatter.format(min)} - ${formatter.format(max)}${freqText}`;
+    }
+
+    return `${formatter.format(min || max!)}${freqText}`;
+  };
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -69,44 +123,79 @@ const Page = () => {
     fetchJobs();
   }, []);
 
-  const formatEmploymentType = (contractDetails?: string, employmentType?: string) => {
-    if (contractDetails) {
-      const formatted = contractDetails.replace(/_/g, "-");
-      return formatted
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join("-");
+  // Filter and search jobs
+  const filteredJobs = useMemo(() => {
+    let filtered = [...jobs];
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((job) => {
+        const title = (job.position_name || job.title || "").toLowerCase();
+        const company = (job.company?.name || "").toLowerCase();
+        const location = (job.country || job.city || "").toLowerCase();
+        const description = (job.description || "").toLowerCase();
+        
+        return (
+          title.includes(query) ||
+          company.includes(query) ||
+          location.includes(query) ||
+          description.includes(query)
+        );
+      });
     }
-    return employmentType || "Full-time";
-  };
 
-  const formatLocation = (job: Job) => (job.is_remote ? "Remote" : job.country || "On-site");
+    // Apply location filter
+    if (filters.location.trim()) {
+      const locationQuery = filters.location.toLowerCase();
+      filtered = filtered.filter((job) => {
+        const country = (job.country || "").toLowerCase();
+        const city = (job.city || "").toLowerCase();
+        const state = (job.state || "").toLowerCase();
+        
+        return (
+          country.includes(locationQuery) ||
+          city.includes(locationQuery) ||
+          state.includes(locationQuery) ||
+          (job.is_remote === true && locationQuery.includes("remote"))
+        );
+      });
+    }
 
-  const formatSalary = (
-  min?: number,
-  max?: number,
-  currency?: string,
-  frequency?: string
-) => {
-  if (!min && !max) return null;
+    // Apply employment type filter
+    if (filters.employmentType) {
+      filtered = filtered.filter((job) => {
+        const jobType = formatEmploymentType(job.contract_details, job.employment_type);
+        return jobType === filters.employmentType;
+      });
+    }
 
-  const currencyCode = currency || "PHP";
+    // Apply remote filter
+    if (filters.isRemote !== null) {
+      filtered = filtered.filter((job) => {
+        // When filtering for remote jobs
+        if (filters.isRemote === true) {
+          return job.is_remote === true;
+        }
+        // When filtering for on-site jobs
+        if (filters.isRemote === false) {
+          return job.is_remote === false || job.is_remote === null;
+        }
+        return true;
+      });
+    }
 
-  const formatter = new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+    return filtered;
+  }, [jobs, searchQuery, filters]);
 
-  const freqText = frequency === "hour" ? " / hour" : " / month";
-
-  if (min && max) {
-    return `${formatter.format(min)} - ${formatter.format(max)}${freqText}`;
-  }
-
-  return `${formatter.format(min || max!)}${freqText}`;
-};
+  // Update selected job when filtered jobs change
+  useEffect(() => {
+    if (filteredJobs.length > 0 && !filteredJobs.find(j => j.id === selectedJob?.id)) {
+      setSelectedJob(filteredJobs[0]);
+    } else if (filteredJobs.length === 0) {
+      setSelectedJob(null);
+    }
+  }, [filteredJobs]);
 
   const handleJobClick = (job: Job) => {
     setSelectedJob(job);
@@ -116,27 +205,50 @@ const Page = () => {
   const handleBack = () => setShowDetails(false);
 
   const handleShare = async () => {
-  if (!selectedJob?.id) return;
+    if (!selectedJob?.id) return;
 
-  const jobUrl = `${window.location.origin}/jobs/${selectedJob.id}`;
+    const jobUrl = `${window.location.origin}/jobs/${selectedJob.id}`;
 
-  try {
-    await navigator.clipboard.writeText(jobUrl);
-    setShareModalOpen(true);
-  } catch (err) {
-    console.error("Failed to copy:", err);
-  }
-};
+    try {
+      await navigator.clipboard.writeText(jobUrl);
+      setShareModalOpen(true);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleFilterChange = (newFilters: FilterOptions) => {
+    setFilters(newFilters);
+  };
 
   return (
     <div className="bg-gray-50">
-      <Navbar />
+      <Navbar 
+        onSearch={handleSearch}
+        onFilterChange={handleFilterChange}
+      />
 
-      {/* Main container: height = viewport - navbar */}
+      {/* Main container */}
       <div className="max-w-[1800px] mx-auto mt-[136px] md:flex" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
         {/* Job List */}
         <div className={`${showDetails ? "hidden md:block" : "block"} w-full md:w-[45%] bg-white md:overflow-y-auto scrollbar-hide`}>
           <div className="p-3 sm:p-4">
+            {/* Results count */}
+            {!loading && !error && (
+              <div className="mb-4 px-2">
+                <p className="text-sm text-gray-600">
+                  {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
+                  {(searchQuery || filters.location || filters.employmentType || filters.isRemote !== null) && (
+                    <span className="font-medium"> (filtered)</span>
+                  )}
+                </p>
+              </div>
+            )}
+
             {loading && (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
@@ -150,14 +262,15 @@ const Page = () => {
               </div>
             )}
 
-            {!loading && !error && jobs.length === 0 && (
+            {!loading && !error && filteredJobs.length === 0 && (
               <div className="text-center py-20">
-                <p className="text-gray-500 text-lg">No jobs available at the moment.</p>
+                <p className="text-gray-500 text-lg mb-2">No jobs match your criteria</p>
+                <p className="text-gray-400 text-sm">Try adjusting your search or filters</p>
               </div>
             )}
 
             <div className="space-y-3">
-              {jobs.map((job) => (
+              {filteredJobs.map((job) => (
                 <div
                   key={job.id}
                   onClick={() => handleJobClick(job)}
@@ -277,13 +390,12 @@ const Page = () => {
                       <Share2 className="w-5 h-5" />
                     </button>
 
-                  <PopupModal
-                    open={shareModalOpen}
-                    onClose={() => setShareModalOpen(false)}
-                    title="Link copied"
-                    message="The job link has been copied to your clipboard."
-                  />
-
+                    <PopupModal
+                      open={shareModalOpen}
+                      onClose={() => setShareModalOpen(false)}
+                      title="Link copied"
+                      message="The job link has been copied to your clipboard."
+                    />
                   </div>
                 </div>
               </div>
@@ -357,47 +469,45 @@ const Page = () => {
                 <div className="border-t pt-6">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Full Job Description</h3>
                   <div className="space-y-4 text-gray-700 text-sm sm:text-base leading-relaxed">
-{selectedJob.description ? (
-  (() => {
-    const text = selectedJob.description.replace(/<[^>]*>/g, "");
-    const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
-    
-    return sections.map((section, sectionIdx) => {
-      if (!section.trim()) return null;
-      
-      // Check if this is a section header
-      if (section.startsWith('JOB QUALIFICATIONS:') || section.startsWith('JOB DETAILS:')) {
-        const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
-        const header = headerMatch ? headerMatch[0] : '';
-        const content = section.replace(header, '').trim();
-        
-        // Split by capital letters followed by at least 3 letters
-        const items = content
-          .split(/(?=[A-Z][a-z]{2,})/)
-          .map(item => item.trim())
-          .filter(item => {
-            const wordCount = item.split(/\s+/).length;
-            return wordCount >= 5; // Only keep items with 5 or more words
-          });
-        
-        return (
-          <div key={sectionIdx} className="mb-6">
-            <p className="font-bold mb-2">{header}</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              {items.map((item, idx) => (
-                <li key={idx} className="text-gray-700">{item}</li>
-              ))}
-            </ul>
-          </div>
-        );
-      }
-      
-      return <p key={sectionIdx}>{section}</p>;
-    });
-  })()
-) : (
-  <p className="italic text-gray-400">No description available.</p>
-)}
+                    {selectedJob.description ? (
+                      (() => {
+                        const text = selectedJob.description.replace(/<[^>]*>/g, "");
+                        const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
+                        
+                        return sections.map((section, sectionIdx) => {
+                          if (!section.trim()) return null;
+                          
+                          if (section.startsWith('JOB QUALIFICATIONS:') || section.startsWith('JOB DETAILS:')) {
+                            const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
+                            const header = headerMatch ? headerMatch[0] : '';
+                            const content = section.replace(header, '').trim();
+                            
+                            const items = content
+                              .split(/(?=[A-Z][a-z]{2,})/)
+                              .map(item => item.trim())
+                              .filter(item => {
+                                const wordCount = item.split(/\s+/).length;
+                                return wordCount >= 5;
+                              });
+                            
+                            return (
+                              <div key={sectionIdx} className="mb-6">
+                                <p className="font-bold mb-2">{header}</p>
+                                <ul className="list-disc list-inside space-y-1 ml-4">
+                                  {items.map((item, idx) => (
+                                    <li key={idx} className="text-gray-700">{item}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            );
+                          }
+                          
+                          return <p key={sectionIdx}>{section}</p>;
+                        });
+                      })()
+                    ) : (
+                      <p className="italic text-gray-400">No description available.</p>
+                    )}
                   </div>
                 </div>
 
@@ -432,22 +542,24 @@ const Page = () => {
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500">Select a job to view details</p>
+              <p className="text-gray-500">
+                {filteredJobs.length === 0 && (searchQuery || filters.location || filters.employmentType || filters.isRemote !== null)
+                  ? "No jobs match your search criteria"
+                  : "Select a job to view details"}
+              </p>
             </div>
           )}
         </div>
       </div>
 
       <style jsx global>{`
-        /* Hide scrollbar for Chrome, Safari and Opera */
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
 
-        /* Hide scrollbar for IE, Edge and Firefox */
         .scrollbar-hide {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>
