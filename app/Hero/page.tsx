@@ -282,8 +282,8 @@ const Page = () => {
                         <Image
                           src={job.org_logo}
                           alt={job.org_name}
-                          width={36}
-                          height={36}
+                          width={72}
+                          height={72}
                           className="object-contain"
                         />
                       </div>
@@ -353,8 +353,8 @@ const Page = () => {
                       <Image
                         src={selectedJob.org_logo}
                         alt={selectedJob.org_name}
-                        width={56}
-                        height={56}
+                        width={120}
+                        height={120}
                         className="object-contain"
                       />
                     </div>

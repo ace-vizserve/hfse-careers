@@ -9,7 +9,7 @@ export async function GET() {
 
   try {
     // Use the standard jobs endpoint instead of career-page
-    const response = await fetch("https://api.manatal.com/open/v3/jobs/", {
+    const response = await fetch("https://api.manatal.com/open/v3/jobs/?is_published=true&page_size=100", {
       headers: {
         Authorization: `Token ${MANATAL_API_KEY}`,
         "Content-Type": "application/json",
@@ -30,12 +30,9 @@ export async function GET() {
 
     const data = await response.json();
 
-    // The standard API returns { count, next, previous, results }
-    // Filter for only published/active jobs
     const jobs = data.results || [];
-    const activeJobs = jobs.filter((job) => job.is_published || job.status === "Published");
 
-    activeJobs.forEach((job) => {
+    jobs.forEach((job) => {
       const organization = entity_list.find((org) => org.id === job.organization);
 
       if (organization) {
@@ -46,8 +43,8 @@ export async function GET() {
     });
 
     return Response.json({
-      results: activeJobs,
-      count: activeJobs.length,
+      results: jobs,
+      count: jobs.length,
     });
   } catch (error) {
     console.error("API Error:", error);

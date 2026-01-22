@@ -4,8 +4,13 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "media-assets.manatal.com",
-        pathname: "/**",
+        hostname: "hfse.edu.sg",
+        pathname: "/wp-content/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "enrol.hfse.edu.sg",
+        pathname: "/assets/**",
       },
     ],
   },
