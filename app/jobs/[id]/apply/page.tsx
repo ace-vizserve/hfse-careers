@@ -57,6 +57,15 @@ interface CharacterReference {
   relationship: string;
 }
 
+interface FamilyMember {
+  name: string;
+  relationship: string;
+  nationality: string;
+  age: string;
+  occupation: string;
+  company: string;
+}
+
 const isCharacterReferenceField = (field: FormField) =>
   field.slug?.toLowerCase().includes("character") ||
   field.slug?.toLowerCase().includes("reference") ||
@@ -82,6 +91,7 @@ export default function JobApplicationPage() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.id as string;
+
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
     allowedMimeTypes: ["application/pdf"],
@@ -94,6 +104,7 @@ export default function JobApplicationPage() {
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [simpleFormData, setSimpleFormData] = useState<Record<string, string | File>>({});
   const [salaryCurrencies, setSalaryCurrencies] = useState<Record<string, string>>({});
+  
   const [experiences, setExperiences] = useState<Experience[]>([
     {
       title: "",
@@ -105,6 +116,7 @@ export default function JobApplicationPage() {
       description: "",
     },
   ]);
+
   const [educations, setEducations] = useState<Education[]>([
     {
       school: "",
@@ -116,12 +128,29 @@ export default function JobApplicationPage() {
       description: "",
     },
   ]);
+
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([
+    {
+      name: "",
+      relationship: "",
+      nationality: "",
+      age: "",
+      occupation: "",
+      company: "",
+    },
+  ]);
+
+  const [references, setReferences] = useState<CharacterReference[]>([
+    { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
+  ]);
+
   const [nationalityQuery, setNationalityQuery] = useState("");
-  const [nationalityOptions, setNationalityOptions] = useState<{ id: string; common_name: string; demonym: string }[]>(
-    []
-  );
+  const [nationalityOptions, setNationalityOptions] = useState<
+    { id: string; common_name: string; demonym: string }[]
+  >([]);
   const [isSearchingNationalities, setIsSearchingNationalities] = useState(false);
   const [showNationalityOptions, setShowNationalityOptions] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,6 +177,10 @@ export default function JobApplicationPage() {
     Record<number, { answer: "Yes" | "No"; details?: string }>
   >({});
 
+  // ────────────────────────────────────────────────
+  // Handlers
+  // ────────────────────────────────────────────────
+
   const handleDeclarationChange = (index: number, value: "Yes" | "No") => {
     setDeclarationAnswers((prev) => ({
       ...prev,
@@ -167,6 +200,135 @@ export default function JobApplicationPage() {
       },
     }));
   };
+
+  const updateExperience = (index: number, field: keyof Experience, value: any) => {
+    setExperiences((prev) => prev.map((exp, i) => (i === index ? { ...exp, [field]: value } : exp)));
+  };
+
+  const addExperience = () => {
+    setExperiences((prev) => [
+      ...prev,
+      { title: "", employer: "", salary: "", started_at: "", ended_at: null, is_current_employer: false, description: "" },
+    ]);
+  };
+
+  const removeExperience = (index: number) => {
+    if (experiences.length <= 1) return;
+    setExperiences((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateEducation = (index: number, field: keyof Education, value: any) => {
+    setEducations((prev) => prev.map((edu, i) => (i === index ? { ...edu, [field]: value } : edu)));
+  };
+
+  const addEducation = () => {
+    setEducations((prev) => [
+      ...prev,
+      { school: "", degree_name: "", specialization: "", started_at: "", ended_at: null, location: "", description: "" },
+    ]);
+  };
+
+  const removeEducation = (index: number) => {
+    if (educations.length <= 1) return;
+    setEducations((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateFamilyMember = (index: number, field: keyof FamilyMember, value: string) => {
+    setFamilyMembers((prev) =>
+      prev.map((member, i) => (i === index ? { ...member, [field]: value } : member))
+    );
+  };
+
+  const addFamilyMember = () => {
+    setFamilyMembers((prev) => [
+      ...prev,
+      { name: "", relationship: "", nationality: "", age: "", occupation: "", company: "" },
+    ]);
+  };
+
+  const removeFamilyMember = (index: number) => {
+    if (familyMembers.length <= 1) return;
+    setFamilyMembers((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateReference = (index: number, field: keyof CharacterReference, value: string) => {
+    setReferences((prev) => prev.map((ref, i) => (i === index ? { ...ref, [field]: value } : ref)));
+  };
+
+  const addReference = () => {
+    setReferences((prev) => [
+      ...prev,
+      { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
+    ]);
+  };
+
+  const removeReference = (index: number) => {
+    if (references.length <= 1) return;
+    setReferences((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ────────────────────────────────────────────────
+  // Field type helpers
+  // ────────────────────────────────────────────────
+
+  const isExperienceField = (f: FormField) =>
+    (f.name || "").toLowerCase() === "experiences" ||
+    (f.slug || "").toLowerCase() === "experiences" ||
+    f.label?.toLowerCase() === "experiences" ||
+    f.label?.toLowerCase() === "work experience";
+
+  const isEducationField = (f: FormField) =>
+    (f.name || "").toLowerCase() === "education" ||
+    (f.slug || "").toLowerCase() === "education" ||
+    f.label?.toLowerCase() === "educational profile" ||
+    f.label?.toLowerCase() === "education";
+
+  const isExpectedSalary = (field: FormField) =>
+    field.slug?.toLowerCase().includes("expected_salary") ||
+    field.name?.toLowerCase().includes("expected_salary") ||
+    field.slug?.toLowerCase().includes("expectedsalary") ||
+    (field.label?.toLowerCase().includes("expected") && field.label?.toLowerCase().includes("salary"));
+
+  const isNationalityField = (field: FormField) =>
+    field.slug?.toLowerCase() === "nationality" ||
+    field.name?.toLowerCase() === "nationality" ||
+    field.label?.toLowerCase() === "nationality";
+
+  const isIndustryField = (field: FormField) =>
+    field.slug?.toLowerCase() === "industry" ||
+    field.name?.toLowerCase() === "industries" ||
+    field.label?.toLowerCase() === "Work Industry";
+
+  const isCVField = (field: FormField) =>
+    field.id === "1741683" ||
+    field.slug?.toLowerCase() === "cv" ||
+    field.slug?.toLowerCase() === "resume" ||
+    field.name?.toLowerCase() === "cv" ||
+    field.name?.toLowerCase() === "resume" ||
+    field.label?.toLowerCase() === "cv" ||
+    field.label?.toLowerCase() === "resume" ||
+    field.label?.toLowerCase() === "resume/cv" ||
+    field.label?.toLowerCase() === "upload resume";
+
+  const getCurrencyId = (code: string) => {
+    const map: Record<string, string> = {
+      SGD: "11",
+      USD: "1",
+      EUR: "2",
+      GBP: "3",
+      PHP: "13",
+    };
+    return map[code] || "11";
+  };
+
+  const handleSimpleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setSimpleFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // ────────────────────────────────────────────────
+  // Data fetching
+  // ────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchData = async () => {
@@ -189,17 +351,6 @@ export default function JobApplicationPage() {
         }
 
         setFormFields(fields);
-
-        console.log(
-          "📋 Form fields loaded:",
-          fields.map((f) => ({
-            id: f.id,
-            label: f.label,
-            type: f.type,
-            slug: f.slug,
-            name: f.name,
-          }))
-        );
 
         const initialData: Record<string, string> = {};
         const initialCurrencies: Record<string, string> = {};
@@ -245,7 +396,7 @@ export default function JobApplicationPage() {
           setNationalityOptions([]);
           setShowNationalityOptions(false);
         }
-      } catch (error) {
+      } catch {
         setNationalityOptions([]);
         setShowNationalityOptions(false);
       } finally {
@@ -254,132 +405,12 @@ export default function JobApplicationPage() {
     };
 
     const debounceTimer = setTimeout(fetchNationalities, 1500);
-
     return () => clearTimeout(debounceTimer);
   }, [nationalityQuery]);
 
-  const isExpectedSalary = (field: FormField) =>
-    field.slug?.toLowerCase().includes("expected_salary") ||
-    field.name?.toLowerCase().includes("expected_salary") ||
-    field.slug?.toLowerCase().includes("expectedsalary") ||
-    (field.label?.toLowerCase().includes("expected") && field.label?.toLowerCase().includes("salary"));
-
-  const isNationalityField = (field: FormField) =>
-    field.slug?.toLowerCase() === "nationality" ||
-    field.name?.toLowerCase() === "nationality" ||
-    field.label?.toLowerCase() === "nationality";
-
-  const isIndustryField = (field: FormField) =>
-    field.slug?.toLowerCase() === "industry" ||
-    field.name?.toLowerCase() === "industries" ||
-    field.label?.toLowerCase() === "Work Industry";
-
-  const isCVField = (field: FormField) =>
-    field.id === "1741683" ||
-    field.slug?.toLowerCase() === "cv" ||
-    field.slug?.toLowerCase() === "resume" ||
-    field.name?.toLowerCase() === "cv" ||
-    field.name?.toLowerCase() === "resume" ||
-    field.label?.toLowerCase() === "cv" ||
-    field.label?.toLowerCase() === "resume" ||
-    field.label?.toLowerCase() === "resume/cv" ||
-    field.label?.toLowerCase() === "upload resume";
-
-  const getCurrencyId = (code: string) => {
-    const map: Record<string, string> = {
-      SGD: "11",
-      USD: "1",
-      EUR: "2",
-      GBP: "3",
-      PHP: "13",
-    };
-    return map[code] || "11";
-  };
-
-  const handleSimpleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setSimpleFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const updateExperience = (index: number, field: keyof Experience, value: any) => {
-    setExperiences((prev) => prev.map((exp, i) => (i === index ? { ...exp, [field]: value } : exp)));
-  };
-
-  const addExperience = () => {
-    setExperiences((prev) => [
-      ...prev,
-      {
-        title: "",
-        employer: "",
-        salary: "",
-        started_at: "",
-        ended_at: null,
-        is_current_employer: false,
-        description: "",
-      },
-    ]);
-  };
-
-  const removeExperience = (index: number) => {
-    if (experiences.length <= 1) return;
-    setExperiences((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateEducation = (index: number, field: keyof Education, value: any) => {
-    setEducations((prev) => prev.map((edu, i) => (i === index ? { ...edu, [field]: value } : edu)));
-  };
-
-  const addEducation = () => {
-    setEducations((prev) => [
-      ...prev,
-      {
-        school: "",
-        degree_name: "",
-        specialization: "",
-        started_at: "",
-        ended_at: null,
-        location: "",
-        description: "",
-      },
-    ]);
-  };
-
-  const removeEducation = (index: number) => {
-    if (educations.length <= 1) return;
-    setEducations((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const isExperienceField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "experiences" ||
-    (f.slug || "").toLowerCase() === "experiences" ||
-    f.label?.toLowerCase() === "experiences" ||
-    f.label?.toLowerCase() === "work experience";
-
-  const [references, setReferences] = useState<CharacterReference[]>([
-    { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
-  ]);
-
-  const updateReference = (index: number, field: keyof CharacterReference, value: string) => {
-    setReferences((prev) => prev.map((ref, i) => (i === index ? { ...ref, [field]: value } : ref)));
-  };
-
-  const addReference = () => {
-    setReferences((prev) => [
-      ...prev,
-      { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
-    ]);
-  };
-
-  const removeReference = (index: number) => {
-    if (references.length <= 1) return;
-    setReferences((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const isEducationField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "education" ||
-    (f.slug || "").toLowerCase() === "education" ||
-    f.label?.toLowerCase() === "educational profile" ||
-    f.label?.toLowerCase() === "education";
+  // ────────────────────────────────────────────────
+  // Form submission
+  // ────────────────────────────────────────────────
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -407,7 +438,6 @@ export default function JobApplicationPage() {
 
         if (value && typeof value === "string" && value.trim()) {
           finalValue = value.trim();
-
           if (isExpectedSalary(field)) {
             expectedCurrencyId = getCurrencyId(salaryCurrencies[field.id] || "SGD");
           }
@@ -418,6 +448,7 @@ export default function JobApplicationPage() {
         applicationData[field.id] = finalValue;
       });
 
+      // Experiences
       if (expField) {
         const valid = experiences.filter((e) => e.title.trim() || e.employer.trim());
         applicationData[expField.id] = valid.map((exp) => {
@@ -433,19 +464,12 @@ export default function JobApplicationPage() {
             is_current_employer: exp.is_current_employer,
             description: exp.description.trim(),
           };
-
           if (cleanSalary) data.salary = cleanSalary;
-
           return data;
         });
       }
 
-      const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
-
-      if (validReferences.length > 0) {
-        applicationData["1741707"] = formatReferencesToHTML(validReferences);
-      }
-
+      // Education
       if (eduField) {
         const valid = educations.filter((e) => e.school.trim() || e.degree_name.trim());
         applicationData[eduField.id] = valid.map((edu) => ({
@@ -459,6 +483,25 @@ export default function JobApplicationPage() {
         }));
       }
 
+      // Family Particulars (you can change key if backend expects something specific)
+      applicationData["family_particulars"] = familyMembers
+        .filter((m) => m.name.trim())
+        .map((m) => ({
+          name: m.name.trim(),
+          relationship: m.relationship.trim(),
+          nationality: m.nationality.trim(),
+          age: m.age.trim() || null,
+          occupation: m.occupation.trim(),
+          company: m.company.trim(),
+        }));
+
+      // Character References
+      const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
+      if (validReferences.length > 0) {
+        applicationData["1741707"] = formatReferencesToHTML(validReferences);
+      }
+
+      // Resume
       if (resumeProps.successes.length > 0) {
         const resumeField = formFields.find(isCVField);
         if (resumeField) {
@@ -470,8 +513,6 @@ export default function JobApplicationPage() {
           throw new Error("Please upload a resume file");
         }
       }
-
-      console.log("Application Data:", applicationData);
 
       formDataToSend.append("application_data", JSON.stringify(applicationData));
       formDataToSend.append("jobId", jobId);
@@ -487,8 +528,7 @@ export default function JobApplicationPage() {
 
       if (!response.ok) {
         const result = await response.json();
-        console.error("API Error Response:", result);
-        throw new Error(result.error || result.message || result.details || "Failed to submit application");
+        throw new Error(result.error || result.message || "Failed to submit application");
       }
 
       setSubmitSuccess(true);
@@ -500,15 +540,16 @@ export default function JobApplicationPage() {
     }
   };
 
+  // ────────────────────────────────────────────────
+  // Field renderer
+  // ────────────────────────────────────────────────
+
   const renderField = (field: FormField) => {
     const key = field.slug || field.name || field.id;
     const isRequired = field.required || field.is_required || false;
     const common =
       "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500";
 
-    // ────────────────────────────────────────────────
-    // NRIC / FIN - Singapore Identification Number
-    // ────────────────────────────────────────────────
     if (isNricFinField(field)) {
       return (
         <div className="relative">
@@ -526,29 +567,17 @@ export default function JobApplicationPage() {
               }
             }}
             onKeyPress={(e) => {
-              if (!/[STFGMstfgm0-9A-Za-z]/.test(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            onBlur={(e) => {
-              const cleaned = e.target.value.trim().toUpperCase();
-              setSimpleFormData((prev) => ({ ...prev, [key]: cleaned }));
+              if (!/[STFGMstfgm0-9A-Za-z]/.test(e.key)) e.preventDefault();
             }}
             placeholder={field.placeholder || "e.g. S1234567A or T9876543Z"}
             className={`${common} uppercase tracking-wider font-mono`}
             maxLength={9}
-            title="Format: S/T/F/G/M + 7 digits + 1 uppercase letter (e.g. S1234567A)"
           />
-          <p className="mt-1 text-xs text-gray-500">
-            Singapore NRIC / FIN (9 characters)
-          </p>
+          <p className="mt-1 text-xs text-gray-500">Singapore NRIC / FIN (9 characters)</p>
         </div>
       );
     }
 
-    // ────────────────────────────────────────────────
-    // PHONE NUMBER
-    // ────────────────────────────────────────────────
     if (key === "phone" || field.label?.toLowerCase().includes("phone")) {
       return (
         <input
@@ -560,9 +589,7 @@ export default function JobApplicationPage() {
           value={(simpleFormData[key] as string) || ""}
           onChange={handleSimpleChange}
           onKeyPress={(e) => {
-            if (!/[0-9\s+\-()]/.test(e.key)) {
-              e.preventDefault();
-            }
+            if (!/[0-9\s+\-()]/.test(e.key)) e.preventDefault();
           }}
           placeholder={field.placeholder || "+31 6 1234 5678"}
           className={common}
@@ -571,9 +598,6 @@ export default function JobApplicationPage() {
       );
     }
 
-    // ────────────────────────────────────────────────
-    // EXPECTED SALARY
-    // ────────────────────────────────────────────────
     if (isExpectedSalary(field)) {
       return (
         <div className="flex gap-2">
@@ -588,7 +612,6 @@ export default function JobApplicationPage() {
             <option value="GBP">GBP</option>
             <option value="PHP">PHP</option>
           </select>
-
           <input
             type="text"
             inputMode="decimal"
@@ -598,14 +621,10 @@ export default function JobApplicationPage() {
             value={(simpleFormData[key] as string) || ""}
             onChange={(e) => {
               const val = e.target.value;
-              if (/^\d*\.?\d{0,2}$/.test(val)) {
-                handleSimpleChange(e);
-              }
+              if (/^\d*\.?\d{0,2}$/.test(val)) handleSimpleChange(e);
             }}
             onKeyPress={(e) => {
-              if (!/[0-9.]/.test(e.key)) {
-                e.preventDefault();
-              }
+              if (!/[0-9.]/.test(e.key)) e.preventDefault();
             }}
             placeholder="e.g. 5000 or 5500.50"
             className={`flex-1 ${common}`}
@@ -614,9 +633,6 @@ export default function JobApplicationPage() {
       );
     }
 
-    // ────────────────────────────────────────────────
-    // NATIONALITY
-    // ────────────────────────────────────────────────
     if (isNationalityField(field)) {
       return (
         <div className="relative">
@@ -661,9 +677,6 @@ export default function JobApplicationPage() {
       );
     }
 
-    // ────────────────────────────────────────────────
-    // INDUSTRY
-    // ────────────────────────────────────────────────
     if (isIndustryField(field)) {
       return (
         <select
@@ -683,9 +696,6 @@ export default function JobApplicationPage() {
       );
     }
 
-    // ────────────────────────────────────────────────
-    // FILE / RESUME
-    // ────────────────────────────────────────────────
     if (field.type === "file" || isCVField(field)) {
       return (
         <Dropzone {...resumeProps}>
@@ -695,9 +705,6 @@ export default function JobApplicationPage() {
       );
     }
 
-    // ────────────────────────────────────────────────
-    // TEXTAREA
-    // ────────────────────────────────────────────────
     if (field.type === "textarea" || field.type === "longtext") {
       return (
         <textarea
@@ -712,9 +719,6 @@ export default function JobApplicationPage() {
       );
     }
 
-    // ────────────────────────────────────────────────
-    // DROPDOWN
-    // ────────────────────────────────────────────────
     if (field.type === "dropdown" && field.options) {
       return (
         <select
@@ -734,9 +738,6 @@ export default function JobApplicationPage() {
       );
     }
 
-    // ────────────────────────────────────────────────
-    // DEFAULT INPUT (with date detection)
-    // ────────────────────────────────────────────────
     const isDate =
       field.label?.toLowerCase().includes("date") ||
       field.label?.toLowerCase().includes("birth") ||
@@ -815,19 +816,16 @@ export default function JobApplicationPage() {
                   ))}
               </div>
 
-              {/* ===== DECLARATION SECTION ===== */}
+              {/* ===== DECLARATION ===== */}
               <div className="border rounded-xl p-6 bg-gray-50">
                 <h3 className="text-xl font-bold mb-5">Declaration</h3>
-
                 {declarationQuestions.map((question, i) => {
                   const current = declarationAnswers[i];
-
                   return (
                     <div key={i} className="mb-5">
                       <p className="text-gray-700 mb-2">
                         {i + 1}. {question} <span className="text-red-600">*</span>
                       </p>
-
                       <div className="flex gap-6 mb-2">
                         {["Yes", "No"].map((option) => (
                           <label key={option} className="flex items-center gap-2">
@@ -844,7 +842,6 @@ export default function JobApplicationPage() {
                           </label>
                         ))}
                       </div>
-
                       {current?.answer === "Yes" && (
                         <textarea
                           required
@@ -863,7 +860,6 @@ export default function JobApplicationPage() {
               {/* ===== CHARACTER REFERENCES ===== */}
               <div className="border rounded-xl p-6 bg-gray-50">
                 <h3 className="text-xl font-bold mb-5">Character References</h3>
-
                 {references.map((ref, i) => (
                   <div key={i} className="mb-6 p-4 border rounded-lg bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -875,7 +871,6 @@ export default function JobApplicationPage() {
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium mb-1">Email</label>
                       <input
@@ -885,7 +880,6 @@ export default function JobApplicationPage() {
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium mb-1">Contact No.</label>
                       <input
@@ -895,7 +889,6 @@ export default function JobApplicationPage() {
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium mb-1">Company & Occupation</label>
                       <input
@@ -905,7 +898,6 @@ export default function JobApplicationPage() {
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium mb-1">Relationship to Applicant</label>
                       <input
@@ -915,7 +907,6 @@ export default function JobApplicationPage() {
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-
                     {references.length > 1 && (
                       <button
                         type="button"
@@ -927,7 +918,6 @@ export default function JobApplicationPage() {
                     )}
                   </div>
                 ))}
-
                 <button
                   type="button"
                   onClick={addReference}
@@ -937,11 +927,111 @@ export default function JobApplicationPage() {
                 </button>
               </div>
 
+              {/* ===== FAMILY PARTICULARS ===== */}
+              <div className="border rounded-xl p-6 bg-gray-50">
+                <h3 className="text-xl font-bold mb-5">Family Particulars</h3>
+
+                {familyMembers.map((member, i) => (
+                  <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Name</label>
+                        <input
+                          type="text"
+                          value={member.name}
+                          onChange={(e) => updateFamilyMember(i, "name", e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Relationship</label>
+                        <input
+                          type="text"
+                          value={member.relationship}
+                          onChange={(e) => updateFamilyMember(i, "relationship", e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg"
+                          placeholder="Father / Mother / Spouse / Son / Daughter"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Nationality</label>
+                        <input
+                          type="text"
+                          value={member.nationality}
+                          onChange={(e) => updateFamilyMember(i, "nationality", e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Age</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={member.age}
+                          onChange={(e) => {
+                            if (/^\d*$/.test(e.target.value)) {
+                              updateFamilyMember(i, "age", e.target.value);
+                            }
+                          }}
+                          onKeyPress={(e) => {
+                            if (!/[0-9]/.test(e.key)) e.preventDefault();
+                          }}
+                          className="w-full px-3 py-2 border rounded-lg"
+                          placeholder="e.g. 45"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Occupation</label>
+                        <input
+                          type="text"
+                          value={member.occupation}
+                          onChange={(e) => updateFamilyMember(i, "occupation", e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Company</label>
+                        <input
+                          type="text"
+                          value={member.company}
+                          onChange={(e) => updateFamilyMember(i, "company", e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg"
+                          placeholder="(optional)"
+                        />
+                      </div>
+                    </div>
+
+                    {familyMembers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeFamilyMember(i)}
+                        className="mt-4 text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={addFamilyMember}
+                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+                >
+                  + Add Family Member
+                </button>
+              </div>
+
               {/* ===== WORK EXPERIENCE ===== */}
               {hasExp && (
                 <div className="border rounded-xl p-6 bg-gray-50">
                   <h3 className="text-xl font-bold mb-5">Work Experience</h3>
-
                   {experiences.map((exp, i) => (
                     <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -954,7 +1044,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">Company</label>
                           <input
@@ -964,7 +1053,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">Salary</label>
                           <input
@@ -978,15 +1066,12 @@ export default function JobApplicationPage() {
                               }
                             }}
                             onKeyPress={(e) => {
-                              if (!/[0-9]/.test(e.key)) {
-                                e.preventDefault();
-                              }
+                              if (!/[0-9]/.test(e.key)) e.preventDefault();
                             }}
                             placeholder="e.g. 5000"
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div className="flex items-center">
                           <input
                             type="checkbox"
@@ -996,7 +1081,6 @@ export default function JobApplicationPage() {
                           />
                           <label className="text-sm">Currently working here</label>
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">Start Date</label>
                           <input
@@ -1006,7 +1090,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">End Date</label>
                           <input
@@ -1018,7 +1101,6 @@ export default function JobApplicationPage() {
                           />
                         </div>
                       </div>
-
                       <div className="mt-4">
                         <label className="block text-sm font-medium mb-1">Description</label>
                         <textarea
@@ -1028,7 +1110,6 @@ export default function JobApplicationPage() {
                           className="w-full px-3 py-2 border rounded-lg"
                         />
                       </div>
-
                       {experiences.length > 1 && (
                         <button
                           type="button"
@@ -1040,7 +1121,6 @@ export default function JobApplicationPage() {
                       )}
                     </div>
                   ))}
-
                   <button
                     type="button"
                     onClick={addExperience}
@@ -1055,7 +1135,6 @@ export default function JobApplicationPage() {
               {hasEdu && (
                 <div className="border rounded-xl p-6 bg-gray-50">
                   <h3 className="text-xl font-bold mb-5">Education</h3>
-
                   {educations.map((edu, i) => (
                     <div key={i} className="mb-6 p-5 border rounded-lg bg-white">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1068,7 +1147,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">Degree</label>
                           <input
@@ -1078,7 +1156,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">Field of Study</label>
                           <input
@@ -1088,7 +1165,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">Location</label>
                           <input
@@ -1098,7 +1174,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">Start Date</label>
                           <input
@@ -1108,7 +1183,6 @@ export default function JobApplicationPage() {
                             className="w-full px-3 py-2 border rounded-lg"
                           />
                         </div>
-
                         <div>
                           <label className="block text-sm font-medium mb-1">End Date</label>
                           <input
@@ -1119,7 +1193,6 @@ export default function JobApplicationPage() {
                           />
                         </div>
                       </div>
-
                       <div className="mt-4">
                         <label className="block text-sm font-medium mb-1">Description</label>
                         <textarea
@@ -1129,7 +1202,6 @@ export default function JobApplicationPage() {
                           className="w-full px-3 py-2 border rounded-lg"
                         />
                       </div>
-
                       {educations.length > 1 && (
                         <button
                           type="button"
@@ -1141,7 +1213,6 @@ export default function JobApplicationPage() {
                       )}
                     </div>
                   ))}
-
                   <button
                     type="button"
                     onClick={addEducation}
