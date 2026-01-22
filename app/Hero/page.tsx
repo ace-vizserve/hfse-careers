@@ -1,7 +1,8 @@
 "use client";
 import { BookOpen, Briefcase, CheckCircle, DollarSign, Loader2, Mail, MapPin, Share2, Zap } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/navbar";
 import PopupModal from "../components/ui/PopupModal";
 
@@ -28,6 +29,9 @@ interface Job {
   benefits?: string[];
   urgently_hiring?: boolean;
   easily_apply?: boolean;
+  org_logo: string;
+  org_name: string;
+  org_website: string;
 }
 
 interface FilterOptions {
@@ -46,7 +50,7 @@ const Page = () => {
   const [error, setError] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  
+
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterOptions>({
@@ -69,12 +73,7 @@ const Page = () => {
 
   const formatLocation = (job: Job) => (job.is_remote ? "Remote" : job.country || "On-site");
 
-  const formatSalary = (
-    min?: number,
-    max?: number,
-    currency?: string,
-    frequency?: string
-  ) => {
+  const formatSalary = (min?: number, max?: number, currency?: string, frequency?: string) => {
     if (!min && !max) return null;
 
     const currencyCode = currency || "PHP";
@@ -123,6 +122,8 @@ const Page = () => {
     fetchJobs();
   }, []);
 
+  console.log(jobs);
+
   // Filter and search jobs
   const filteredJobs = useMemo(() => {
     let filtered = [...jobs];
@@ -135,12 +136,9 @@ const Page = () => {
         const company = (job.company?.name || "").toLowerCase();
         const location = (job.country || job.city || "").toLowerCase();
         const description = (job.description || "").toLowerCase();
-        
+
         return (
-          title.includes(query) ||
-          company.includes(query) ||
-          location.includes(query) ||
-          description.includes(query)
+          title.includes(query) || company.includes(query) || location.includes(query) || description.includes(query)
         );
       });
     }
@@ -152,7 +150,7 @@ const Page = () => {
         const country = (job.country || "").toLowerCase();
         const city = (job.city || "").toLowerCase();
         const state = (job.state || "").toLowerCase();
-        
+
         return (
           country.includes(locationQuery) ||
           city.includes(locationQuery) ||
@@ -190,7 +188,7 @@ const Page = () => {
 
   // Update selected job when filtered jobs change
   useEffect(() => {
-    if (filteredJobs.length > 0 && !filteredJobs.find(j => j.id === selectedJob?.id)) {
+    if (filteredJobs.length > 0 && !filteredJobs.find((j) => j.id === selectedJob?.id)) {
       setSelectedJob(filteredJobs[0]);
     } else if (filteredJobs.length === 0) {
       setSelectedJob(null);
@@ -227,21 +225,19 @@ const Page = () => {
 
   return (
     <div className="bg-gray-50">
-      <Navbar 
-        onSearch={handleSearch}
-        onFilterChange={handleFilterChange}
-      />
+      <Navbar onSearch={handleSearch} onFilterChange={handleFilterChange} />
 
       {/* Main container */}
       <div className="max-w-[1800px] mx-auto mt-[136px] md:flex" style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
         {/* Job List */}
-        <div className={`${showDetails ? "hidden md:block" : "block"} w-full md:w-[45%] bg-white md:overflow-y-auto scrollbar-hide`}>
+        <div
+          className={`${showDetails ? "hidden md:block" : "block"} w-full md:w-[45%] bg-white md:overflow-y-auto scrollbar-hide`}>
           <div className="p-3 sm:p-4">
             {/* Results count */}
             {!loading && !error && (
               <div className="mb-4 px-2">
                 <p className="text-sm text-gray-600">
-                  {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'} found
+                  {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"} found
                   {(searchQuery || filters.location || filters.employmentType || filters.isRemote !== null) && (
                     <span className="font-medium"> (filtered)</span>
                   )}
@@ -279,22 +275,42 @@ const Page = () => {
                       ? "bg-indigo-50 shadow-sm ring-2 ring-indigo-500"
                       : "bg-white hover:bg-gray-50 shadow-sm"
                   }`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
+                  <div className="flex items-start gap-4 mb-3">
+                    {/* Logo */}
+                    {job.org_logo && (
+                      <div className="flex-shrink-0 rounded-lg border bg-white p-2">
+                        <Image
+                          src={job.org_logo}
+                          alt={job.org_name}
+                          width={36}
+                          height={36}
+                          className="object-contain"
+                        />
+                      </div>
+                    )}
+
+                    {/* Text */}
+                    <div className="flex-1 min-w-0">
                       {job.urgently_hiring && (
-                        <span className="inline-block text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded mb-2">
-                          Urgently hiring
+                        <span className="inline-flex items-center text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full mb-2">
+                          🚀 Urgently hiring
                         </span>
                       )}
-                      <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-1 hover:underline">
+
+                      <h3 className="font-semibold text-gray-900 text-base sm:text-lg leading-tight truncate">
                         {job.position_name || job.title || "Position Title"}
                       </h3>
+
+                      {job.org_name && (
+                        <a
+                          target="_blank"
+                          href={job.org_website}
+                          className="mt-0.5 text-indigo-600 hover:underline font-medium text-sm sm:text-base truncate">
+                          {job.org_name}
+                        </a>
+                      )}
                     </div>
                   </div>
-
-                  {job.company?.name && (
-                    <p className="text-gray-700 font-medium mb-1 text-sm sm:text-base">{job.company.name}</p>
-                  )}
 
                   <p className="text-gray-600 text-sm mb-2">{formatLocation(job)}</p>
 
@@ -326,22 +342,39 @@ const Page = () => {
         </div>
 
         {/* Job Details */}
-        <div className={`${showDetails ? "block" : "hidden md:block"} w-full md:flex-1 bg-gray-50 md:overflow-y-auto scrollbar-hide`}>
+        <div
+          className={`${showDetails ? "block" : "hidden md:block"} w-full md:flex-1 bg-gray-50 md:overflow-y-auto scrollbar-hide`}>
           {selectedJob ? (
             <div className="p-4 sm:p-6">
-              {/* Job Header */}
               <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                  {selectedJob.position_name || selectedJob.title}
-                </h1>
+                <div className="flex items-start gap-4 mb-4">
+                  {selectedJob.org_logo && (
+                    <div className="flex-shrink-0 rounded-lg border bg-white p-2">
+                      <Image
+                        src={selectedJob.org_logo}
+                        alt={selectedJob.org_name}
+                        width={56}
+                        height={56}
+                        className="object-contain"
+                      />
+                    </div>
+                  )}
 
-                {selectedJob.company?.name && (
-                  <a
-                    href="#"
-                    className="text-indigo-600 hover:underline font-medium text-base sm:text-lg mb-3 inline-block">
-                    {selectedJob.company.name}
-                  </a>
-                )}
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+                      {selectedJob.position_name || selectedJob.title}
+                    </h1>
+
+                    {selectedJob.org_name && (
+                      <a
+                        target="_blank"
+                        href={selectedJob.org_website}
+                        className="inline-block mt-1 text-indigo-600 hover:underline font-medium text-base sm:text-lg">
+                        {selectedJob.org_name}
+                      </a>
+                    )}
+                  </div>
+                </div>
 
                 <div className="mb-4 text-gray-700">
                   <div className="flex items-center gap-2 mb-1">
@@ -354,14 +387,14 @@ const Page = () => {
                     selectedJob.salary_min,
                     selectedJob.salary_max,
                     selectedJob.currency,
-                    selectedJob.frequency
+                    selectedJob.frequency,
                   ) && (
                     <p className="font-semibold text-gray-900 text-base sm:text-lg">
                       {formatSalary(
                         selectedJob.salary_min,
                         selectedJob.salary_max,
                         selectedJob.currency,
-                        selectedJob.frequency
+                        selectedJob.frequency,
                       )}
                     </p>
                   )}
@@ -433,7 +466,7 @@ const Page = () => {
                           selectedJob.salary_min,
                           selectedJob.salary_max,
                           selectedJob.currency,
-                          selectedJob.frequency
+                          selectedJob.frequency,
                         ) || "Competitive salary"}
                       </p>
                     </div>
@@ -473,35 +506,37 @@ const Page = () => {
                       (() => {
                         const text = selectedJob.description.replace(/<[^>]*>/g, "");
                         const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
-                        
+
                         return sections.map((section, sectionIdx) => {
                           if (!section.trim()) return null;
-                          
-                          if (section.startsWith('JOB QUALIFICATIONS:') || section.startsWith('JOB DETAILS:')) {
+
+                          if (section.startsWith("JOB QUALIFICATIONS:") || section.startsWith("JOB DETAILS:")) {
                             const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
-                            const header = headerMatch ? headerMatch[0] : '';
-                            const content = section.replace(header, '').trim();
-                            
+                            const header = headerMatch ? headerMatch[0] : "";
+                            const content = section.replace(header, "").trim();
+
                             const items = content
                               .split(/(?=[A-Z][a-z]{2,})/)
-                              .map(item => item.trim())
-                              .filter(item => {
+                              .map((item) => item.trim())
+                              .filter((item) => {
                                 const wordCount = item.split(/\s+/).length;
                                 return wordCount >= 5;
                               });
-                            
+
                             return (
                               <div key={sectionIdx} className="mb-6">
                                 <p className="font-bold mb-2">{header}</p>
                                 <ul className="list-disc list-inside space-y-1 ml-4">
                                   {items.map((item, idx) => (
-                                    <li key={idx} className="text-gray-700">{item}</li>
+                                    <li key={idx} className="text-gray-700">
+                                      {item}
+                                    </li>
                                   ))}
                                 </ul>
                               </div>
                             );
                           }
-                          
+
                           return <p key={sectionIdx}>{section}</p>;
                         });
                       })()
@@ -543,7 +578,8 @@ const Page = () => {
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-gray-500">
-                {filteredJobs.length === 0 && (searchQuery || filters.location || filters.employmentType || filters.isRemote !== null)
+                {filteredJobs.length === 0 &&
+                (searchQuery || filters.location || filters.employmentType || filters.isRemote !== null)
                   ? "No jobs match your search criteria"
                   : "Select a job to view details"}
               </p>

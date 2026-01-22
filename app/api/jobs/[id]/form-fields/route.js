@@ -21,7 +21,7 @@ export async function GET(request, { params }) {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -34,36 +34,31 @@ export async function GET(request, { params }) {
 
     console.log("Form fields retrieved for job", id, ":", formFields.length, "fields");
 
-   // Transform Manatal fields to our format and filter out Character References
-const transformedFields = formFields
-  .filter((field) => {
-    const slug = field.slug?.toLowerCase() || "";
-    const label = field.label?.toLowerCase() || "";
+    // Transform Manatal fields to our format and filter out Character References
+    const transformedFields = formFields
+      .filter((field) => {
+        const slug = field.slug?.toLowerCase() || "";
+        const label = field.label?.toLowerCase() || "";
 
-    // ❌ Remove Character References (handled separately)
-    const isCharacterRef =
-      slug.includes("character") ||
-      slug.includes("reference") ||
-      label.includes("character reference");
+        // ❌ Remove Character References (handled separately)
+        const isCharacterRef =
+          slug.includes("character") || slug.includes("reference") || label.includes("character reference");
 
-    // ❌ Remove Declaration text field from Manatal
-    const isDeclaration =
-      slug === "declaration" ||
-      label === "declaration";
+        // ❌ Remove Declaration text field from Manatal
+        const isDeclaration = slug === "declaration" || label === "declaration";
 
-    return !isCharacterRef && !isDeclaration;
-  })
-  .map((field) => ({
-    id: field.id,
-    name: field.slug,
-    label: field.label,
-    type: mapFieldType(field.type, field.display_type),
-    required: field.is_required,
-    options: field.options || [],
-    placeholder: generatePlaceholder(field.label, field.type),
-    fieldCategory: field.field_category,
-  }));
-
+        return !isCharacterRef && !isDeclaration;
+      })
+      .map((field) => ({
+        id: field.id,
+        name: field.slug,
+        label: field.label,
+        type: mapFieldType(field.type, field.display_type),
+        required: field.is_required,
+        options: field.options || [],
+        placeholder: generatePlaceholder(field.label, field.type),
+        fieldCategory: field.field_category,
+      }));
 
     console.log(transformedFields);
 
@@ -78,7 +73,7 @@ const transformedFields = formFields
         error: "Failed to fetch form fields",
         message: error.message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
