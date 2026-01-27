@@ -3,7 +3,7 @@
 import { industry_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
-import { formatReferencesToHTML, generateDeclarationList } from "@/lib/utils";
+import { formatFamilyParticularsToHTML, formatReferencesToHTML, generateDeclarationList } from "@/lib/utils";
 import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
@@ -104,7 +104,7 @@ export default function JobApplicationPage() {
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [simpleFormData, setSimpleFormData] = useState<Record<string, string | File>>({});
   const [salaryCurrencies, setSalaryCurrencies] = useState<Record<string, string>>({});
-  
+
   const [experiences, setExperiences] = useState<Experience[]>([
     {
       title: "",
@@ -145,9 +145,9 @@ export default function JobApplicationPage() {
   ]);
 
   const [nationalityQuery, setNationalityQuery] = useState("");
-  const [nationalityOptions, setNationalityOptions] = useState<
-    { id: string; common_name: string; demonym: string }[]
-  >([]);
+  const [nationalityOptions, setNationalityOptions] = useState<{ id: string; common_name: string; demonym: string }[]>(
+    [],
+  );
   const [isSearchingNationalities, setIsSearchingNationalities] = useState(false);
   const [showNationalityOptions, setShowNationalityOptions] = useState(false);
 
@@ -208,7 +208,15 @@ export default function JobApplicationPage() {
   const addExperience = () => {
     setExperiences((prev) => [
       ...prev,
-      { title: "", employer: "", salary: "", started_at: "", ended_at: null, is_current_employer: false, description: "" },
+      {
+        title: "",
+        employer: "",
+        salary: "",
+        started_at: "",
+        ended_at: null,
+        is_current_employer: false,
+        description: "",
+      },
     ]);
   };
 
@@ -224,7 +232,15 @@ export default function JobApplicationPage() {
   const addEducation = () => {
     setEducations((prev) => [
       ...prev,
-      { school: "", degree_name: "", specialization: "", started_at: "", ended_at: null, location: "", description: "" },
+      {
+        school: "",
+        degree_name: "",
+        specialization: "",
+        started_at: "",
+        ended_at: null,
+        location: "",
+        description: "",
+      },
     ]);
   };
 
@@ -234,9 +250,7 @@ export default function JobApplicationPage() {
   };
 
   const updateFamilyMember = (index: number, field: keyof FamilyMember, value: string) => {
-    setFamilyMembers((prev) =>
-      prev.map((member, i) => (i === index ? { ...member, [field]: value } : member))
-    );
+    setFamilyMembers((prev) => prev.map((member, i) => (i === index ? { ...member, [field]: value } : member)));
   };
 
   const addFamilyMember = () => {
@@ -484,22 +498,27 @@ export default function JobApplicationPage() {
       }
 
       // Family Particulars (you can change key if backend expects something specific)
-      applicationData["family_particulars"] = familyMembers
+      const trimmedFamilyMembers = familyMembers
         .filter((m) => m.name.trim())
         .map((m) => ({
           name: m.name.trim(),
           relationship: m.relationship.trim(),
           nationality: m.nationality.trim(),
-          age: m.age.trim() || null,
+          age: m.age.trim(),
           occupation: m.occupation.trim(),
           company: m.company.trim(),
         }));
 
+      applicationData["1741709"] = formatFamilyParticularsToHTML(trimmedFamilyMembers);
+
       // Character References
       const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
+
       if (validReferences.length > 0) {
         applicationData["1741707"] = formatReferencesToHTML(validReferences);
       }
+
+      applicationData["1741708"] = generateDeclarationList(declarationAnswers);
 
       // Resume
       if (resumeProps.successes.length > 0) {
@@ -604,8 +623,7 @@ export default function JobApplicationPage() {
           <select
             value={salaryCurrencies[field.id] || "SGD"}
             onChange={(e) => setSalaryCurrencies((prev) => ({ ...prev, [field.id]: e.target.value }))}
-            className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[90px]"
-          >
+            className="px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[90px]">
             <option value="SGD">SGD</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
@@ -663,8 +681,7 @@ export default function JobApplicationPage() {
                       setSimpleFormData((prev) => ({ ...prev, [key]: nat.demonym }));
                       setNationalityQuery(nat.demonym);
                       setShowNationalityOptions(false);
-                    }}
-                  >
+                    }}>
                     {nat.demonym}
                   </li>
                 ))
@@ -684,8 +701,7 @@ export default function JobApplicationPage() {
           required={isRequired}
           value={(simpleFormData[key] as string) || ""}
           onChange={handleSimpleChange}
-          className={common}
-        >
+          className={common}>
           <option value="">Select an industry</option>
           {industry_list.map((industry) => (
             <option key={industry.id} value={industry.id}>
@@ -726,8 +742,7 @@ export default function JobApplicationPage() {
           required={isRequired}
           value={(simpleFormData[key] as string) || ""}
           onChange={handleSimpleChange}
-          className={common}
-        >
+          className={common}>
           <option value="">Select an option</option>
           {field.options.map((option) => (
             <option key={option} value={option}>
@@ -792,8 +807,7 @@ export default function JobApplicationPage() {
               <p className="text-gray-600 mb-8">Thank you! We'll get back to you soon.</p>
               <button
                 onClick={() => router.push("/Hero")}
-                className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-              >
+                className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                 Browse More Jobs
               </button>
             </div>
@@ -911,8 +925,7 @@ export default function JobApplicationPage() {
                       <button
                         type="button"
                         onClick={() => removeReference(i)}
-                        className="mt-2 text-red-600 hover:text-red-800 text-sm"
-                      >
+                        className="mt-2 text-red-600 hover:text-red-800 text-sm">
                         Remove
                       </button>
                     )}
@@ -921,8 +934,7 @@ export default function JobApplicationPage() {
                 <button
                   type="button"
                   onClick={addReference}
-                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
-                >
+                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
                   + Add Reference
                 </button>
               </div>
@@ -1011,8 +1023,7 @@ export default function JobApplicationPage() {
                       <button
                         type="button"
                         onClick={() => removeFamilyMember(i)}
-                        className="mt-4 text-red-600 hover:text-red-800 text-sm"
-                      >
+                        className="mt-4 text-red-600 hover:text-red-800 text-sm">
                         Remove
                       </button>
                     )}
@@ -1022,8 +1033,7 @@ export default function JobApplicationPage() {
                 <button
                   type="button"
                   onClick={addFamilyMember}
-                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
-                >
+                  className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
                   + Add Family Member
                 </button>
               </div>
@@ -1114,8 +1124,7 @@ export default function JobApplicationPage() {
                         <button
                           type="button"
                           onClick={() => removeExperience(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-lg"
-                        >
+                          className="mt-3 text-red-600 hover:text-red-800 text-lg">
                           Remove
                         </button>
                       )}
@@ -1124,8 +1133,7 @@ export default function JobApplicationPage() {
                   <button
                     type="button"
                     onClick={addExperience}
-                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
-                  >
+                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
                     + Add Experience
                   </button>
                 </div>
@@ -1206,8 +1214,7 @@ export default function JobApplicationPage() {
                         <button
                           type="button"
                           onClick={() => removeEducation(i)}
-                          className="mt-3 text-red-600 hover:text-red-800 text-lg"
-                        >
+                          className="mt-3 text-red-600 hover:text-red-800 text-lg">
                           Remove
                         </button>
                       )}
@@ -1216,8 +1223,7 @@ export default function JobApplicationPage() {
                   <button
                     type="button"
                     onClick={addEducation}
-                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
-                  >
+                    className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium">
                     + Add Education
                   </button>
                 </div>
@@ -1229,16 +1235,14 @@ export default function JobApplicationPage() {
                   type="button"
                   onClick={() => router.back()}
                   disabled={submitting}
-                  className="flex-1 py-3.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                >
+                  className="flex-1 py-3.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
                   Cancel
                 </button>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-3.5 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 font-semibold disabled:opacity-50"
-                >
+                  className="flex-1 py-3.5 bg-indigo-700 text-white rounded-lg hover:bg-indigo-800 font-semibold disabled:opacity-50">
                   {submitting ? "Submitting..." : "Submit Application"}
                 </button>
               </div>

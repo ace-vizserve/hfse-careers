@@ -34,24 +34,51 @@ export function formatReferencesToHTML(refs: Reference[]): string {
         <li><strong>Relationship to Applicant:</strong> ${ref.relationship}</li>
       </ul>
     </li>
-  `
+  `,
     )
     .join("")}
 </ol>
 `.trim();
 }
 
-/* ===========================
-   DECLARATIONS
-=========================== */
+type FamilyParticulars = {
+  name: string;
+  nationality: string;
+  age: string;
+  occupation: string;
+  company: string;
+  relationship: string;
+};
+
+export function formatFamilyParticularsToHTML(refs: FamilyParticulars[]): string {
+  return `
+<ol>
+  ${refs
+    .map(
+      (ref) => `
+    <li>
+      <ul>
+        <li><strong>Name:</strong> ${ref.name}</li>
+        <li><strong>Relationship:</strong> ${ref.relationship}</li>
+        <li><strong>Nationality:</strong> ${ref.nationality}</li>
+        <li><strong>Age:</strong> ${ref.age}</li>
+        <li><strong>Occupation:</strong> ${ref.occupation}</li>
+        <li><strong>Company:</strong> ${ref.company}</li>
+      </ul>
+    </li>
+  `,
+    )
+    .join("")}
+</ol>
+`.trim();
+}
+
 type DeclarationAnswer = {
   answer: "Yes" | "No";
   details?: string;
 };
 
-export function generateDeclarationList(
-  declarations: Record<number, DeclarationAnswer>
-): string {
+export function generateDeclarationList(declarations: Record<number, DeclarationAnswer>): string {
   const declarationQuestions = [
     "Have you been or are you suffering from any disease/major medical condition/mental illness or physical impairment?",
     "Have you been discharged or dismissed from the service of your previous employers?",
@@ -71,11 +98,7 @@ export function generateDeclarationList(
       ${question}
       <ul>
         <li><strong>Answer:</strong> ${data?.answer || "-"}</li>
-        ${
-          data?.answer === "Yes" && data.details?.trim()
-            ? `<li><strong>Details:</strong> ${data.details}</li>`
-            : ""
-        }
+        ${data?.answer === "Yes" && data.details?.trim() ? `<li><strong>Details:</strong> ${data.details}</li>` : ""}
       </ul>
     </li>
   `;
