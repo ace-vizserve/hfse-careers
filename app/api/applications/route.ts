@@ -44,12 +44,10 @@ export async function POST(request: Request) {
             error: `Resume: "${resume}" not found in Manatal system`,
             details: "Please provide a valid nationality",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
-
-    console.log(applicationData);
 
     const getNationalityId = async (nationalityName: string): Promise<number | null> => {
       try {
@@ -60,7 +58,7 @@ export async function POST(request: Request) {
             headers: {
               "Content-Type": "application/json",
             },
-          }
+          },
         );
 
         if (response.ok) {
@@ -90,32 +88,10 @@ export async function POST(request: Request) {
             error: `Nationality "${nationalityName}" not found in Manatal system`,
             details: "Please provide a valid nationality",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
-
-    // Format character references as HTML for Manatal
-if (applicationData["character_references"] && Array.isArray(applicationData["character_references"])) {
-  const references = applicationData["character_references"];
-  
-  const formattedReferences = references
-    .map((ref: any) => `
-      <li>
-        <ul>
-          <li>Name : ${ref.name || ''}</li>
-          <li>Email : ${ref.email || ''}</li>
-          <li>Contact Number : ${ref.contact_no || ''}</li>
-          <li>Occupation & Company : ${ref.company_occupation || ''}</li>
-          <li>Relationship to Applicant : ${ref.relationship || ''}</li>
-        </ul>
-      </li>
-    `)
-    .join('');
-  
-  applicationData["character_references"] = `<ol>${formattedReferences}</ol>`;
-  console.log("✅ Formatted character references as HTML");
-}
 
     // Get expected_currency from formData
     const expectedCurrencyValue = formData.get("expected_currency");
@@ -137,7 +113,7 @@ if (applicationData["character_references"] && Array.isArray(applicationData["ch
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ application_data: applicationData }),
-      }
+      },
     );
 
     const submitText = await submitResponse.text();
@@ -152,7 +128,7 @@ if (applicationData["character_references"] && Array.isArray(applicationData["ch
           details: submitText,
           status: submitResponse.status,
         },
-        { status: submitResponse.status }
+        { status: submitResponse.status },
       );
     }
 
@@ -166,7 +142,7 @@ if (applicationData["character_references"] && Array.isArray(applicationData["ch
           error: "Invalid response from Manatal",
           details: submitText,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -182,7 +158,7 @@ if (applicationData["character_references"] && Array.isArray(applicationData["ch
         error: "Failed to submit application",
         message: (error as Error).message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

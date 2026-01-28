@@ -510,6 +510,9 @@ export default function JobApplicationPage() {
         }));
 
       applicationData["1741709"] = formatFamilyParticularsToHTML(trimmedFamilyMembers);
+      applicationData["1771366"] = false;
+      applicationData["1771465"] = false;
+      applicationData["1771466"] = false;
 
       // Character References
       const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
