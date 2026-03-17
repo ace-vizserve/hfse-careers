@@ -6,45 +6,51 @@ import "./globals.css";
 const roboto = Roboto({
   subsets: ["latin"],
   variable: "--font-roboto",
-  weight: ["300", "400", "500", "700"], // Adjust as needed
+  weight: ["300", "400", "500", "700"],
 });
 
-// ✅ Updated SEO Metadata for Team Builder page
 export const metadata: Metadata = {
-  title: "Team Builder | Vizserve Workforce Solutions",
+  title: "HFSE Global Education Group Careers | Vizserve Workforce Solutions",
   description:
-    "Build your dream team with Vizserve. Discover top talent and seamless workforce solutions designed to help your business grow with confidence.",
+    "Apply for career opportunities at HFSE Global Education Group. Join a dynamic team in education and make a meaningful impact with Vizserve Workforce Solutions.",
   keywords: [
-    "Vizserve team builder",
-    "workforce solutions",
-    "hire professionals",
-    "staffing services",
-    "talent sourcing",
-    "recruitment Vizserve",
+    "HFSE careers",
+    "HFSE Global Education Group jobs",
+    "education careers",
+    "teaching jobs",
+    "Vizserve recruitment",
+    "apply HFSE",
+    "school jobs Singapore",
   ],
+  icons: {
+    icon: "/assets/geg-favicon.png",
+    shortcut: "/assets/geg-favicon.png",
+    apple: "/assets/geg-favicon.png",
+  },
+
   openGraph: {
-    title: "Team Builder | Vizserve Workforce Solutions",
+    title: "HFSE Global Education Group Careers",
     description:
-      "Discover top talent and build your team effortlessly with Vizserve’s reliable workforce solutions.",
-    siteName: "Vizserve",
+      "Explore career opportunities at HFSE Global Education Group and become part of a passionate education team.",
+    siteName: "Vizserve Workforce Solutions",
     locale: "en_US",
     type: "website",
-    url: "https://www.vizserve.com/team-builder", // optional but good for SEO
+    url: "https://www.vizserve.com/hfse-careers",
     images: [
       {
-        url: "/assets/og-team-builder.jpg", // replace with your actual OG image
+        url: "/assets/og-hfse-careers.jpg",
         width: 1200,
         height: 630,
-        alt: "Vizserve Team Builder",
+        alt: "HFSE Global Education Group Careers",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Team Builder | Vizserve Workforce Solutions",
+    title: "HFSE Careers | Apply Now",
     description:
-      "Find top talent and build high-performing teams with Vizserve’s workforce solutions.",
-    images: ["/assets/og-team-builder.jpg"],
+      "Start your career with HFSE Global Education Group. Apply today and join a leading education institution.",
+    images: ["/assets/og-hfse-careers.jpg"],
   },
 };
 
@@ -55,9 +61,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-     <body className={`${roboto.variable} antialiased`} style={{ fontFamily: 'var(--font-roboto)' }}>
-  {children}
-</body>
+      <body className={`${roboto.variable} antialiased`} style={{ fontFamily: "var(--font-roboto)" }}>
+        {children}
+      </body>
     </html>
   );
 }

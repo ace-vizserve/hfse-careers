@@ -9,12 +9,15 @@ export async function GET() {
 
   try {
     // Use the standard jobs endpoint instead of career-page
-    const response = await fetch("https://api.manatal.com/open/v3/jobs/?is_published=true&page_size=100", {
-      headers: {
-        Authorization: `Token ${MANATAL_API_KEY}`,
-        "Content-Type": "application/json",
+    const response = await fetch(
+      "https://api.manatal.com/open/v3/jobs/?is_published=true&page_size=100&status=active",
+      {
+        headers: {
+          Authorization: `Token ${MANATAL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();

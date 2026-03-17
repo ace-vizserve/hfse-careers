@@ -32,8 +32,6 @@ export async function GET(request, { params }) {
 
     const formFields = await response.json();
 
-    console.log("Form fields retrieved for job", id, ":", formFields.length, "fields");
-
     // Transform Manatal fields to our format and filter out Character References
     const transformedFields = formFields
       .filter((field) => {
