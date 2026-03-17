@@ -20,8 +20,6 @@ export async function POST(request: Request) {
       return Response.json({ error: "Job ID is required" }, { status: 400 });
     }
 
-    console.log("📝 Processing application for job:", jobId);
-
     const applicationDataStr = formData.get("application_data");
     if (!applicationDataStr || typeof applicationDataStr !== "string") {
       return Response.json({ error: "Application data is required" }, { status: 400 });
@@ -64,7 +62,6 @@ export async function POST(request: Request) {
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {
-            console.log(`✅ Found nationality ID for "${nationalityName}":`, data[0].id);
             return data[0].id;
           }
         }
@@ -117,8 +114,6 @@ export async function POST(request: Request) {
     );
 
     const submitText = await submitResponse.text();
-    console.log("📥 Manatal Response:", submitResponse.status);
-    console.log("📥 Response body:", submitText);
 
     if (!submitResponse.ok) {
       console.error("❌ Manatal API Error:", submitText);

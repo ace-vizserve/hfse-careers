@@ -64,8 +64,6 @@ export async function GET(request, { params }) {
         fieldCategory: field.field_category,
       }));
 
-    console.log(transformedFields);
-
     return Response.json({
       fields: transformedFields,
       jobId: id,

@@ -433,7 +433,14 @@ export default function JobApplicationPage() {
       applicationData["1771466"] = false;
 
       const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
-      if (validReferences.length > 0) applicationData["1741707"] = formatReferencesToHTML(validReferences);
+
+      if (validReferences.length < 3) {
+        setError("Please provide at least 3 character references.");
+        setSubmitting(false);
+        return;
+      }
+
+      applicationData["1741707"] = formatReferencesToHTML(validReferences);
       applicationData["1741708"] = generateDeclarationList(declarationAnswers);
 
       if (resumeProps.successes.length > 0) {
@@ -1357,6 +1364,39 @@ export default function JobApplicationPage() {
                   title="Character References"
                   subtitle="People who can vouch for your professional character"
                 />
+
+                <div className="flex items-center gap-2 mb-5 -mt-3">
+                  {[0, 1, 2].map((i) => {
+                    const filled =
+                      references[i] &&
+                      references[i].name.trim() &&
+                      references[i].email.trim() &&
+                      references[i].contact_no.trim() &&
+                      references[i].relationship.trim();
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
+        ${
+          filled ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-400"
+        }`}>
+                        {filled ? (
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        ) : (
+                          <span className="w-3 h-3 rounded-full border-2 border-current inline-block" />
+                        )}
+                        Character Reference {i + 1}
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <div className="space-y-4">
                   {references.map((ref, i) => (
                     <div key={i} className="relative p-6 bg-slate-50 border border-slate-200 rounded-xl">
