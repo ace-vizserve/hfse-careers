@@ -10,7 +10,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "HFSE Global Education Group Careers | Vizserve Workforce Solutions",
+  title: "HFSE Global Education Group Careers",
   description:
     "Apply for career opportunities at HFSE Global Education Group. Join a dynamic team in education and make a meaningful impact with Vizserve Workforce Solutions.",
   keywords: [

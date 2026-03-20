@@ -4,6 +4,12 @@ export async function POST(request: Request) {
   const MANATAL_API_KEY = process.env.MANATAL_API_KEY;
   const MANATAL_CLIENT_SLUG = process.env.MANATAL_CLIENT_SLUG;
 
+  const WEBHOOK_URL = process.env.N8N_PROD_WEBHOOK_URL;
+
+  if (!WEBHOOK_URL) {
+    return Response.json({ error: "Webhook URL not configured" }, { status: 500 });
+  }
+
   if (!MANATAL_API_KEY) {
     return Response.json({ error: "API key not configured" }, { status: 500 });
   }
@@ -102,6 +108,9 @@ export async function POST(request: Request) {
       applicationData.expected_currency = 11;
     }
 
+    const { job_id, job_portal, referrer_email, referrer_name, organization_name, position_name, ...appData } =
+      applicationData;
+
     const submitResponse = await fetch(
       `https://api.manatal.com/open/v3/career-page/${MANATAL_CLIENT_SLUG}/jobs/${jobId}/application-form/`,
       {
@@ -109,14 +118,13 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ application_data: applicationData }),
+        body: JSON.stringify({ application_data: appData }),
       },
     );
 
     const submitText = await submitResponse.text();
 
     if (!submitResponse.ok) {
-      console.error("❌ Manatal API Error:", submitText);
       return Response.json(
         {
           error: "Failed to submit application",
@@ -138,6 +146,38 @@ export async function POST(request: Request) {
           details: submitText,
         },
         { status: 500 },
+      );
+    }
+
+    const submitDataToWebhook = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        application_data: {
+          job_id,
+          job_portal,
+          referrer_email,
+          referrer_name,
+          candidate_name: appData["1741679"],
+          candidate_email: appData["1741680"],
+          organization_name,
+          position_name,
+        },
+      }),
+    });
+
+    const submitDataToWebhookText = await submitDataToWebhook.text();
+
+    if (!submitDataToWebhook.ok) {
+      return Response.json(
+        {
+          error: "Failed to submit data",
+          details: submitDataToWebhookText,
+          status: submitDataToWebhook.status,
+        },
+        { status: submitDataToWebhook.status },
       );
     }
 

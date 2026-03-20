@@ -2,12 +2,25 @@
 
 import { entity_list, industry_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
+import { ErrorSummary, type ErrorSummaryItem } from "@/components/ui/error-summary";
+import { ScrollToSubmitButton } from "@/components/ui/scroll-to-submit-button";
+import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
+import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
-import { formatFamilyParticularsToHTML, formatReferencesToHTML, generateDeclarationList } from "@/lib/utils";
+import {
+  formatEducations,
+  formatExperiences,
+  formatFamilyParticularsToHTML,
+  formatReferencesToHTML,
+  generateDeclarationList,
+} from "@/lib/utils";
+import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Controller, FieldErrors, useFieldArray, useForm } from "react-hook-form";
 
 interface JobDetail {
   id: number;
@@ -21,77 +34,198 @@ interface JobDetail {
 }
 
 interface FormField {
-  id: string;
+  id: string | number;
   slug?: string;
   name?: string;
   label: string;
   type: string;
   is_required?: boolean;
+  isrequired?: boolean;
   required?: boolean;
   field_category?: string;
+  fieldcategory?: string;
+  display_type?: string;
+  displaytype?: string;
+  choices?: string[];
   options?: string[];
   placeholder?: string;
 }
 
-interface Experience {
-  title: string;
-  employer: string;
-  salary?: string;
-  started_at: string;
-  ended_at?: string | null;
-  is_current_employer: boolean;
-  description: string;
-}
+type FormValues = JobApplicationFormValues & Record<string, any>;
 
-interface Education {
-  school: string;
-  degree_name: string;
-  specialization?: string;
-  started_at: string;
-  ended_at?: string | null;
-  location: string;
-  description?: string;
-}
+const declarationQuestions = [
+  "Have you been or are you suffering from any disease/major medical condition/mental illness or physical impairment?",
+  "Have you been discharged or dismissed from the service of your previous employers?",
+  "Have you been convicted in a Court of law in any country or any ongoing legal proceedings?",
+  "Have you been served with a Garnishee Order by any organisation or been declared a bankrupt?",
+  "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
+] as const;
 
-interface CharacterReference {
-  name: string;
-  email: string;
-  contact_no: string;
-  company_occupation: string;
-  relationship: string;
-}
+const normalize = (value?: string | number | null) =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 
-interface FamilyMember {
-  name: string;
-  relationship: string;
-  nationality: string;
-  age: string;
-  occupation: string;
-  company: string;
-}
+const getFieldKey = (field: FormField) => String(field.slug || field.name || field.id);
+const getRequired = (field: FormField) => Boolean(field.required ?? field.isrequired ?? field.is_required);
+const getCategory = (field: FormField) => field.fieldcategory || field.field_category || "";
+const getDisplayType = (field: FormField) => field.displaytype || field.display_type || "";
+const getChoices = (field: FormField) => field.choices || field.options || [];
 
-const isCharacterReferenceField = (field: FormField) =>
-  field.slug?.toLowerCase().includes("character") ||
-  field.slug?.toLowerCase().includes("reference") ||
-  field.name?.toLowerCase().includes("character") ||
-  field.label?.toLowerCase().includes("character reference");
+const matches = (field: FormField, ...values: string[]) => {
+  const pool = [
+    normalize(field.slug),
+    normalize(field.name),
+    normalize(field.label),
+    normalize(getCategory(field)),
+    normalize(getDisplayType(field)),
+    normalize(field.type),
+    normalize(field.id),
+  ];
+
+  return values.some((value) => {
+    const target = normalize(value);
+    return pool.some((item) => item === target);
+  });
+};
 
 const isNricFinField = (field: FormField) =>
-  field.slug?.toLowerCase()?.includes("nric") ||
-  field.slug?.toLowerCase()?.includes("fin") ||
-  field.name?.toLowerCase()?.includes("nric") ||
-  field.name?.toLowerCase()?.includes("fin") ||
-  field.label?.toLowerCase().includes("nric") ||
-  field.label?.toLowerCase().includes("fin") ||
-  field.label?.toLowerCase().includes("identification") ||
-  field.label?.toLowerCase().includes("singapore id") ||
-  field.label?.toLowerCase().includes("pink ic") ||
-  field.label?.toLowerCase().includes("nrric");
+  matches(field, "nricfin", "nric", "fin", "singapore id", "pink ic", "identification");
+
+const workPassOptions = [
+  "Dependant's Pass (DP)",
+  "Employment Pass (EP)",
+  "EntrePass",
+  "Long-Term Visit Pass (LTVP)",
+  "Permanent Residency (PR)",
+  "S Pass",
+  "Short-Term Visit Pass (STVP)/Visit Pass",
+  "Training Employment Pass",
+  "Work Holiday Pass",
+  "Work Permit (WP)",
+  "Student Pass",
+  "No Permit/Pass",
+] as const;
+
+const buildDefaultValues = (): FormValues => ({
+  expected_salary: "",
+  expected_salary_currency: "SGD",
+  linkedin: "",
+  industries: "",
+  years_of_experience: "",
+  resume: "",
+
+  is_referred: false,
+  referrer_details: {
+    referrer_name: "",
+    referrer_email: "",
+  },
+
+  is_applying_for_teacher: false,
+  preferredsubjectsandlevels: "",
+
+  full_name: "",
+  preferredname: "",
+  residentialstatus: "" as never,
+  nationalities: "",
+  birth_date: "",
+  gender: "",
+  religion: "",
+  nricfin: "",
+  latest_degree: "",
+  passportno: "",
+  placedateofissue: "",
+
+  phone_number: "",
+  email: "",
+  city: "",
+  address: "",
+  postalcode: "",
+  overseasaddress: "",
+  workpermitpass: "",
+
+  name: "",
+  relationship: "",
+  address_b: "",
+  mobilenumber: "",
+  hometelephonenumber: "",
+  officetelephonenumber: "",
+  emailaddress: "",
+
+  family_members: [
+    {
+      name: "",
+      relationship: "",
+      nationality: "",
+      age: "",
+      occupation: "",
+      company: "",
+    },
+  ],
+
+  educations: [
+    {
+      school: "",
+      degree_name: "",
+      specialization: "",
+      started_at: "",
+      ended_at: null,
+      location: "",
+      description: "",
+    },
+  ],
+
+  coursename: "",
+  coursestartdate: "",
+  expectedyearofcompletion: "",
+
+  experiences: [
+    {
+      title: "",
+      employer: "",
+      salary: "",
+      started_at: "",
+      ended_at: null,
+      is_current_employer: false,
+      other_allowances: "",
+      description: "",
+      reason_for_leaving: "",
+    },
+  ],
+
+  membershipsassociations: "",
+  description: "",
+
+  declarations: declarationQuestions.map(() => ({
+    answer: "No" as const,
+    details: "",
+  })),
+
+  references: [
+    {
+      name: "",
+      email: "",
+      contact_no: "",
+      company_occupation: "",
+      relationship: "",
+      is_work_related: "No",
+      years_known: "",
+      consent_to_contact: "I agree",
+    },
+  ],
+
+  skipbackgroundcheck: false,
+  rcbcrequestissued: false,
+  bcrequestissued: false,
+});
 
 export default function JobApplicationPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
+
   const jobId = params.id as string;
+  const jobPortal = searchParams.get("job-portal");
 
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
@@ -103,34 +237,6 @@ export default function JobApplicationPage() {
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [formFields, setFormFields] = useState<FormField[]>([]);
-  const [simpleFormData, setSimpleFormData] = useState<Record<string, string | File>>({});
-  const [salaryCurrencies, setSalaryCurrencies] = useState<Record<string, string>>({});
-
-  const [experiences, setExperiences] = useState<Experience[]>([
-    {
-      title: "",
-      employer: "",
-      salary: "",
-      started_at: "",
-      ended_at: null,
-      is_current_employer: false,
-      description: "",
-    },
-  ]);
-
-  const [educations, setEducations] = useState<Education[]>([
-    { school: "", degree_name: "", specialization: "", started_at: "", ended_at: null, location: "", description: "" },
-  ]);
-
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([
-    { name: "", relationship: "", nationality: "", age: "", occupation: "", company: "" },
-  ]);
-
-  const [references, setReferences] = useState<CharacterReference[]>([
-    { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
-  ]);
-
-  const [nationalityQuery, setNationalityQuery] = useState("");
   const [nationalityOptions, setNationalityOptions] = useState<{ id: string; common_name: string; demonym: string }[]>(
     [],
   );
@@ -141,240 +247,239 @@ export default function JobApplicationPage() {
   const [error, setError] = useState<string | null>(null);
 
   const defaultFields: FormField[] = [
-    { id: "full_name", slug: "full_name", label: "Full Name", type: "text", required: true },
-    { id: "email", slug: "email", label: "Email Address", type: "email", required: true },
-    { id: "phone", slug: "phone", label: "Phone Number", type: "tel", required: true },
-    { id: "nationality", slug: "nationality", label: "Nationality", type: "text", required: false },
-    { id: "linkedin", slug: "linkedin", label: "LinkedIn Profile", type: "url", required: false },
-    { id: "resume", slug: "resume", label: "Resume/CV", type: "file", required: true },
-    { id: "cover_letter", slug: "cover_letter", label: "Cover Letter", type: "textarea", required: false },
+    { id: "full_name", slug: "full_name", label: "Full Name", type: "char", required: true },
+    { id: "email", slug: "email", label: "Email", type: "char", required: true },
+    { id: "phone_number", slug: "phone_number", label: "WhatsApp Number", type: "char", required: true },
+    { id: "nationalities", slug: "nationalities", label: "Nationality", type: "char", required: false },
+    {
+      id: "linkedin",
+      slug: "linkedin",
+      label: "LinkedIn Profile URL",
+      type: "char",
+      required: false,
+      field_category: "social_media",
+    },
+    { id: "resume", slug: "resume", label: "Resume", type: "file", required: true, field_category: "resume" },
   ];
 
-  const declarationQuestions = [
-    "Have you been or are you suffering from any disease/major medical condition/mental illness or physical impairment?",
-    "Have you been discharged or dismissed from the service of your previous employers?",
-    "Have you been convicted in a Court of law in any country or any ongoing legal proceedings?",
-    "Have you been served with a Garnishee Order by any organisation or been declared a bankrupt?",
-    "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
-  ];
+  const inputBase =
+    "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 " +
+    "focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all duration-200 " +
+    "hover:border-slate-300 text-sm";
 
-  const [declarationAnswers, setDeclarationAnswers] = useState<
-    Record<number, { answer: "Yes" | "No"; details?: string }>
-  >({});
+  const cardBase = "bg-white border border-slate-100 rounded-2xl shadow-sm";
 
-  const handleDeclarationChange = (index: number, value: "Yes" | "No") => {
-    setDeclarationAnswers((prev) => ({
-      ...prev,
-      [index]: { answer: value, details: value === "Yes" ? prev[index]?.details || "" : "" },
-    }));
-  };
-
-  const handleDeclarationDetailsChange = (index: number, value: string) => {
-    setDeclarationAnswers((prev) => ({ ...prev, [index]: { ...prev[index], details: value } }));
-  };
-
-  const updateExperience = (index: number, field: keyof Experience, value: any) => {
-    setExperiences((prev) => prev.map((exp, i) => (i === index ? { ...exp, [field]: value } : exp)));
-  };
-  const addExperience = () => {
-    setExperiences((prev) => [
-      ...prev,
-      {
-        title: "",
-        employer: "",
-        salary: "",
-        started_at: "",
-        ended_at: null,
-        is_current_employer: false,
-        description: "",
-      },
-    ]);
-  };
-  const removeExperience = (index: number) => {
-    if (experiences.length <= 1) return;
-    setExperiences((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateEducation = (index: number, field: keyof Education, value: any) => {
-    setEducations((prev) => prev.map((edu, i) => (i === index ? { ...edu, [field]: value } : edu)));
-  };
-  const addEducation = () => {
-    setEducations((prev) => [
-      ...prev,
-      {
-        school: "",
-        degree_name: "",
-        specialization: "",
-        started_at: "",
-        ended_at: null,
-        location: "",
-        description: "",
-      },
-    ]);
-  };
-  const removeEducation = (index: number) => {
-    if (educations.length <= 1) return;
-    setEducations((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateFamilyMember = (index: number, field: keyof FamilyMember, value: string) => {
-    setFamilyMembers((prev) => prev.map((member, i) => (i === index ? { ...member, [field]: value } : member)));
-  };
-  const addFamilyMember = () => {
-    setFamilyMembers((prev) => [
-      ...prev,
-      { name: "", relationship: "", nationality: "", age: "", occupation: "", company: "" },
-    ]);
-  };
-  const removeFamilyMember = (index: number) => {
-    if (familyMembers.length <= 1) return;
-    setFamilyMembers((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const updateReference = (index: number, field: keyof CharacterReference, value: string) => {
-    setReferences((prev) => prev.map((ref, i) => (i === index ? { ...ref, [field]: value } : ref)));
-  };
-  const addReference = () => {
-    setReferences((prev) => [
-      ...prev,
-      { name: "", email: "", contact_no: "", company_occupation: "", relationship: "" },
-    ]);
-  };
-  const removeReference = (index: number) => {
-    if (references.length <= 1) return;
-    setReferences((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const isExperienceField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "experiences" ||
-    (f.slug || "").toLowerCase() === "experiences" ||
-    f.label?.toLowerCase() === "experiences" ||
-    f.label?.toLowerCase() === "work experience";
-
-  const isEducationField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "education" ||
-    (f.slug || "").toLowerCase() === "education" ||
-    f.label?.toLowerCase() === "educational profile" ||
-    f.label?.toLowerCase() === "education";
-
-  const isHighestQualificationField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "experiences" ||
-    (f.slug || "").toLowerCase() === "latest_degree" ||
-    f.label?.toLowerCase() === "highest qualification" ||
-    f.label?.toLowerCase() === "work experience";
-
-  const isResidentialStatusField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "experiences" ||
-    (f.slug || "").toLowerCase() === "residentialstatus" ||
-    f.label?.toLowerCase() === "residential status" ||
-    f.label?.toLowerCase() === "work experience";
-
-  const isWorkPassField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "experiences" ||
-    (f.slug || "").toLowerCase() === "workpermitpass" ||
-    f.label?.toLowerCase() === "work pass" ||
-    f.label?.toLowerCase() === "work experience";
-
-  const isOverseasAddressField = (f: FormField) =>
-    (f.name || "").toLowerCase() === "experiences" ||
-    (f.slug || "").toLowerCase() === "overseasaddress" ||
-    f.label?.toLowerCase() === "overseas address" ||
-    f.label?.toLowerCase() === "work experience";
-
-  const isExpectedSalary = (field: FormField) =>
-    field.slug?.toLowerCase().includes("expected_salary") ||
-    field.name?.toLowerCase().includes("expected_salary") ||
-    field.slug?.toLowerCase().includes("expectedsalary") ||
-    (field.label?.toLowerCase().includes("expected") && field.label?.toLowerCase().includes("salary"));
-
-  const isNationalityField = (field: FormField) =>
-    field.slug?.toLowerCase() === "nationality" ||
-    field.name?.toLowerCase() === "nationality" ||
-    field.label?.toLowerCase() === "nationality";
-
-  const isIndustryField = (field: FormField) =>
-    field.slug?.toLowerCase() === "industry" ||
-    field.name?.toLowerCase() === "industries" ||
-    field.label?.toLowerCase() === "Work Industry";
-
-  const isCVField = (field: FormField) =>
-    field.id === "1741683" ||
-    field.slug?.toLowerCase() === "cv" ||
-    field.slug?.toLowerCase() === "resume" ||
-    field.name?.toLowerCase() === "cv" ||
-    field.name?.toLowerCase() === "resume" ||
-    field.label?.toLowerCase() === "cv" ||
-    field.label?.toLowerCase() === "resume" ||
-    field.label?.toLowerCase() === "resume/cv" ||
-    field.label?.toLowerCase() === "upload resume";
+  const selectCls =
+    inputBase +
+    " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0_0_24_24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6_9l6_6_6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center]";
 
   const getCurrencyId = (code: string) => {
     const map: Record<string, string> = { SGD: "11", USD: "1", EUR: "2", GBP: "3", PHP: "13" };
     return map[code] || "11";
   };
 
-  const handleSimpleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setSimpleFormData((prev) => ({ ...prev, [name]: value }));
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    trigger,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(jobApplicationSchema),
+    defaultValues: buildDefaultValues(),
+    mode: "onBlur",
+  });
+
+  const errorSummaryRef = useRef<HTMLDivElement | null>(null);
+
+  const pathToFieldId = (path: string) => `field-${path.replace(/\./g, "-")}`;
+
+  const flattenErrors = (obj: FieldErrors<any>, parent = ""): ErrorSummaryItem[] => {
+    const result: ErrorSummaryItem[] = [];
+
+    Object.entries(obj).forEach(([key, value]) => {
+      const path = parent ? `${parent}.${key}` : key;
+
+      if (!value) return;
+
+      if (typeof value === "object" && "message" in value && value.message) {
+        result.push({ path, message: String(value.message) });
+        return;
+      }
+
+      if (typeof value === "object") {
+        result.push(...flattenErrors(value as FieldErrors<any>, path));
+      }
+    });
+
+    return result;
   };
+
+  const errorList = useMemo(() => flattenErrors(errors), [errors]);
+
+  const scrollToField = (path: string) => {
+    const el = document.getElementById(pathToFieldId(path));
+
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      (el as HTMLElement).focus?.();
+    }
+  };
+
+  const onInvalid = () => {
+    requestAnimationFrame(() => {
+      errorSummaryRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const {
+    fields: familyFields,
+    append: appendFamily,
+    remove: removeFamily,
+  } = useFieldArray({
+    control,
+    name: "family_members",
+  });
+
+  const {
+    fields: educationFields,
+    append: appendEducation,
+    remove: removeEducation,
+  } = useFieldArray({
+    control,
+    name: "educations",
+  });
+
+  const {
+    fields: experienceFields,
+    append: appendExperience,
+    remove: removeExperience,
+  } = useFieldArray({
+    control,
+    name: "experiences",
+  });
+
+  const {
+    fields: referenceFields,
+    append: appendReference,
+    remove: removeReference,
+  } = useFieldArray({
+    control,
+    name: "references",
+  });
+
+  const watchedResidentialStatus = watch("residentialstatus");
+  const watchedNationalities = watch("nationalities");
+  const watchedIsReferred = watch("is_referred");
+  const watchedIsApplyingForTeacher = watch("is_applying_for_teacher");
+  const watchedDeclarations = watch("declarations");
+  const watchedReferences = watch("references");
+
+  const today = new Date().toISOString().split("T")[0];
+
+  usePreventRefresh(true);
+
+  useEffect(() => {
+    if (resumeProps.successes.length > 0) {
+      setValue("resume", String(resumeProps.successes[0]), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+  }, [resumeProps.successes, setValue]);
+
+  useEffect(() => {
+    if (!watchedIsReferred) {
+      setValue(
+        "referrer_details",
+        { referrer_name: "", referrer_email: "" },
+        { shouldDirty: true, shouldValidate: false },
+      );
+    }
+  }, [watchedIsReferred, setValue]);
+
+  useEffect(() => {
+    if (!watchedIsApplyingForTeacher) {
+      setValue("preferredsubjectsandlevels", "", {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
+    }
+  }, [watchedIsApplyingForTeacher, setValue]);
+
+  useEffect(() => {
+    if (watchedResidentialStatus !== "Foreigner") {
+      setValue("workpermitpass", "", { shouldDirty: true, shouldValidate: false });
+      setValue("overseasaddress", "", { shouldDirty: true, shouldValidate: false });
+    }
+  }, [watchedResidentialStatus, setValue]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+
         const jobRes = await fetch(`/api/jobs/${jobId}`);
         if (!jobRes.ok) throw new Error("Failed to fetch job");
         const jobData = await jobRes.json();
 
         const organization = entity_list.find((org) => org.id === jobData.organization);
-
         if (organization) {
           jobData.org_name = organization.name;
           jobData.org_logo = organization.logo;
           jobData.org_website = organization.website;
-          setJob(jobData);
         }
+        setJob(jobData);
 
         const fieldsRes = await fetch(`/api/jobs/${jobId}/form-fields`);
         let fields = defaultFields;
+
         if (fieldsRes.ok) {
           const data = await fieldsRes.json();
           if (data.fields?.length > 0) fields = data.fields;
         }
+
         setFormFields(fields);
 
-        const initialData: Record<string, string> = {};
-        const initialCurrencies: Record<string, string> = {};
+        const nextDefaults = buildDefaultValues();
+
         fields.forEach((field) => {
-          if (field.type !== "file") {
-            const key = field.slug || field.name || field.id;
-            initialData[key] = "";
-            initialData["workpermitpass"] = "";
-            initialData["overseasaddress"] = "";
-            if (isExpectedSalary(field)) initialCurrencies[field.id] = "SGD";
+          const key = getFieldKey(field);
+          if (normalize(field.type) !== "file" && !(key in nextDefaults)) {
+            nextDefaults[key] = "";
           }
         });
-        setSimpleFormData(initialData);
-        setSalaryCurrencies(initialCurrencies);
-      } catch (err) {
+
+        reset(nextDefaults);
+      } catch {
         setError("Failed to load application form");
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
-  }, [jobId]);
+  }, [jobId, reset]);
 
   useEffect(() => {
-    if (nationalityQuery.trim() === "") {
+    const query = (watchedNationalities || "").trim();
+
+    if (!query) {
       setNationalityOptions([]);
       setShowNationalityOptions(false);
       return;
     }
+
     const fetchNationalities = async () => {
       setIsSearchingNationalities(true);
       try {
-        const res = await fetch(`/api/nationalities/${nationalityQuery}`);
+        const res = await fetch(`/api/nationalities/${query}`);
         if (res.ok) {
           const data = await res.json();
           setNationalityOptions(data.nationalities || []);
@@ -390,393 +495,26 @@ export default function JobApplicationPage() {
         setIsSearchingNationalities(false);
       }
     };
-    const debounceTimer = setTimeout(fetchNationalities, 1500);
-    return () => clearTimeout(debounceTimer);
-  }, [nationalityQuery]);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      const formDataToSend = new FormData();
-      const applicationData: Record<string, any> = {};
-      let expectedCurrencyId: string | null = null;
+    const timer = setTimeout(fetchNationalities, 1500);
+    return () => clearTimeout(timer);
+  }, [watchedNationalities]);
 
-      formFields.forEach((field) => {
-        const key = field.slug || field.name || field.id;
-        const value = simpleFormData[key];
-        let finalValue: string | number | null = "";
-        if (value && typeof value === "string" && value.trim()) {
-          finalValue = value.trim();
-          if (isExpectedSalary(field)) expectedCurrencyId = getCurrencyId(salaryCurrencies[field.id] || "SGD");
-        } else if (value) {
-          finalValue = value as string;
-        }
-        applicationData[field.id] = finalValue;
-      });
+  const getField = (...values: string[]) => formFields.find((field) => matches(field, ...values));
+  const getFields = (...values: string[]) => formFields.filter((field) => matches(field, ...values));
 
-      const trimmedFamilyMembers = familyMembers
-        .filter((m) => m.name.trim())
-        .map((m) => ({
-          name: m.name.trim(),
-          relationship: m.relationship.trim(),
-          nationality: m.nationality.trim(),
-          age: m.age.trim(),
-          occupation: m.occupation.trim(),
-          company: m.company.trim(),
-        }));
-
-      applicationData["1741709"] = formatFamilyParticularsToHTML(trimmedFamilyMembers);
-      applicationData["1771366"] = false;
-      applicationData["1771465"] = false;
-      applicationData["1771466"] = false;
-
-      const validReferences = references.filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim());
-
-      if (validReferences.length < 3) {
-        setError("Please provide at least 3 character references.");
-        setSubmitting(false);
-        return;
-      }
-
-      applicationData["1741707"] = formatReferencesToHTML(validReferences);
-      applicationData["1741708"] = generateDeclarationList(declarationAnswers);
-
-      if (resumeProps.successes.length > 0) {
-        const resumeField = formFields.find(isCVField);
-        if (resumeField) applicationData[resumeField.id] = resumeProps.successes[0];
-      } else {
-        const resumeField = formFields.find(isCVField);
-        if (resumeField?.required || resumeField?.is_required) throw new Error("Please upload a resume file");
-      }
-
-      if ((simpleFormData["workpermitpass"] as string)?.trim()) {
-        applicationData["1741698"] = (simpleFormData["workpermitpass"] as string).trim();
-      }
-      if ((simpleFormData["overseasaddress"] as string)?.trim()) {
-        applicationData["1741691"] = (simpleFormData["overseasaddress"] as string).trim();
-      }
-
-      formDataToSend.append("application_data", JSON.stringify(applicationData));
-      formDataToSend.append("jobId", jobId);
-      if (expectedCurrencyId) formDataToSend.append("expected_currency", expectedCurrencyId);
-
-      const response = await fetch("/api/applications", { method: "POST", body: formDataToSend });
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || result.message || "Failed to submit application");
-      }
-      setSubmitSuccess(true);
-    } catch (err: any) {
-      console.error("Submission error:", err);
-      setError(err.message || "Failed to submit application");
-    } finally {
-      setSubmitting(false);
-    }
+  const getNestedError = (path: string) => {
+    return path.split(".").reduce<any>((acc, part) => {
+      if (!acc) return undefined;
+      return /^\d+$/.test(part) ? acc[Number(part)] : acc[part];
+    }, errors);
   };
 
-  // ─── Shared input classes ───────────────────────────────────────────────────
-  const inputBase =
-    "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 " +
-    "focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all duration-200 " +
-    "hover:border-slate-300 text-sm";
-
-  const cardBase = "bg-white border border-slate-100 rounded-2xl shadow-sm";
-
-  const renderField = (field: FormField) => {
-    const key = field.slug || field.name || field.id;
-    const isRequired = field.required || field.is_required || false;
-
-    if (isNricFinField(field)) {
-      return (
-        <div className="relative">
-          <input
-            type="text"
-            inputMode="text"
-            pattern="[STFGMstfgm]\d{7}[A-Za-z]"
-            name={key}
-            required={isRequired}
-            value={(simpleFormData[key] as string)?.toUpperCase() || ""}
-            onChange={(e) => {
-              const value = e.target.value.toUpperCase();
-              if (/^[STFGMstfgm]?[\d]{0,7}[A-Za-z]?$/i.test(value))
-                setSimpleFormData((prev) => ({ ...prev, [key]: value }));
-            }}
-            onKeyPress={(e) => {
-              if (!/[STFGMstfgm0-9A-Za-z]/.test(e.key)) e.preventDefault();
-            }}
-            placeholder={field.placeholder || "e.g. S1234567A"}
-            className={`${inputBase} uppercase tracking-widest font-mono`}
-            maxLength={9}
-          />
-          <p className="mt-1.5 text-xs text-slate-400">Singapore NRIC / FIN — 9 characters</p>
-        </div>
-      );
-    }
-
-    if (key === "phone" || field.label?.toLowerCase().includes("phone")) {
-      return (
-        <input
-          type="tel"
-          inputMode="tel"
-          pattern="[0-9\s\-\+\(\)]*"
-          name={key}
-          required={isRequired}
-          value={(simpleFormData[key] as string) || ""}
-          onChange={handleSimpleChange}
-          onKeyPress={(e) => {
-            if (!/[0-9\s+\-()]/.test(e.key)) e.preventDefault();
-          }}
-          placeholder={field.placeholder || "+65 9123 4567"}
-          className={inputBase}
-          maxLength={20}
-        />
-      );
-    }
-
-    if (isHighestQualificationField(field)) {
-      return (
-        <select
-          name={key}
-          required={isRequired}
-          value={(simpleFormData[key] as string) || ""}
-          onChange={handleSimpleChange}
-          className={
-            inputBase +
-            " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center]"
-          }>
-          <option value="">Select qualification</option>
-          <option value="High School Diploma">High School Diploma</option>
-          <option value="Associate's Degree">Associate's Degree</option>
-          <option value="Bachelor's Degree">Bachelor's Degree</option>
-          <option value="Master's Degree">Master's Degree</option>
-          <option value="Doctorate">Doctorate</option>
-        </select>
-      );
-    }
-
-    if (isResidentialStatusField(field)) {
-      const isForeigner = (simpleFormData[key] as string) === "Foreigner";
-
-      return (
-        <div className="md:col-span-2 space-y-5">
-          <select
-            name={key}
-            required={isRequired}
-            value={(simpleFormData[key] as string) || ""}
-            onChange={handleSimpleChange}
-            className={
-              inputBase +
-              " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center]"
-            }>
-            <option value="">Select residential status</option>
-            <option value="Singaporean">Singaporean</option>
-            <option value="PR">PR</option>
-            <option value="Foreigner">Foreigner</option>
-          </select>
-
-          {isForeigner && (
-            <div className="grid gap-5 p-5 bg-blue-50/50 border border-blue-100 rounded-xl">
-              <div className="flex items-start gap-2.5 md:col-span-2 mb-1">
-                <svg
-                  className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <p className="text-xs text-blue-600 font-medium">
-                  Additional information required for foreign applicants
-                </p>
-              </div>
-
-              {/* Work Pass */}
-              <div>
-                <Label required>Work Pass</Label>
-                <select
-                  name="workpermitpass"
-                  required
-                  value={(simpleFormData["workpermitpass"] as string) || ""}
-                  onChange={handleSimpleChange}
-                  className={
-                    inputBase +
-                    " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center]"
-                  }>
-                  <option value="">Select work pass type</option>
-                  <option value="Employment Pass">Employment Pass</option>
-                  <option value="S Pass">S Pass</option>
-                  <option value="Work Permit">Work Permit</option>
-                  <option value="Dependant Pass">Dependant Pass</option>
-                  <option value="Long Term Visit Pass">Long Term Visit Pass</option>
-                  <option value="Others">Others</option>
-                </select>
-              </div>
-
-              {/* Overseas Address */}
-              <div>
-                <Label required>Overseas Address</Label>
-                <input
-                  type="text"
-                  name="overseasaddress"
-                  required
-                  value={(simpleFormData["overseasaddress"] as string) || ""}
-                  onChange={handleSimpleChange}
-                  placeholder="Street, City, Country…"
-                  className={inputBase}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (isNationalityField(field)) {
-      return (
-        <div className="relative">
-          <input
-            type="text"
-            name={key}
-            required={isRequired}
-            value={(simpleFormData[key] as string) || ""}
-            onChange={(e) => {
-              handleSimpleChange(e);
-              setNationalityQuery(e.target.value);
-            }}
-            onFocus={() => nationalityOptions.length > 0 && setShowNationalityOptions(true)}
-            onBlur={() => setTimeout(() => setShowNationalityOptions(false), 200)}
-            placeholder={field.placeholder || "Start typing nationality…"}
-            className={inputBase}
-            autoComplete="off"
-          />
-          {isSearchingNationalities && (
-            <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-400">
-              <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              Searching…
-            </div>
-          )}
-          {showNationalityOptions && (
-            <ul className="absolute z-20 w-full bg-white border border-slate-200 rounded-xl mt-1 max-h-56 overflow-y-auto shadow-xl">
-              {nationalityOptions.length > 0 ? (
-                nationalityOptions.map((nat) => (
-                  <li
-                    key={nat.id}
-                    className="px-4 py-2.5 cursor-pointer hover:bg-blue-50 text-sm text-slate-700 transition-colors"
-                    onMouseDown={() => {
-                      setSimpleFormData((prev) => ({ ...prev, [key]: nat.demonym }));
-                      setNationalityQuery(nat.demonym);
-                      setShowNationalityOptions(false);
-                    }}>
-                    {nat.demonym}
-                  </li>
-                ))
-              ) : (
-                <li className="px-4 py-3 text-slate-400 text-sm">No results found</li>
-              )}
-            </ul>
-          )}
-        </div>
-      );
-    }
-
-    if (isIndustryField(field)) {
-      return (
-        <select
-          name={key}
-          required={isRequired}
-          value={(simpleFormData[key] as string) || ""}
-          onChange={handleSimpleChange}
-          className={inputBase}>
-          <option value="">Select an industry</option>
-          {industry_list.map((industry) => (
-            <option key={industry.id} value={industry.id}>
-              {industry.name}
-            </option>
-          ))}
-        </select>
-      );
-    }
-
-    if (field.type === "file" || isCVField(field)) {
-      return (
-        <div className="mt-1">
-          <Dropzone {...resumeProps}>
-            <DropzoneEmptyState />
-            <DropzoneContent />
-          </Dropzone>
-        </div>
-      );
-    }
-
-    if (field.type === "textarea" || field.type === "longtext") {
-      return (
-        <textarea
-          name={key}
-          required={isRequired}
-          value={(simpleFormData[key] as string) || ""}
-          onChange={handleSimpleChange}
-          placeholder={field.placeholder}
-          rows={4}
-          className={inputBase + " resize-none"}
-        />
-      );
-    }
-
-    if (field.type === "dropdown" && field.options) {
-      return (
-        <select
-          name={key}
-          required={isRequired}
-          value={(simpleFormData[key] as string) || ""}
-          onChange={handleSimpleChange}
-          className={inputBase}>
-          <option value="">Select an option</option>
-          {field.options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      );
-    }
-
-    const isDate =
-      field.label?.toLowerCase().includes("date") ||
-      field.label?.toLowerCase().includes("birth") ||
-      field.name?.toLowerCase().includes("date");
-
-    return (
-      <input
-        type={isDate ? "date" : field.type}
-        name={key}
-        required={isRequired}
-        value={(simpleFormData[key] as string) || ""}
-        onChange={handleSimpleChange}
-        placeholder={field.placeholder}
-        className={inputBase}
-      />
-    );
+  const ErrorText = ({ path }: { path: string }) => {
+    const fieldError = getNestedError(path);
+    if (!fieldError?.message) return null;
+    return <p className="mt-1.5 text-xs text-rose-500">{String(fieldError.message)}</p>;
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="relative w-14 h-14 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-2 border-blue-100" />
-            <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-          </div>
-          <p className="text-sm text-slate-400 tracking-wide">Loading application…</p>
-        </div>
-      </div>
-    );
-  }
 
   const SectionHeader = ({ number, title, subtitle }: { number: string; title: string; subtitle?: string }) => (
     <div className="flex items-start gap-4 mb-7">
@@ -790,7 +528,7 @@ export default function JobApplicationPage() {
     </div>
   );
 
-  const Label = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
+  const Label = ({ children, required }: { children: ReactNode; required?: boolean }) => (
     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
       {children}
       {required && <span className="text-rose-400 ml-1">*</span>}
@@ -825,34 +563,770 @@ export default function JobApplicationPage() {
     </button>
   );
 
+  const renderField = (field: FormField) => {
+    const key = getFieldKey(field);
+    const inputId = pathToFieldId(key);
+
+    const isResumeField = matches(field, "resume");
+    const isSocialField = matches(field, "social_media", "LinkedIn Profile URL");
+    const isDateField =
+      normalize(field.type) === "datetime" ||
+      normalize(getDisplayType(field)) === "date" ||
+      matches(field, "birthdate", "date of birth", "coursestartdate", "course start date");
+    const isLongTextField = normalize(field.type) === "longtext" || matches(field, "longtext");
+    const isIntegerField = normalize(field.type) === "integer" || matches(field, "expectedyearofcompletion");
+    const isBooleanField = normalize(field.type) === "boolean" || matches(field, "boolean");
+    const isDropdownField = matches(field, "dropdown") && getChoices(field).length > 0;
+    const isEmailField = matches(field, "email", "emailaddress");
+    const isPhoneField = matches(
+      field,
+      "phonenumber",
+      "mobilenumber",
+      "hometelephonenumber",
+      "officetelephonenumber",
+      "whatsapp number",
+      "mobile number",
+      "telephone number",
+    );
+    const isPostalCodeField = matches(field, "postalcode", "postal code");
+    const isGenderField = matches(field, "gender");
+    const isResidentialStatusField = matches(field, "residentialstatus", "residential status");
+    const isNationalityField = matches(field, "nationalities", "nationality");
+    const isIndustryField = matches(field, "industries", "work industry");
+    const isHighestQualificationField = matches(field, "latestdegree", "highest qualification");
+    const isExpectedSalaryField = matches(field, "expectedsalary", "expected salary");
+    const isStrictNumericField =
+      normalize(field.type) === "integer" ||
+      normalize(field.slug) === "postalcode" ||
+      normalize(field.slug) === "yearsofexperience";
+
+    if (field.label === "Briefly share your skills, experiences, and achievements beyond your resume") {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <textarea
+                id={inputId}
+                rows={5}
+                value={field.value}
+                onChange={field.onChange}
+                className={`${inputBase} resize-none`}
+              />
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isDateField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <input id={inputId} type="date" value={field.value} onChange={field.onChange} className={inputBase} />
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isExpectedSalaryField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={"expected_salary" as any}
+            render={({ field }) => (
+              <input
+                id={pathToFieldId("expected_salary")}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) e.preventDefault();
+                }}
+                placeholder="e.g. 3500"
+                className={inputBase}
+              />
+            )}
+          />
+
+          <ErrorText path="expected_salary" />
+        </>
+      );
+    }
+
+    if (isResumeField) {
+      return (
+        <>
+          <div id={pathToFieldId("resume")} tabIndex={-1} className="mt-1">
+            <Dropzone {...resumeProps}>
+              <DropzoneEmptyState />
+              <DropzoneContent />
+            </Dropzone>
+          </div>
+          <ErrorText path="resume" />
+        </>
+      );
+    }
+
+    if (isResidentialStatusField) {
+      const isForeigner = watchedResidentialStatus === "Foreigner";
+
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <select id={inputId} {...field} className={selectCls}>
+                <option value="">Select residential status</option>
+                <option value="Singaporean">Singaporean</option>
+                <option value="PR">PR</option>
+                <option value="Foreigner">Foreigner</option>
+              </select>
+            )}
+          />
+          <ErrorText path={key} />
+
+          {isForeigner && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-blue-50/50 border border-blue-100 rounded-xl mt-5">
+              <div className="flex items-start gap-2.5 md:col-span-2 mb-1">
+                <svg
+                  className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-xs text-blue-600 font-medium">
+                  Additional information required for foreign applicants
+                </p>
+              </div>
+
+              <div>
+                <Label required>Work Pass</Label>
+                <select id={pathToFieldId("workpermitpass")} {...register("workpermitpass")} className={selectCls}>
+                  <option value="">Select work pass type</option>
+                  {workPassOptions.map((pass) => (
+                    <option key={pass} value={pass}>
+                      {pass}
+                    </option>
+                  ))}
+                </select>
+                <ErrorText path="workpermitpass" />
+              </div>
+
+              <div>
+                <Label required>Overseas Address</Label>
+                <input
+                  id={pathToFieldId("overseasaddress")}
+                  type="text"
+                  {...register("overseasaddress")}
+                  placeholder="Street, City, Country"
+                  className={inputBase}
+                />
+                <ErrorText path="overseasaddress" />
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    if (isNationalityField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <div className="relative">
+                <input
+                  id={inputId}
+                  type="text"
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  onFocus={() => nationalityOptions.length > 0 && setShowNationalityOptions(true)}
+                  onBlur={() => setTimeout(() => setShowNationalityOptions(false), 200)}
+                  placeholder="Start typing nationality..."
+                  className={inputBase}
+                  autoComplete="off"
+                />
+
+                {isSearchingNationalities && (
+                  <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-400">
+                    <span className="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    Searching...
+                  </div>
+                )}
+
+                {showNationalityOptions && (
+                  <ul className="absolute z-20 w-full bg-white border border-slate-200 rounded-xl mt-1 max-h-56 overflow-y-auto shadow-xl">
+                    {nationalityOptions.length > 0 ? (
+                      nationalityOptions.map((nat) => (
+                        <li
+                          key={nat.id}
+                          className="px-4 py-2.5 cursor-pointer hover:bg-blue-50 text-sm text-slate-700 transition-colors"
+                          onMouseDown={() => {
+                            setValue(key as any, nat.demonym, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            });
+                            setShowNationalityOptions(false);
+                          }}>
+                          {nat.demonym}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-3 text-slate-400 text-sm">No results found</li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isIndustryField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <select id={inputId} {...field} className={selectCls}>
+                <option value="">Select an industry</option>
+                {industry_list.map((ind) => (
+                  <option key={ind.id} value={ind.id}>
+                    {ind.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isHighestQualificationField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <select id={inputId} {...field} className={selectCls}>
+                <option value="">Select qualification</option>
+                <option value="High School Diploma">High School Diploma</option>
+                <option value="Associates Degree">Associate&apos;s Degree</option>
+                <option value="Bachelors Degree">Bachelor&apos;s Degree</option>
+                <option value="Masters Degree">Master&apos;s Degree</option>
+                <option value="Doctorate">Doctorate</option>
+              </select>
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isDropdownField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <select id={inputId} {...field} className={selectCls}>
+                <option value="">Select an option</option>
+                {getChoices(field as any).map((choice: string) => (
+                  <option key={choice} value={choice}>
+                    {choice}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isGenderField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <select id={inputId} {...field} className={selectCls}>
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isLongTextField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <textarea
+                id={inputId}
+                rows={4}
+                value={field.value}
+                onChange={field.onChange}
+                className={`${inputBase} resize-none`}
+              />
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isBooleanField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <select
+                id={inputId}
+                value={String(field.value ?? "")}
+                onChange={(e) => field.onChange(e.target.value === "true")}
+                className={selectCls}>
+                <option value="">Select option</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isSocialField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <input
+                id={inputId}
+                type="url"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="https://linkedin.com/in/yourprofile"
+                className={inputBase}
+              />
+            )}
+          />
+
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isNricFinField(field)) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <div className="relative">
+                <input
+                  id={inputId}
+                  type="text"
+                  inputMode="text"
+                  pattern="[STFGMstfgm][0-9]{7}[A-Za-z]"
+                  value={field.value?.toUpperCase()}
+                  onChange={(e) => {
+                    const v = e.target.value.toUpperCase();
+                    if (/^[STFGM]?[0-9]{0,7}[A-Za-z]?$/i.test(v)) field.onChange(v);
+                  }}
+                  onKeyPress={(e) => {
+                    if (!/[STFGM0-9A-Za-z]/i.test(e.key)) e.preventDefault();
+                  }}
+                  placeholder="e.g. S1234567A"
+                  className={`${inputBase} uppercase tracking-widest font-mono`}
+                  maxLength={9}
+                />
+                <p className="mt-1.5 text-xs text-slate-400">Singapore NRIC / FIN - 9 characters</p>
+              </div>
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isStrictNumericField || isIntegerField || isPostalCodeField) {
+      const maxLength = isPostalCodeField ? 6 : undefined;
+
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <input
+                id={inputId}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={field.value}
+                onChange={(e) => {
+                  const numericValue = e.target.value.replace(/\D/g, "");
+                  field.onChange(maxLength ? numericValue.slice(0, maxLength) : numericValue);
+                }}
+                onKeyPress={(e) => {
+                  if (!/[0-9]/.test(e.key)) e.preventDefault();
+                }}
+                placeholder={
+                  isPostalCodeField
+                    ? "e.g. 123456"
+                    : field.name?.toLowerCase().includes("salary")
+                      ? "e.g. 3500"
+                      : field.name?.toLowerCase().includes("expectedyearofcompletion")
+                        ? "e.g. 2025"
+                        : "e.g. 5"
+                }
+                className={inputBase}
+                maxLength={maxLength}
+              />
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isEmailField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <input
+                id={inputId}
+                type="email"
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="you@email.com"
+                className={inputBase}
+              />
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    if (isPhoneField) {
+      return (
+        <>
+          <Controller
+            control={control}
+            name={key as any}
+            render={({ field }) => (
+              <input
+                id={inputId}
+                type="tel"
+                inputMode="tel"
+                pattern="[0-9+\- ]*"
+                value={field.value}
+                onChange={field.onChange}
+                onKeyPress={(e) => {
+                  if (!/[0-9+\- ]/.test(e.key)) e.preventDefault();
+                }}
+                placeholder="+65 9123 4567"
+                className={inputBase}
+                maxLength={20}
+              />
+            )}
+          />
+          <ErrorText path={key} />
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Controller
+          control={control}
+          name={key as any}
+          render={({ field }) => (
+            <input id={inputId} type="text" value={field.value} onChange={field.onChange} className={inputBase} />
+          )}
+        />
+        <ErrorText path={key} />
+      </>
+    );
+  };
+
+  const renderFieldBlock = (field?: FormField, className = "") => {
+    if (!field) return null;
+
+    return (
+      <div key={String(field.id)} className={className}>
+        <Label required={getRequired(field)}>{field.label}</Label>
+        {renderField(field)}
+      </div>
+    );
+  };
+
+  const referenceCompletedCount = useMemo(() => {
+    return (watchedReferences || []).filter(
+      (r) => r?.name?.trim() && r?.email?.trim() && r?.contact_no?.trim() && r?.relationship?.trim(),
+    ).length;
+  }, [watchedReferences]);
+
+  const onSubmit = async (values: FormValues) => {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const formDataToSend = new FormData();
+      const applicationData: Record<string, any> = {};
+      let expectedCurrencyId: string | null = null;
+
+      const normalizedValues: FormValues = {
+        ...values,
+        experiences: values.experiences.map((exp) => ({
+          ...exp,
+          ended_at: exp.is_current_employer ? today : exp.ended_at,
+        })),
+      };
+
+      const dynamicValues = normalizedValues as FormValues;
+
+      formFields.forEach((field) => {
+        const key = getFieldKey(field);
+        const value = dynamicValues[key];
+        let finalValue: any = "";
+
+        if (typeof value === "string") {
+          finalValue = value.trim();
+
+          if (matches(field, "expected_salary") && finalValue) {
+            expectedCurrencyId = getCurrencyId(normalizedValues.expected_salary_currency);
+          }
+        } else if (typeof value === "number" || typeof value === "boolean") {
+          finalValue = value;
+        } else if (value == null) {
+          finalValue = "";
+        } else {
+          finalValue = value;
+        }
+
+        applicationData[String(field.id)] = finalValue;
+      });
+
+      const trimmedFamilyMembers = normalizedValues.family_members
+        .filter((m) => m.name.trim())
+        .map((m) => ({
+          name: m.name.trim(),
+          relationship: m.relationship.trim(),
+          nationality: m.nationality.trim(),
+          age: m.age.trim(),
+          occupation: m.occupation.trim(),
+          company: m.company.trim(),
+        }));
+
+      applicationData["1741709"] = formatFamilyParticularsToHTML(trimmedFamilyMembers);
+      applicationData["1771366"] = normalizedValues.skipbackgroundcheck;
+      applicationData["1771465"] = normalizedValues.rcbcrequestissued;
+      applicationData["1771466"] = normalizedValues.bcrequestissued;
+
+      const formattedEducations = formatEducations(normalizedValues.educations);
+
+      const educationField = formFields.find((field) =>
+        matches(field, "educations", "education", "educational_profile", "educationalprofile"),
+      );
+
+      if (educationField && formattedEducations.length) {
+        applicationData[String(educationField.id)] = formattedEducations;
+      }
+
+      const formattedExperiences = formatExperiences(normalizedValues.experiences);
+
+      const experienceField = formFields.find((field) =>
+        matches(field, "experiences", "experience", "employment_history", "employmenthistory", "work_experience"),
+      );
+
+      if (experienceField && formattedExperiences.length) {
+        applicationData[String(experienceField.id)] = formattedExperiences;
+      }
+
+      const validReferences = normalizedValues.references
+        .filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim())
+        .map((ref) => ({
+          name: ref.name.trim(),
+          email: ref.email.trim(),
+          contact_no: ref.contact_no.trim(),
+          company_occupation: ref.company_occupation.trim(),
+          relationship: ref.relationship.trim(),
+          years_known: ref.years_known.trim(),
+          is_work_related: ref.is_work_related,
+          consent_to_contact: ref.consent_to_contact,
+        }));
+
+      if (validReferences.length < 3) {
+        setError("Please provide at least 3 character references.");
+        setSubmitting(false);
+        return;
+      }
+
+      applicationData["1741707"] = formatReferencesToHTML(validReferences);
+
+      const declarationMap = normalizedValues.declarations.reduce<
+        Record<number, { answer: "Yes" | "No"; details?: string }>
+      >((acc, item, index) => {
+        acc[index] = {
+          answer: item.answer,
+          details: item.details || "",
+        };
+        return acc;
+      }, {});
+
+      applicationData["1741708"] = generateDeclarationList(declarationMap);
+
+      const resumeField = formFields.find((field) => matches(field, "resume"));
+      if (normalizedValues.resume?.trim()) {
+        if (resumeField) applicationData[String(resumeField.id)] = normalizedValues.resume.trim();
+      } else if (resumeField && getRequired(resumeField)) {
+        throw new Error("Please upload a resume file");
+      }
+
+      if (normalizedValues.workpermitpass?.trim()) {
+        applicationData["1741698"] = normalizedValues.workpermitpass.trim();
+      }
+
+      if (normalizedValues.overseasaddress?.trim()) {
+        applicationData["1741691"] = normalizedValues.overseasaddress.trim();
+      }
+
+      applicationData.organization_name = job?.org_name ?? "";
+      applicationData.position_name = job?.position_name ?? "";
+      applicationData.job_id = jobId;
+      applicationData.job_portal = jobPortal ?? "";
+      applicationData.referrer_email = normalizedValues.is_referred
+        ? (normalizedValues.referrer_details?.referrer_email ?? "")
+        : "";
+      applicationData.referrer_name = normalizedValues.is_referred
+        ? (normalizedValues.referrer_details?.referrer_name ?? "")
+        : "";
+
+      formDataToSend.append("application_data", JSON.stringify(applicationData));
+      formDataToSend.append("jobId", jobId);
+
+      if (normalizedValues.is_applying_for_teacher && normalizedValues.preferredsubjectsandlevels?.trim()) {
+        formDataToSend.append("Preferred Subjects and Levels", normalizedValues.preferredsubjectsandlevels.trim());
+      }
+
+      if (expectedCurrencyId) {
+        formDataToSend.append("expected_currency", expectedCurrencyId);
+      }
+
+      const response = await fetch("/api/applications", {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || result.message || "Failed to submit application");
+      }
+
+      setSubmitSuccess(true);
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      setError(err.message || "Failed to submit application");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="relative w-14 h-14 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-blue-100" />
+            <div className="absolute inset-0 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+          </div>
+          <p className="text-sm text-slate-400 tracking-wide">Loading application...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Global style injection */}
+      {submitting && <SubmittingOverlay />}
+
+      <ScrollToSubmitButton
+        targetId="submit-application-action"
+        threshold={900}
+        disabled={submitting || submitSuccess}
+        label="Scroll to submit"
+      />
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
         * { font-family: 'DM Sans', sans-serif; }
         .font-mono { font-family: 'DM Mono', monospace; }
         input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.4; cursor: pointer; }
-        select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
-        .radio-pill input[type="radio"] { display: none; }
-        .radio-pill input[type="radio"]:checked + label { background-color: #7c3aed; color: white; border-color: #7c3aed; }
+        select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+        }
       `}</style>
 
       <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-        {/* Top accent bar */}
         <div className="h-1 bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500" />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-          {/* ── Header Card ─────────────────────────────── */}
           <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 sm:p-8 mb-8">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
               <div className="flex-1">
-                {/* 1. Category Badge */}
                 <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-md mb-4">
                   Job Application
                 </div>
 
-                {/* 2. Logo & Title Group */}
                 <div className="flex items-center gap-4 mb-4">
                   {job?.org_logo ? (
                     <Image
@@ -873,7 +1347,6 @@ export default function JobApplicationPage() {
                   </h1>
                 </div>
 
-                {/* 3. Horizontal Metadata Row */}
                 <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-sm text-slate-600">
                   <span className="font-semibold text-slate-900">{job?.org_name || "Company"}</span>
 
@@ -905,10 +1378,9 @@ export default function JobApplicationPage() {
                 </div>
               </div>
 
-              {/* 4. Action Area */}
               <div className="shrink-0">
                 <button
-                  onClick={() => router.back()}
+                  onClick={() => router.push("/")}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shadow-sm">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -937,365 +1409,755 @@ export default function JobApplicationPage() {
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Application Submitted!</h2>
               <p className="text-slate-500 mb-8 text-sm">
-                Thank you for applying. We'll review your application and be in touch soon.
+                Thank you for applying. We&apos;ll review your application and be in touch soon.
               </p>
               <button
-                onClick={() => router.push("/Hero")}
+                onClick={() => router.push("/")}
                 className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium transition-colors shadow-sm shadow-blue-200">
                 Browse More Jobs
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
+                <ArrowUpRight className="size-4" />
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+              <div ref={errorSummaryRef}>
+                <ErrorSummary errors={errorList} onItemClick={scrollToField} />
+              </div>
+
               {error && (
                 <div className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-start gap-3 text-sm">
-                  <svg
-                    className="w-4 h-4 flex-shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
                   {error}
                 </div>
               )}
 
-              {/* ── Section 1: Personal Information ─────── */}
               <div className={`${cardBase} p-8`}>
-                <SectionHeader number="01" title="Personal Information" subtitle="Basic details about you" />
+                <SectionHeader
+                  number="01"
+                  title="Application Information"
+                  subtitle="Basic details about this application"
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {renderFieldBlock(getField("expected_salary", "Expected Salary"))}
+                  {renderFieldBlock(getField("social_media", "LinkedIn Profile URL"))}
+                  {renderFieldBlock(getField("industries", "Work Industry"))}
+                  {renderFieldBlock(getField("years_of_experience", "Years of Experience"))}
                   {formFields
                     .filter(
                       (f) =>
-                        !isExperienceField(f) &&
-                        !isEducationField(f) &&
-                        !isCharacterReferenceField(f) &&
-                        !isWorkPassField(f) &&
-                        !isOverseasAddressField(f),
+                        getCategory(f) === "resume" ||
+                        normalize(f.slug) === "resume" ||
+                        normalize(f.name) === "resume" ||
+                        normalize(f.label) === "resume" ||
+                        String(f.id) === "1741683",
                     )
-                    .map((field) => (
-                      <div
-                        key={field.id}
-                        className={
-                          field.type === "file" || isCVField(field) || field.type === "textarea" ? "md:col-span-2" : ""
-                        }>
-                        <Label required={field.required || field.is_required}>{field.label}</Label>
-                        {renderField(field)}
+                    .map((f) => renderFieldBlock(f, "md:col-span-2"))}
+
+                  <div
+                    className={`md:col-span-2 rounded-2xl border p-5 transition-all duration-200 ${
+                      watchedIsReferred ? "border-blue-200 bg-blue-50/30" : "border-slate-200 bg-white"
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                            watchedIsReferred ? "bg-blue-600 shadow-sm shadow-blue-200" : "bg-slate-100"
+                          }`}>
+                          <svg
+                            className={`w-4 h-4 ${watchedIsReferred ? "text-white" : "text-slate-400"}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                            />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">Were you referred by an HFSE employee?</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Let us know who referred you for this position
+                          </p>
+                        </div>
                       </div>
-                    ))}
+
+                      <Controller
+                        control={control}
+                        name="is_referred"
+                        render={({ field }) => (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              field.onChange(!field.value);
+                              trigger("referrer_details");
+                            }}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                              field.value ? "bg-blue-600" : "bg-slate-200"
+                            }`}>
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ${
+                                field.value ? "translate-x-5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        )}
+                      />
+                    </div>
+
+                    {watchedIsReferred && (
+                      <div className="mt-5 pt-5 border-t border-blue-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label required>Referrer Name</Label>
+                          <input
+                            id={pathToFieldId("referrer_details.referrer_name")}
+                            type="text"
+                            {...register("referrer_details.referrer_name")}
+                            placeholder="Full name of the person who referred you"
+                            className={inputBase}
+                          />
+                          <ErrorText path="referrer_details.referrer_name" />
+                        </div>
+
+                        <div>
+                          <Label required>Referrer Email</Label>
+                          <input
+                            id={pathToFieldId("referrer_details.referrer_email")}
+                            type="email"
+                            {...register("referrer_details.referrer_email")}
+                            placeholder="email@example.com"
+                            className={inputBase}
+                          />
+                          <ErrorText path="referrer_details.referrer_email" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* ── Section 2: Work Experience ─────── */}
+              <div
+                className={`rounded-2xl border shadow-sm p-8 transition-all duration-200 ${
+                  watchedIsApplyingForTeacher ? "bg-amber-50/30 border-amber-200" : "bg-white border-slate-100"
+                }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+                        watchedIsApplyingForTeacher ? "bg-amber-500 shadow-sm shadow-amber-200" : "bg-slate-100"
+                      }`}>
+                      <svg
+                        className={`w-4 h-4 ${watchedIsApplyingForTeacher ? "text-white" : "text-slate-400"}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-800 leading-tight">For Teacher Position Only</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">Toggle on if you are applying for a teaching role</p>
+                    </div>
+                  </div>
+
+                  <Controller
+                    control={control}
+                    name="is_applying_for_teacher"
+                    render={({ field }) => (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          field.onChange(!field.value);
+                          trigger("preferredsubjectsandlevels");
+                        }}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                          field.value ? "bg-amber-500" : "bg-slate-200"
+                        }`}>
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition duration-200 ${
+                            field.value ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    )}
+                  />
+                </div>
+
+                {watchedIsApplyingForTeacher && (
+                  <div className="mt-6 pt-6 border-t border-amber-100">
+                    {getField("preferredsubjectsandlevels", "Preferred Subjects and Levels") ? (
+                      <div>
+                        <Label
+                          required={getRequired(
+                            getField("preferredsubjectsandlevels", "Preferred Subjects and Levels")!,
+                          )}>
+                          {getField("preferredsubjectsandlevels", "Preferred Subjects and Levels")!.label}
+                        </Label>
+                        <textarea
+                          id={pathToFieldId("preferredsubjectsandlevels")}
+                          rows={4}
+                          {...register("preferredsubjectsandlevels")}
+                          placeholder="e.g. English - Primary / Secondary, Mathematics - Secondary"
+                          className={`${inputBase} resize-none focus:ring-amber-400/60 focus:border-amber-400`}
+                        />
+
+                        <p className="mt-1.5 text-xs text-slate-400">
+                          List each subject and its corresponding level(s), one per line if needed
+                        </p>
+                        <ErrorText path="preferredsubjectsandlevels" />
+                      </div>
+                    ) : (
+                      <div>
+                        <Label required>Preferred Subjects &amp; Levels</Label>
+                        <textarea
+                          rows={4}
+                          {...register("preferredsubjectsandlevels")}
+                          placeholder="e.g. English - Primary & Secondary, Mathematics - Secondary"
+                          className={`${inputBase} resize-none focus:ring-amber-400/60 focus:border-amber-400`}
+                        />
+                        <p className="mt-1.5 text-xs text-slate-400">
+                          List each subject and its corresponding level(s), one per line if needed
+                        </p>
+                        <ErrorText path="preferredsubjectsandlevels" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className={`${cardBase} p-8`}>
                 <SectionHeader
                   number="02"
-                  title="Work Experience"
-                  subtitle="Your employment history, most recent first"
+                  title="Personal Information"
+                  subtitle="Your personal details and identification"
                 />
-                <div className="space-y-4">
-                  {experiences.map((exp, i) => (
-                    <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Experience {i + 1}
-                        </span>
-                        {experiences.length > 1 && <RemoveButton onClick={() => removeExperience(i)} />}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label required>Job Title</Label>
-                          <input
-                            type="text"
-                            value={exp.title}
-                            onChange={(e) => updateExperience(i, "title", e.target.value)}
-                            className={inputBase}
-                            placeholder="e.g. Senior Software Engineer"
-                          />
-                        </div>
-                        <div>
-                          <Label required>Employer</Label>
-                          <input
-                            type="text"
-                            value={exp.employer}
-                            onChange={(e) => updateExperience(i, "employer", e.target.value)}
-                            className={inputBase}
-                            placeholder="Company name"
-                          />
-                        </div>
-                        <div>
-                          <Label>Salary</Label>
-                          <input
-                            type="text"
-                            value={exp.salary || ""}
-                            onChange={(e) => updateExperience(i, "salary", e.target.value)}
-                            className={inputBase}
-                            placeholder="e.g. SGD 5,000 / month"
-                          />
-                        </div>
-                        <div>
-                          <Label required>Start Date</Label>
-                          <input
-                            type="date"
-                            value={exp.started_at}
-                            onChange={(e) => updateExperience(i, "started_at", e.target.value)}
-                            className={inputBase}
-                          />
-                        </div>
-                        <div>
-                          <Label>End Date</Label>
-                          <input
-                            type="date"
-                            value={exp.ended_at || ""}
-                            onChange={(e) => updateExperience(i, "ended_at", e.target.value)}
-                            disabled={exp.is_current_employer}
-                            className={inputBase + (exp.is_current_employer ? " opacity-40 cursor-not-allowed" : "")}
-                          />
-                        </div>
-                        <div className="flex items-center">
-                          <label
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all select-none w-full
-              ${
-                exp.is_current_employer
-                  ? "border-blue-400 bg-blue-50 text-blue-700"
-                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
-              }`}>
-                            <input
-                              type="checkbox"
-                              checked={exp.is_current_employer}
-                              onChange={(e) => updateExperience(i, "is_current_employer", e.target.checked)}
-                              className="sr-only"
-                            />
-                            {exp.is_current_employer ? (
-                              <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                  fillRule="evenodd"
-                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            ) : (
-                              <span className="w-4 h-4 rounded border-2 border-slate-300 flex-shrink-0" />
-                            )}
-                            Current employer
-                          </label>
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label>Description</Label>
-                          <textarea
-                            value={exp.description}
-                            onChange={(e) => updateExperience(i, "description", e.target.value)}
-                            rows={3}
-                            placeholder="Key responsibilities and achievements…"
-                            className={inputBase + " resize-none"}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <AddButton onClick={addExperience} label="Add Experience" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {renderFieldBlock(getField("full_name", "Full Name"))}
+                  {renderFieldBlock(getField("preferredname", "Preferred Name"))}
+                  {renderFieldBlock(getField("residentialstatus", "Residential Status"))}
+                  {renderFieldBlock(getField("nationalities", "Nationality"))}
+                  {renderFieldBlock(getField("birth_date", "Date of Birth"))}
+                  {renderFieldBlock(getField("gender", "Gender"))}
+                  {renderFieldBlock(getField("religion", "Religion"))}
+                  {renderFieldBlock(getField("nricfin", "NRIC/FIN"))}
+                  {renderFieldBlock(getField("latest_degree", "Highest Qualification"))}
+                  {renderFieldBlock(getField("city", "Singapore Address"))}
+                  {renderFieldBlock(getField("passportno", "Passport Number"))}
+                  {formFields.filter((f) => getFieldKey(f) === "placedateofissue").map((f) => renderFieldBlock(f))}
                 </div>
               </div>
 
-              {/* ── Section 3: Education ─────── */}
               <div className={`${cardBase} p-8`}>
-                <SectionHeader number="03" title="Education" subtitle="Your academic background and qualifications" />
-                <div className="space-y-4">
-                  {educations.map((edu, i) => (
-                    <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Education {i + 1}
-                        </span>
-                        {educations.length > 1 && <RemoveButton onClick={() => removeEducation(i)} />}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label required>School / Institution</Label>
-                          <input
-                            type="text"
-                            value={edu.school}
-                            onChange={(e) => updateEducation(i, "school", e.target.value)}
-                            className={inputBase}
-                            placeholder="e.g. National University of Singapore"
-                          />
-                        </div>
-                        <div>
-                          <Label required>Degree / Qualification</Label>
-                          <input
-                            type="text"
-                            value={edu.degree_name}
-                            onChange={(e) => updateEducation(i, "degree_name", e.target.value)}
-                            className={inputBase}
-                            placeholder="e.g. Bachelor of Science"
-                          />
-                        </div>
-                        <div>
-                          <Label>Specialization / Major</Label>
-                          <input
-                            type="text"
-                            value={edu.specialization || ""}
-                            onChange={(e) => updateEducation(i, "specialization", e.target.value)}
-                            className={inputBase}
-                            placeholder="e.g. Computer Science"
-                          />
-                        </div>
-                        <div>
-                          <Label>Location</Label>
-                          <input
-                            type="text"
-                            value={edu.location}
-                            onChange={(e) => updateEducation(i, "location", e.target.value)}
-                            className={inputBase}
-                            placeholder="City, Country"
-                          />
-                        </div>
-                        <div>
-                          <Label required>Start Date</Label>
-                          <input
-                            type="date"
-                            value={edu.started_at}
-                            onChange={(e) => updateEducation(i, "started_at", e.target.value)}
-                            className={inputBase}
-                          />
-                        </div>
-                        <div>
-                          <Label>End Date</Label>
-                          <input
-                            type="date"
-                            value={edu.ended_at || ""}
-                            onChange={(e) => updateEducation(i, "ended_at", e.target.value)}
-                            className={inputBase}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label>Description</Label>
-                          <textarea
-                            value={edu.description || ""}
-                            onChange={(e) => updateEducation(i, "description", e.target.value)}
-                            rows={3}
-                            placeholder="Achievements, honours, extracurriculars…"
-                            className={inputBase + " resize-none"}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4">
-                  <AddButton onClick={addEducation} label="Add Education" />
+                <SectionHeader number="03" title="Contact Information" subtitle="How we can reach you" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {renderFieldBlock(getField("phone_number", "WhatsApp Number"))}
+                  {renderFieldBlock(getField("email", "Email"))}
+                  {renderFieldBlock(getField("address", "Complete Address"))}
+
+                  {renderFieldBlock(getField("postalcode", "Postal Code"))}
                 </div>
               </div>
 
-              {/* ── Section 4: Family Particulars ───────── */}
               <div className={`${cardBase} p-8`}>
-                <SectionHeader number="04" title="Family Particulars" subtitle="Details of immediate family members" />
+                <SectionHeader
+                  number="04"
+                  title="Person to Contact in Case of Emergency"
+                  subtitle="Someone we can reach if needed"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {renderFieldBlock(getField("name", "Emergency Contact Name"))}
+                  {renderFieldBlock(getField("relationship", "Emergency Contact Relationship"))}
+                  {renderFieldBlock(getField("address_b", "Emergency Contact Address"), "md:col-span-2")}
+                  {renderFieldBlock(getField("mobilenumber", "Emergency Contact Mobile Number"))}
+                  {renderFieldBlock(getField("hometelephonenumber", "Emergency Contact Home Telephone Number"))}
+                  {renderFieldBlock(getField("officetelephonenumber", "Emergency Contact Office Telephone Number"))}
+                  {renderFieldBlock(getField("emailaddress", "Emergency Contact Email Address"))}
+                </div>
+              </div>
+
+              <div className={`${cardBase} p-8`}>
+                <SectionHeader number="05" title="Family Particulars" subtitle="Details of immediate family members" />
                 <div className="space-y-4">
-                  {familyMembers.map((member, i) => (
-                    <div key={i} className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
+                  {familyFields.map((member, i) => (
+                    <div key={member.id} className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                           Member {i + 1}
                         </span>
-                        {familyMembers.length > 1 && <RemoveButton onClick={() => removeFamilyMember(i)} />}
+                        {familyFields.length > 1 && <RemoveButton onClick={() => removeFamily(i)} />}
                       </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                           <Label>Name</Label>
                           <input
+                            id={pathToFieldId(`family_members.${i}.name`)}
                             type="text"
-                            value={member.name}
-                            onChange={(e) => updateFamilyMember(i, "name", e.target.value)}
+                            {...register(`family_members.${i}.name`)}
                             className={inputBase}
                             placeholder="Full name"
                           />
+                          <ErrorText path={`family_members.${i}.name`} />
                         </div>
+
                         <div>
                           <Label>Relationship</Label>
-                          <input
-                            type="text"
-                            value={member.relationship}
-                            onChange={(e) => updateFamilyMember(i, "relationship", e.target.value)}
-                            className={inputBase}
-                            placeholder="Father / Spouse / Child…"
-                          />
+                          <select
+                            id={pathToFieldId(`family_members.${i}.relationship`)}
+                            {...register(`family_members.${i}.relationship`)}
+                            className={selectCls}>
+                            <option value="">Select relationship</option>
+                            <option value="Father">Father</option>
+                            <option value="Mother">Mother</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Son">Son</option>
+                            <option value="Daughter">Daughter</option>
+                            <option value="Sibling">Sibling</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <ErrorText path={`family_members.${i}.relationship`} />
                         </div>
+
                         <div>
                           <Label>Nationality</Label>
                           <input
+                            id={pathToFieldId(`family_members.${i}.nationality`)}
                             type="text"
-                            value={member.nationality}
-                            onChange={(e) => updateFamilyMember(i, "nationality", e.target.value)}
+                            {...register(`family_members.${i}.nationality`)}
                             className={inputBase}
                             placeholder="e.g. Singaporean"
                           />
+                          <ErrorText path={`family_members.${i}.nationality`} />
                         </div>
+
                         <div>
                           <Label>Age</Label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={member.age}
-                            onChange={(e) => {
-                              if (/^\d*$/.test(e.target.value)) updateFamilyMember(i, "age", e.target.value);
-                            }}
-                            onKeyPress={(e) => {
-                              if (!/[0-9]/.test(e.key)) e.preventDefault();
-                            }}
-                            className={inputBase}
-                            placeholder="e.g. 45"
+                          <Controller
+                            control={control}
+                            name={`family_members.${i}.age`}
+                            render={({ field }) => (
+                              <input
+                                id={pathToFieldId(`family_members.${i}.age`)}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={field.value}
+                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
+                                onKeyPress={(e) => {
+                                  if (!/[0-9]/.test(e.key)) e.preventDefault();
+                                }}
+                                className={inputBase}
+                                placeholder="e.g. 45"
+                              />
+                            )}
                           />
+                          <ErrorText path={`family_members.${i}.age`} />
                         </div>
+
                         <div>
                           <Label>Occupation</Label>
                           <input
+                            id={pathToFieldId(`family_members.${i}.occupation`)}
                             type="text"
-                            value={member.occupation}
-                            onChange={(e) => updateFamilyMember(i, "occupation", e.target.value)}
+                            {...register(`family_members.${i}.occupation`)}
                             className={inputBase}
                             placeholder="Job title or role"
                           />
+                          <ErrorText path={`family_members.${i}.occupation`} />
                         </div>
+
                         <div>
                           <Label>Company</Label>
                           <input
+                            id={pathToFieldId(`family_members.${i}.company`)}
                             type="text"
-                            value={member.company}
-                            onChange={(e) => updateFamilyMember(i, "company", e.target.value)}
+                            {...register(`family_members.${i}.company`)}
                             className={inputBase}
-                            placeholder="Employer (optional)"
+                            placeholder="Employer optional"
                           />
+                          <ErrorText path={`family_members.${i}.company`} />
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
+
                 <div className="mt-4">
-                  <AddButton onClick={addFamilyMember} label="Add Family Member" />
+                  <AddButton
+                    onClick={() =>
+                      appendFamily({
+                        name: "",
+                        relationship: "",
+                        nationality: "",
+                        age: "",
+                        occupation: "",
+                        company: "",
+                      })
+                    }
+                    label="Add Family Member"
+                  />
                 </div>
               </div>
 
-              {/* ── Section 5: Declaration ───────────────── */}
               <div className={`${cardBase} p-8`}>
                 <SectionHeader
-                  number="05"
+                  number="06"
+                  title="Educational Profile"
+                  subtitle="Your academic background and qualifications"
+                />
+                <div className="space-y-4">
+                  {educationFields.map((edu, i) => (
+                    <div key={edu.id} className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                          Education {i + 1}
+                        </span>
+                        {educationFields.length > 1 && <RemoveButton onClick={() => removeEducation(i)} />}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label required>School / Institution</Label>
+                          <input
+                            id={pathToFieldId(`educations.${i}.school`)}
+                            type="text"
+                            {...register(`educations.${i}.school`)}
+                            className={inputBase}
+                            placeholder="e.g. National University of Singapore"
+                          />
+                          <ErrorText path={`educations.${i}.school`} />
+                        </div>
+
+                        <div>
+                          <Label required>Highest Qualification</Label>
+                          <select
+                            id={pathToFieldId(`educations.${i}.degree_name`)}
+                            {...register(`educations.${i}.degree_name`)}
+                            className={selectCls}>
+                            <option value="">Select qualification</option>
+                            <option value="High School Diploma">High School Diploma</option>
+                            <option value="Associates Degree">Associate&apos;s Degree</option>
+                            <option value="Bachelors Degree">Bachelor&apos;s Degree</option>
+                            <option value="Masters Degree">Master&apos;s Degree</option>
+                            <option value="Doctorate">Doctorate</option>
+                          </select>
+                          <ErrorText path={`educations.${i}.degree_name`} />
+                        </div>
+
+                        <div>
+                          <Label>Specialization / Major</Label>
+                          <input
+                            id={pathToFieldId(`educations.${i}.specialization`)}
+                            type="text"
+                            {...register(`educations.${i}.specialization`)}
+                            className={inputBase}
+                            placeholder="e.g. Computer Science"
+                          />
+                          <ErrorText path={`educations.${i}.specialization`} />
+                        </div>
+
+                        <div>
+                          <Label>Location</Label>
+                          <input
+                            id={pathToFieldId(`educations.${i}.location`)}
+                            type="text"
+                            {...register(`educations.${i}.location`)}
+                            className={inputBase}
+                            placeholder="City, Country"
+                          />
+                          <ErrorText path={`educations.${i}.location`} />
+                        </div>
+
+                        <div>
+                          <Label required>Start Date</Label>
+                          <input
+                            id={pathToFieldId(`educations.${i}.started_at`)}
+                            type="date"
+                            {...register(`educations.${i}.started_at`)}
+                            className={inputBase}
+                          />
+                          <ErrorText path={`educations.${i}.started_at`} />
+                        </div>
+
+                        <div>
+                          <Label>End Date</Label>
+                          <Controller
+                            control={control}
+                            name={`educations.${i}.ended_at`}
+                            render={({ field }) => (
+                              <input
+                                id={pathToFieldId(`educations.${i}.ended_at`)}
+                                type="date"
+                                value={field.value ?? ""}
+                                onChange={(e) => field.onChange(e.target.value || null)}
+                                className={inputBase}
+                              />
+                            )}
+                          />
+                          <ErrorText path={`educations.${i}.ended_at`} />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <Label>Description</Label>
+                          <textarea
+                            id={pathToFieldId(`educations.${i}.description`)}
+                            {...register(`educations.${i}.description`)}
+                            rows={3}
+                            placeholder="Achievements, honours, extracurriculars..."
+                            className={`${inputBase} resize-none`}
+                          />
+                          <ErrorText path={`educations.${i}.description`} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                  <AddButton
+                    onClick={() =>
+                      appendEducation({
+                        school: "",
+                        degree_name: "",
+                        specialization: "",
+                        started_at: "",
+                        ended_at: null,
+                        location: "",
+                        description: "",
+                      })
+                    }
+                    label="Add Education"
+                  />
+                </div>
+              </div>
+
+              {getFields("coursename", "coursestartdate", "expectedyearofcompletion").length > 0 && (
+                <div className={`${cardBase} p-8`}>
+                  <SectionHeader
+                    number="07"
+                    title="Other Courses Currently Pursuing"
+                    subtitle="Any ongoing studies or certifications"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {renderFieldBlock(getField("coursename", "Course Name"), "md:col-span-2")}
+                    {renderFieldBlock(getField("coursestartdate", "Course Start Date"))}
+                    {renderFieldBlock(getField("expectedyearofcompletion", "Expected Year of Completion"))}
+                  </div>
+                </div>
+              )}
+
+              <div className={`${cardBase} p-8`}>
+                <SectionHeader
+                  number="08"
+                  title="Employment History"
+                  subtitle="Your work experience, most recent first"
+                />
+                <div className="space-y-4">
+                  {experienceFields.map((exp, i) => {
+                    const isCurrent = watch(`experiences.${i}.is_current_employer`);
+
+                    return (
+                      <div key={exp.id} className="p-6 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            Experience {i + 1}
+                          </span>
+                          {experienceFields.length > 1 && <RemoveButton onClick={() => removeExperience(i)} />}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label required>From</Label>
+                            <input
+                              id={pathToFieldId(`experiences.${i}.started_at`)}
+                              type="date"
+                              {...register(`experiences.${i}.started_at`)}
+                              className={inputBase}
+                            />
+                            <ErrorText path={`experiences.${i}.started_at`} />
+                          </div>
+
+                          <div>
+                            <Label>{isCurrent ? "To" : "To *"}</Label>
+                            <Controller
+                              control={control}
+                              name={`experiences.${i}.ended_at`}
+                              render={({ field }) => (
+                                <input
+                                  id={pathToFieldId(`experiences.${i}.ended_at`)}
+                                  type="date"
+                                  value={isCurrent ? today : field.value || ""}
+                                  onChange={(e) => field.onChange(e.target.value || null)}
+                                  disabled={!!isCurrent}
+                                  className={`${inputBase}${isCurrent ? " opacity-40 cursor-not-allowed" : ""}`}
+                                />
+                              )}
+                            />
+                            <ErrorText path={`experiences.${i}.ended_at`} />
+                          </div>
+
+                          <div>
+                            <Label required>Company and Country</Label>
+                            <input
+                              id={pathToFieldId(`experiences.${i}.employer`)}
+                              type="text"
+                              {...register(`experiences.${i}.employer`)}
+                              className={inputBase}
+                              placeholder="e.g. ABC School, Singapore"
+                            />
+                            <ErrorText path={`experiences.${i}.employer`} />
+                          </div>
+
+                          <div>
+                            <Label required>Position</Label>
+                            <input
+                              id={pathToFieldId(`experiences.${i}.title`)}
+                              type="text"
+                              {...register(`experiences.${i}.title`)}
+                              className={inputBase}
+                              placeholder="e.g. Senior Teacher"
+                            />
+                            <ErrorText path={`experiences.${i}.title`} />
+                          </div>
+
+                          <div>
+                            <Label>Last Withdrawn Salary</Label>
+                            <input
+                              id={pathToFieldId(`experiences.${i}.salary`)}
+                              type="text"
+                              {...register(`experiences.${i}.salary`)}
+                              className={inputBase}
+                              placeholder="e.g. SGD 5,000 / month"
+                            />
+                            <ErrorText path={`experiences.${i}.salary`} />
+                          </div>
+
+                          <div>
+                            <Label>Other Allowances</Label>
+                            <input
+                              id={pathToFieldId(`experiences.${i}.other_allowances`)}
+                              type="text"
+                              {...register(`experiences.${i}.other_allowances` as const)}
+                              className={inputBase}
+                              placeholder="e.g. Transport, housing"
+                            />
+                            <ErrorText path={`experiences.${i}.other_allowances`} />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <Label>Reason for Leaving</Label>
+                            <textarea
+                              id={pathToFieldId(`experiences.${i}.reason_for_leaving`)}
+                              {...register(`experiences.${i}.reason_for_leaving` as const)}
+                              rows={3}
+                              placeholder="Why you left this role"
+                              className={`${inputBase} resize-none`}
+                            />
+                            <ErrorText path={`experiences.${i}.reason_for_leaving`} />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <Controller
+                              control={control}
+                              name={`experiences.${i}.is_current_employer`}
+                              render={({ field }) => (
+                                <label
+                                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all select-none w-full ${
+                                    field.value
+                                      ? "border-blue-400 bg-blue-50 text-blue-700"
+                                      : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                                  }`}>
+                                  <input
+                                    id={pathToFieldId(`experiences.${i}.is_current_employer`)}
+                                    type="checkbox"
+                                    checked={!!field.value}
+                                    onChange={(e) => {
+                                      const checked = e.target.checked;
+                                      field.onChange(checked);
+                                      if (checked) {
+                                        setValue(`experiences.${i}.ended_at`, null, {
+                                          shouldDirty: true,
+                                          shouldValidate: true,
+                                        });
+                                      }
+                                    }}
+                                    className="sr-only"
+                                  />
+                                  {field.value ? (
+                                    <svg className="w-4 h-4 flex-shrink-0 fill-current" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        clipRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      />
+                                    </svg>
+                                  ) : (
+                                    <span className="w-4 h-4 rounded border-2 border-slate-300 flex-shrink-0" />
+                                  )}
+                                  I currently work here
+                                </label>
+                              )}
+                            />
+                            <ErrorText path={`experiences.${i}.is_current_employer`} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4">
+                  <AddButton
+                    onClick={() =>
+                      appendExperience({
+                        title: "",
+                        employer: "",
+                        salary: "",
+                        started_at: "",
+                        ended_at: null,
+                        is_current_employer: false,
+                        description: "",
+                      })
+                    }
+                    label="Add Experience"
+                  />
+                </div>
+              </div>
+
+              <div className={`${cardBase} p-8`}>
+                <SectionHeader
+                  number="09"
+                  title="Additional Information"
+                  subtitle="Other details relevant to your application"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {renderFieldBlock(getField("membershipsassociations", "Memberships & Associations"), "md:col-span-2")}
+                  {renderFieldBlock(
+                    getField(
+                      "description",
+                      "Briefly share your skills, experiences, and achievements beyond your resume",
+                    ),
+                    "md:col-span-2",
+                  )}
+                </div>
+              </div>
+
+              <div className={`${cardBase} p-8`}>
+                <SectionHeader
+                  number="10"
                   title="Declaration"
                   subtitle="Please answer all questions honestly. All information is kept confidential."
                 />
                 <div className="space-y-6">
                   {declarationQuestions.map((question, i) => {
-                    const current = declarationAnswers[i];
+                    const current = watchedDeclarations?.[i];
+
                     return (
                       <div key={i} className="pb-6 border-b border-slate-100 last:border-0 last:pb-0">
                         <p className="text-sm text-slate-700 mb-3 leading-relaxed font-medium">
@@ -1305,33 +2167,43 @@ export default function JobApplicationPage() {
                           {question}
                           <span className="text-rose-400 ml-1">*</span>
                         </p>
-                        <div className="flex gap-3">
-                          {["Yes", "No"].map((option) => (
+
+                        <div id={pathToFieldId(`declarations.${i}.answer`)} tabIndex={-1} className="flex gap-3">
+                          {(["Yes", "No"] as const).map((option) => (
                             <label
                               key={option}
-                              className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all select-none
-                                ${
-                                  current?.answer === option
-                                    ? option === "Yes"
-                                      ? "border-amber-400 bg-amber-50 text-amber-700"
-                                      : "border-emerald-400 bg-emerald-50 text-emerald-700"
-                                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
-                                }`}>
+                              className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all select-none ${
+                                current?.answer === option
+                                  ? option === "Yes"
+                                    ? "border-amber-400 bg-amber-50 text-amber-700"
+                                    : "border-emerald-400 bg-emerald-50 text-emerald-700"
+                                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                              }`}>
                               <input
                                 type="radio"
-                                name={`declaration_${i}`}
                                 value={option}
                                 checked={current?.answer === option}
-                                onChange={() => handleDeclarationChange(i, option as "Yes" | "No")}
-                                required
+                                onChange={() => {
+                                  setValue(`declarations.${i}.answer`, option, {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                  });
+
+                                  if (option === "No") {
+                                    setValue(`declarations.${i}.details`, "", {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    });
+                                  }
+                                }}
                                 className="sr-only"
                               />
                               {current?.answer === option && (
-                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
                                   <path
                                     fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                     clipRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                   />
                                 </svg>
                               )}
@@ -1339,16 +2211,18 @@ export default function JobApplicationPage() {
                             </label>
                           ))}
                         </div>
+                        <ErrorText path={`declarations.${i}.answer`} />
+
                         {current?.answer === "Yes" && (
                           <div className="mt-3">
                             <textarea
-                              required
+                              id={pathToFieldId(`declarations.${i}.details`)}
                               rows={3}
-                              placeholder="Please provide details…"
-                              value={current.details || ""}
-                              onChange={(e) => handleDeclarationDetailsChange(i, e.target.value)}
+                              {...register(`declarations.${i}.details`)}
+                              placeholder="Please provide details..."
                               className={`${inputBase} resize-none`}
                             />
+                            <ErrorText path={`declarations.${i}.details`} />
                           </div>
                         )}
                       </div>
@@ -1357,29 +2231,30 @@ export default function JobApplicationPage() {
                 </div>
               </div>
 
-              {/* ── Section 6: Character References ─────── */}
-              <div className={`${cardBase} p-8`}>
+              <div id={pathToFieldId("references.root")} className={`${cardBase} p-8`}>
                 <SectionHeader
-                  number="06"
+                  number="11"
                   title="Character References"
-                  subtitle="People who can vouch for your professional character"
+                  subtitle="Please provide at least 3 references"
                 />
 
                 <div className="flex items-center gap-2 mb-5 -mt-3">
                   {[0, 1, 2].map((i) => {
                     const filled =
-                      references[i] &&
-                      references[i].name.trim() &&
-                      references[i].email.trim() &&
-                      references[i].contact_no.trim() &&
-                      references[i].relationship.trim();
+                      watchedReferences?.[i] &&
+                      watchedReferences[i].name.trim() &&
+                      watchedReferences[i].email.trim() &&
+                      watchedReferences[i].contact_no.trim() &&
+                      watchedReferences[i].relationship.trim();
+
                     return (
                       <div
                         key={i}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
-        ${
-          filled ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-400"
-        }`}>
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          filled
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                            : "bg-slate-50 border-slate-200 text-slate-400"
+                        }`}>
                         {filled ? (
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                             <path
@@ -1391,86 +2266,238 @@ export default function JobApplicationPage() {
                         ) : (
                           <span className="w-3 h-3 rounded-full border-2 border-current inline-block" />
                         )}
-                        Character Reference {i + 1}
+                        Reference {i + 1}
                       </div>
                     );
                   })}
                 </div>
 
                 <div className="space-y-4">
-                  {references.map((ref, i) => (
-                    <div key={i} className="relative p-6 bg-slate-50 border border-slate-200 rounded-xl">
+                  {referenceFields.map((ref, i) => (
+                    <div key={ref.id} className="relative p-6 bg-slate-50 border border-slate-200 rounded-xl">
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                           Reference {i + 1}
                         </span>
-                        {references.length > 1 && <RemoveButton onClick={() => removeReference(i)} />}
+                        {referenceFields.length > 1 && <RemoveButton onClick={() => removeReference(i)} />}
                       </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label>Name</Label>
+                          <Label required>Name</Label>
                           <input
+                            id={pathToFieldId(`references.${i}.name`)}
                             type="text"
-                            value={ref.name}
-                            onChange={(e) => updateReference(i, "name", e.target.value)}
+                            {...register(`references.${i}.name`)}
                             className={inputBase}
                             placeholder="Full name"
                           />
+                          <ErrorText path={`references.${i}.name`} />
                         </div>
+
                         <div>
-                          <Label>Email</Label>
+                          <Label required>Email</Label>
                           <input
+                            id={pathToFieldId(`references.${i}.email`)}
                             type="email"
-                            value={ref.email}
-                            onChange={(e) => updateReference(i, "email", e.target.value)}
+                            {...register(`references.${i}.email`)}
                             className={inputBase}
                             placeholder="email@example.com"
                           />
+                          <ErrorText path={`references.${i}.email`} />
                         </div>
+
                         <div>
-                          <Label>Contact Number</Label>
+                          <Label required>Contact Number</Label>
+
                           <input
-                            type="text"
-                            value={ref.contact_no}
-                            onChange={(e) => updateReference(i, "contact_no", e.target.value)}
+                            id={pathToFieldId(`references.${i}.contact_no`)}
+                            type="tel"
+                            {...register(`references.${i}.contact_no`)}
                             className={inputBase}
                             placeholder="+65 9123 4567"
                           />
+                          <ErrorText path={`references.${i}.contact_no`} />
                         </div>
+
                         <div>
-                          <Label>Company & Occupation</Label>
+                          <Label required>Company &amp; Occupation</Label>
                           <input
+                            id={pathToFieldId(`references.${i}.company_occupation`)}
                             type="text"
-                            value={ref.company_occupation}
-                            onChange={(e) => updateReference(i, "company_occupation", e.target.value)}
+                            {...register(`references.${i}.company_occupation`)}
                             className={inputBase}
                             placeholder="e.g. Acme Corp, Senior Manager"
                           />
+                          <ErrorText path={`references.${i}.company_occupation`} />
                         </div>
-                        <div className="md:col-span-2">
-                          <Label>Relationship to Applicant</Label>
+
+                        <div>
+                          <Label required>Relationship to Applicant</Label>
+
                           <input
+                            id={pathToFieldId(`references.${i}.relationship`)}
                             type="text"
-                            value={ref.relationship}
-                            onChange={(e) => updateReference(i, "relationship", e.target.value)}
+                            {...register(`references.${i}.relationship`)}
                             className={inputBase}
                             placeholder="e.g. Former Supervisor, Colleague"
                           />
+                          <ErrorText path={`references.${i}.relationship`} />
+                        </div>
+
+                        <div>
+                          <Label required>Years Known</Label>
+                          <input
+                            id={pathToFieldId(`references.${i}.years_known`)}
+                            type="text"
+                            {...register(`references.${i}.years_known`)}
+                            className={inputBase}
+                            placeholder="e.g. 5"
+                          />
+                          <ErrorText path={`references.${i}.years_known`} />
+                        </div>
+
+                        <div>
+                          <Label required>Is this a work-related reference?</Label>
+                          <div
+                            id={pathToFieldId(`references.${i}.is_work_related`)}
+                            tabIndex={-1}
+                            className="flex gap-3 pt-1">
+                            {[
+                              { value: "Yes", label: "Yes" },
+                              { value: "No", label: "No" },
+                            ].map(({ value, label }) => {
+                              const current = watch(`references.${i}.is_work_related`);
+                              const isSelected = String(current) === value;
+
+                              return (
+                                <label
+                                  key={value}
+                                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all select-none ${
+                                    isSelected
+                                      ? value === "Yes"
+                                        ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                                        : "border-slate-400 bg-slate-100 text-slate-700"
+                                      : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                                  }`}>
+                                  <input
+                                    type="radio"
+                                    value={value}
+                                    {...register(`references.${i}.is_work_related`, {
+                                      setValueAs: (v) => v,
+                                    })}
+                                    className="sr-only"
+                                  />
+                                  {isSelected && (
+                                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        clipRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      />
+                                    </svg>
+                                  )}
+                                  {label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <ErrorText path={`references.${i}.is_work_related`} />
+                        </div>
+
+                        <div>
+                          <Label required>
+                            Do you agree to send this reference the appropriate verification form based on your answer
+                            above?
+                          </Label>
+                          <div
+                            id={pathToFieldId(`references.${i}.consent_to_contact`)}
+                            tabIndex={-1}
+                            className="flex gap-3 pt-1">
+                            {[
+                              { value: "I agree", label: "I agree" },
+                              { value: "I don't agree", label: "I don't agree" },
+                            ].map(({ value, label }) => {
+                              const current = watch(`references.${i}.consent_to_contact`);
+                              const isSelected = String(current) === value;
+
+                              return (
+                                <label
+                                  key={value}
+                                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all select-none ${
+                                    isSelected
+                                      ? value === "I agree"
+                                        ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                                        : "border-rose-400 bg-rose-50 text-rose-700"
+                                      : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                                  }`}>
+                                  <input
+                                    type="radio"
+                                    value={value}
+                                    {...register(`references.${i}.consent_to_contact`, {
+                                      setValueAs: (v) => v,
+                                    })}
+                                    className="sr-only"
+                                  />
+                                  {isSelected && (
+                                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                                      <path
+                                        fillRule="evenodd"
+                                        clipRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      />
+                                    </svg>
+                                  )}
+                                  {label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <ErrorText path={`references.${i}.consent_to_contact`} />
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4">
-                  <AddButton onClick={addReference} label="Add Reference" />
+
+                <div className="mt-4 flex items-center gap-3">
+                  <AddButton
+                    onClick={() =>
+                      appendReference({
+                        name: "",
+                        email: "",
+                        contact_no: "",
+                        company_occupation: "",
+                        relationship: "",
+                        is_work_related: "No",
+                        years_known: "",
+                        consent_to_contact: "I agree",
+                      })
+                    }
+                    label="Add Reference"
+                  />
+                  {referenceCompletedCount >= 3 && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Minimum references met
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* ── Submit Bar ──────────────────────────── */}
-              <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col sm:flex-row items-center gap-4">
+              <div
+                id="submit-application-action"
+                className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col sm:flex-row items-center gap-4">
                 <div className="flex-1 text-sm text-slate-400">
                   By submitting, you confirm all information provided is accurate.
                 </div>
+
                 <div className="flex gap-3 flex-shrink-0">
                   <button
                     type="button"
@@ -1479,6 +2506,7 @@ export default function JobApplicationPage() {
                     className="px-6 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 transition-all">
                     Cancel
                   </button>
+
                   <button
                     type="submit"
                     disabled={submitting}
@@ -1486,7 +2514,7 @@ export default function JobApplicationPage() {
                     {submitting ? (
                       <>
                         <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                        Submitting…
+                        Submitting...
                       </>
                     ) : (
                       <>

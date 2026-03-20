@@ -62,7 +62,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
     maxFileSize = Number.POSITIVE_INFINITY,
     maxFiles = 1,
     cacheControl = 3600,
-    upsert = false,
+    upsert = true,
   } = options;
 
   const [files, setFiles] = useState<FileWithPreview[]>([]);
@@ -100,7 +100,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
 
       setFiles(newFiles);
     },
-    [files, setFiles]
+    [files, setFiles],
   );
 
   const dropzoneProps = useDropzone({
@@ -142,7 +142,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
           } = supabase.storage.from(bucketName).getPublicUrl(data.path);
           return { name: publicUrl, message: undefined };
         }
-      })
+      }),
     );
 
     const responseErrors = responses.filter((x) => x.message !== undefined);
