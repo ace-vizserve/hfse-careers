@@ -434,7 +434,7 @@ body::-webkit-scrollbar {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
-                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
+                      className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
                       Apply Now
                       <ArrowUpRight className="size-4" />
                     </button>
@@ -581,7 +581,7 @@ body::-webkit-scrollbar {
                   <div className="border-t border-slate-100 pt-7 mt-7 flex items-center gap-3">
                     <button
                       onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
-                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
+                      className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
                       Apply Now
                       <ArrowUpRight className="size-4" />
                     </button>

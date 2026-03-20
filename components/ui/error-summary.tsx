@@ -24,7 +24,7 @@ export function ErrorSummary({ errors, onItemClick, title = "Please fix the foll
             <button
               type="button"
               onClick={() => onItemClick(item.path)}
-              className="text-left underline underline-offset-2 hover:text-rose-800">
+              className="cursor-pointer text-left underline underline-offset-2 hover:text-rose-800">
               {item.message}
             </button>
           </li>

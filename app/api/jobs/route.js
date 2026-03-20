@@ -8,7 +8,6 @@ export async function GET() {
   }
 
   try {
-    // Use the standard jobs endpoint instead of career-page
     const response = await fetch(
       "https://api.manatal.com/open/v3/jobs/?is_published=true&page_size=100&status=active",
       {
@@ -46,7 +45,9 @@ export async function GET() {
     });
 
     return Response.json({
-      results: jobs,
+      results: jobs.sort(function (a, b) {
+        return new Date(b.created_at) - new Date(a.created_at);
+      }),
       count: jobs.length,
     });
   } catch (error) {

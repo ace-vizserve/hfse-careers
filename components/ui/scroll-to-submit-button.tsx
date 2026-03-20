@@ -60,7 +60,7 @@ export function ScrollToSubmitButton({
         target?.scrollIntoView({ behavior: "smooth", block: "center" });
       }}
       className={cn(
-        "animate-bounce fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200",
+        "cursor-pointer animate-bounce fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-200",
         "transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-xl",
         "focus:outline-none focus:ring-2 focus:ring-blue-400/60",
         "disabled:pointer-events-none disabled:opacity-50",

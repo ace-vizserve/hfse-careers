@@ -2,6 +2,8 @@
 
 import { entity_list, industry_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
+import { ApplicationNote } from "@/components/ui/application-note";
+import { ConsentDeclarations } from "@/components/ui/consent-declarations";
 import { ErrorSummary, type ErrorSummaryItem } from "@/components/ui/error-summary";
 import { ScrollToSubmitButton } from "@/components/ui/scroll-to-submit-button";
 import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
@@ -234,6 +236,8 @@ export default function JobApplicationPage() {
     maxFileSize: 1000 * 1000 * 5,
   });
 
+  const [declareTruth, setDeclareTruth] = useState<boolean>(false);
+  const [declareConsent, setDeclareConsent] = useState<boolean>(false);
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [formFields, setFormFields] = useState<FormField[]>([]);
@@ -1391,6 +1395,9 @@ export default function JobApplicationPage() {
             </div>
           </div>
 
+          <ApplicationNote />
+          <br />
+
           {submitSuccess ? (
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center">
               <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-emerald-100">
@@ -2491,6 +2498,15 @@ export default function JobApplicationPage() {
                 </div>
               </div>
 
+              <ConsentDeclarations
+                declareConsent={declareConsent}
+                declareTruth={declareTruth}
+                setDeclareConsent={setDeclareConsent}
+                setDeclareTruth={setDeclareTruth}
+              />
+
+              <ApplicationNote />
+
               <div
                 id="submit-application-action"
                 className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col sm:flex-row items-center gap-4">
@@ -2509,8 +2525,8 @@ export default function JobApplicationPage() {
 
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm shadow-blue-200">
+                    disabled={submitting || !declareTruth || !declareConsent}
+                    className="cursor-pointer flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm shadow-blue-200">
                     {submitting ? (
                       <>
                         <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
