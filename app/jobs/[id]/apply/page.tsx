@@ -740,7 +740,13 @@ export default function JobApplicationPage() {
           <Controller
             control={control}
             name={key as any}
-            render={({ field }) => <IndustryCombobox id={inputId} {...field} />}
+            render={({ field }) => (
+              <IndustryCombobox
+                id={inputId}
+                value={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
+                onChange={field.onChange}
+              />
+            )}
           />
           <ErrorText path={key} />
         </>
