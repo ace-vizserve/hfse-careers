@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
+import { Toaster } from "sileo";
 import "./globals.css";
 
 // Load Roboto font
@@ -62,6 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${roboto.variable} antialiased`} style={{ fontFamily: "var(--font-roboto)" }}>
+        <Toaster position="top-right" theme="light" />
         {children}
       </body>
     </html>

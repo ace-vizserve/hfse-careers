@@ -1,5 +1,7 @@
 // app/api/applications/route.ts
 
+import { normalizeApplicationData } from "@/lib/utils";
+
 export async function POST(request: Request) {
   const MANATAL_API_KEY = process.env.MANATAL_API_KEY;
   const MANATAL_CLIENT_SLUG = process.env.MANATAL_CLIENT_SLUG;
@@ -118,7 +120,7 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ application_data: appData }),
+        body: JSON.stringify({ application_data: normalizeApplicationData(appData) }),
       },
     );
 

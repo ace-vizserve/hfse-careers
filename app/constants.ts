@@ -370,3 +370,1231 @@ export const entity_list = [
     updated_at: "2025-11-14T05:26:12.803190Z",
   },
 ];
+
+export const nationalities = [
+  {
+    id: 2,
+    common_name: "Afghanistan",
+    demonym: "Afghan",
+  },
+  {
+    id: 5,
+    common_name: "Åland Islands",
+    demonym: "Ålandish",
+  },
+  {
+    id: 6,
+    common_name: "Albania",
+    demonym: "Albanian",
+  },
+  {
+    id: 66,
+    common_name: "Algeria",
+    demonym: "Algerian",
+  },
+  {
+    id: 236,
+    common_name: "United States",
+    demonym: "American",
+  },
+  {
+    id: 234,
+    common_name: "United States Minor Outlying Islands",
+    demonym: "American Islander",
+  },
+  {
+    id: 11,
+    common_name: "American Samoa",
+    demonym: "American Samoan",
+  },
+  {
+    id: 7,
+    common_name: "Andorra",
+    demonym: "Andorran",
+  },
+  {
+    id: 3,
+    common_name: "Angola",
+    demonym: "Angolan",
+  },
+  {
+    id: 4,
+    common_name: "Anguilla",
+    demonym: "Anguillian",
+  },
+  {
+    id: 12,
+    common_name: "Antarctica",
+    demonym: "Antarctican",
+  },
+  {
+    id: 14,
+    common_name: "Antigua and Barbuda",
+    demonym: "Antiguan, Barbudan",
+  },
+  {
+    id: 9,
+    common_name: "Argentina",
+    demonym: "Argentine",
+  },
+  {
+    id: 10,
+    common_name: "Armenia",
+    demonym: "Armenian",
+  },
+  {
+    id: 1,
+    common_name: "Aruba",
+    demonym: "Aruban",
+  },
+  {
+    id: 15,
+    common_name: "Australia",
+    demonym: "Australian",
+  },
+  {
+    id: 16,
+    common_name: "Austria",
+    demonym: "Austrian",
+  },
+  {
+    id: 17,
+    common_name: "Azerbaijan",
+    demonym: "Azerbaijani",
+  },
+  {
+    id: 25,
+    common_name: "Bahamas",
+    demonym: "Bahamian",
+  },
+  {
+    id: 24,
+    common_name: "Bahrain",
+    demonym: "Bahraini",
+  },
+  {
+    id: 22,
+    common_name: "Bangladesh",
+    demonym: "Bangladeshi",
+  },
+  {
+    id: 35,
+    common_name: "Barbados",
+    demonym: "Barbadian",
+  },
+  {
+    id: 29,
+    common_name: "Belarus",
+    demonym: "Belarusian",
+  },
+  {
+    id: 19,
+    common_name: "Belgium",
+    demonym: "Belgian",
+  },
+  {
+    id: 30,
+    common_name: "Belize",
+    demonym: "Belizean",
+  },
+  {
+    id: 20,
+    common_name: "Benin",
+    demonym: "Beninese",
+  },
+  {
+    id: 31,
+    common_name: "Bermuda",
+    demonym: "Bermudian",
+  },
+  {
+    id: 37,
+    common_name: "Bhutan",
+    demonym: "Bhutanese",
+  },
+  {
+    id: 32,
+    common_name: "Bolivia",
+    demonym: "Bolivian",
+  },
+  {
+    id: 26,
+    common_name: "Bosnia and Herzegovina",
+    demonym: "Bosnian, Herzegovinian",
+  },
+  {
+    id: 34,
+    common_name: "Brazil",
+    demonym: "Brazilian",
+  },
+  {
+    id: 81,
+    common_name: "United Kingdom",
+    demonym: "British",
+  },
+  {
+    id: 36,
+    common_name: "Brunei",
+    demonym: "Bruneian",
+  },
+  {
+    id: 23,
+    common_name: "Bulgaria",
+    demonym: "Bulgarian",
+  },
+  {
+    id: 21,
+    common_name: "Burkina Faso",
+    demonym: "Burkinabe",
+  },
+  {
+    id: 150,
+    common_name: "Myanmar",
+    demonym: "Burmese",
+  },
+  {
+    id: 18,
+    common_name: "Burundi",
+    demonym: "Burundian",
+  },
+  {
+    id: 121,
+    common_name: "Cambodia",
+    demonym: "Cambodian",
+  },
+  {
+    id: 47,
+    common_name: "Cameroon",
+    demonym: "Cameroonian",
+  },
+  {
+    id: 41,
+    common_name: "Canada",
+    demonym: "Canadian",
+  },
+  {
+    id: 53,
+    common_name: "Cape Verde",
+    demonym: "Cape Verdian",
+  },
+  {
+    id: 58,
+    common_name: "Cayman Islands",
+    demonym: "Caymanian",
+  },
+  {
+    id: 40,
+    common_name: "Central African Republic",
+    demonym: "Central African",
+  },
+  {
+    id: 218,
+    common_name: "Chad",
+    demonym: "Chadian",
+  },
+  {
+    id: 44,
+    common_name: "Chile",
+    demonym: "Chilean",
+  },
+  {
+    id: 45,
+    common_name: "China",
+    demonym: "Chinese",
+  },
+  {
+    id: 57,
+    common_name: "Christmas Island",
+    demonym: "Christmas Islander",
+  },
+  {
+    id: 42,
+    common_name: "Cocos (Keeling) Islands",
+    demonym: "Cocos Islander",
+  },
+  {
+    id: 51,
+    common_name: "Colombia",
+    demonym: "Colombian",
+  },
+  {
+    id: 52,
+    common_name: "Comoros",
+    demonym: "Comoran",
+  },
+  {
+    id: 49,
+    common_name: "Republic of the Congo",
+    demonym: "Congolese",
+  },
+  {
+    id: 48,
+    common_name: "DR Congo",
+    demonym: "Congolese",
+  },
+  {
+    id: 50,
+    common_name: "Cook Islands",
+    demonym: "Cook Islander",
+  },
+  {
+    id: 54,
+    common_name: "Costa Rica",
+    demonym: "Costa Rican",
+  },
+  {
+    id: 101,
+    common_name: "Croatia",
+    demonym: "Croatian",
+  },
+  {
+    id: 55,
+    common_name: "Cuba",
+    demonym: "Cuban",
+  },
+  {
+    id: 56,
+    common_name: "Curaçao",
+    demonym: "Curaçaoan",
+  },
+  {
+    id: 59,
+    common_name: "Cyprus",
+    demonym: "Cypriot",
+  },
+  {
+    id: 60,
+    common_name: "Czechia",
+    demonym: "Czech",
+  },
+  {
+    id: 64,
+    common_name: "Denmark",
+    demonym: "Danish",
+  },
+  {
+    id: 62,
+    common_name: "Djibouti",
+    demonym: "Djibouti",
+  },
+  {
+    id: 63,
+    common_name: "Dominica",
+    demonym: "Dominican",
+  },
+  {
+    id: 65,
+    common_name: "Dominican Republic",
+    demonym: "Dominican",
+  },
+  {
+    id: 169,
+    common_name: "Netherlands",
+    demonym: "Dutch",
+  },
+  {
+    id: 224,
+    common_name: "Timor-Leste",
+    demonym: "East Timorese",
+  },
+  {
+    id: 67,
+    common_name: "Ecuador",
+    demonym: "Ecuadorean",
+  },
+  {
+    id: 68,
+    common_name: "Egypt",
+    demonym: "Egyptian",
+  },
+  {
+    id: 8,
+    common_name: "United Arab Emirates",
+    demonym: "Emirati",
+  },
+  {
+    id: 90,
+    common_name: "Equatorial Guinea",
+    demonym: "Equatorial Guinean",
+  },
+  {
+    id: 69,
+    common_name: "Eritrea",
+    demonym: "Eritrean",
+  },
+  {
+    id: 72,
+    common_name: "Estonia",
+    demonym: "Estonian",
+  },
+  {
+    id: 73,
+    common_name: "Ethiopia",
+    demonym: "Ethiopian",
+  },
+  {
+    id: 76,
+    common_name: "Falkland Islands",
+    demonym: "Falkland Islander",
+  },
+  {
+    id: 78,
+    common_name: "Faroe Islands",
+    demonym: "Faroese",
+  },
+  {
+    id: 75,
+    common_name: "Fiji",
+    demonym: "Fijian",
+  },
+  {
+    id: 179,
+    common_name: "Philippines",
+    demonym: "Filipino",
+  },
+  {
+    id: 74,
+    common_name: "Finland",
+    demonym: "Finnish",
+  },
+  {
+    id: 77,
+    common_name: "France",
+    demonym: "French",
+  },
+  {
+    id: 188,
+    common_name: "French Polynesia",
+    demonym: "French Polynesian",
+  },
+  {
+    id: 80,
+    common_name: "Gabon",
+    demonym: "Gabonese",
+  },
+  {
+    id: 88,
+    common_name: "Gambia",
+    demonym: "Gambian",
+  },
+  {
+    id: 82,
+    common_name: "Georgia",
+    demonym: "Georgian",
+  },
+  {
+    id: 61,
+    common_name: "Germany",
+    demonym: "German",
+  },
+  {
+    id: 84,
+    common_name: "Ghana",
+    demonym: "Ghanaian",
+  },
+  {
+    id: 85,
+    common_name: "Gibraltar",
+    demonym: "Gibraltar",
+  },
+  {
+    id: 91,
+    common_name: "Greece",
+    demonym: "Greek",
+  },
+  {
+    id: 93,
+    common_name: "Greenland",
+    demonym: "Greenlandic",
+  },
+  {
+    id: 92,
+    common_name: "Grenada",
+    demonym: "Grenadian",
+  },
+  {
+    id: 87,
+    common_name: "Guadeloupe",
+    demonym: "Guadeloupian",
+  },
+  {
+    id: 96,
+    common_name: "Guam",
+    demonym: "Guamanian",
+  },
+  {
+    id: 94,
+    common_name: "Guatemala",
+    demonym: "Guatemalan",
+  },
+  {
+    id: 83,
+    common_name: "Guernsey",
+    demonym: "Guernseymen",
+  },
+  {
+    id: 95,
+    common_name: "French Guiana",
+    demonym: "Guianan",
+  },
+  {
+    id: 89,
+    common_name: "Guinea-Bissau",
+    demonym: "Guinea-Bissauan",
+  },
+  {
+    id: 86,
+    common_name: "Guinea",
+    demonym: "Guinean",
+  },
+  {
+    id: 97,
+    common_name: "Guyana",
+    demonym: "Guyanese",
+  },
+  {
+    id: 102,
+    common_name: "Haiti",
+    demonym: "Haitian",
+  },
+  {
+    id: 99,
+    common_name: "Heard Island and McDonald Islands",
+    demonym: "Heard and McDonald Islander",
+  },
+  {
+    id: 100,
+    common_name: "Honduras",
+    demonym: "Honduran",
+  },
+  {
+    id: 98,
+    common_name: "Hong Kong",
+    demonym: "Hong Konger",
+  },
+  {
+    id: 103,
+    common_name: "Hungary",
+    demonym: "Hungarian",
+  },
+  {
+    id: 111,
+    common_name: "Iceland",
+    demonym: "Icelander",
+  },
+  {
+    id: 122,
+    common_name: "Kiribati",
+    demonym: "I-Kiribati",
+  },
+  {
+    id: 106,
+    common_name: "India",
+    demonym: "Indian",
+  },
+  {
+    id: 104,
+    common_name: "Indonesia",
+    demonym: "Indonesian",
+  },
+  {
+    id: 109,
+    common_name: "Iran",
+    demonym: "Iranian",
+  },
+  {
+    id: 110,
+    common_name: "Iraq",
+    demonym: "Iraqi",
+  },
+  {
+    id: 108,
+    common_name: "Ireland",
+    demonym: "Irish",
+  },
+  {
+    id: 112,
+    common_name: "Israel",
+    demonym: "Israeli",
+  },
+  {
+    id: 113,
+    common_name: "Italy",
+    demonym: "Italian",
+  },
+  {
+    id: 46,
+    common_name: "Ivory Coast",
+    demonym: "Ivorian",
+  },
+  {
+    id: 114,
+    common_name: "Jamaica",
+    demonym: "Jamaican",
+  },
+  {
+    id: 117,
+    common_name: "Japan",
+    demonym: "Japanese",
+  },
+  {
+    id: 115,
+    common_name: "Jersey",
+    demonym: "Jerseymen",
+  },
+  {
+    id: 116,
+    common_name: "Jordan",
+    demonym: "Jordanian",
+  },
+  {
+    id: 118,
+    common_name: "Kazakhstan",
+    demonym: "Kazakhstani",
+  },
+  {
+    id: 119,
+    common_name: "Kenya",
+    demonym: "Kenyan",
+  },
+  {
+    id: 120,
+    common_name: "Kyrgyzstan",
+    demonym: "Kirghiz",
+  },
+  {
+    id: 123,
+    common_name: "Saint Kitts and Nevis",
+    demonym: "Kittitian or Nevisian",
+  },
+  {
+    id: 125,
+    common_name: "Kosovo",
+    demonym: "Kosovar",
+  },
+  {
+    id: 126,
+    common_name: "Kuwait",
+    demonym: "Kuwaiti",
+  },
+  {
+    id: 127,
+    common_name: "Laos",
+    demonym: "Laotian",
+  },
+  {
+    id: 137,
+    common_name: "Latvia",
+    demonym: "Latvian",
+  },
+  {
+    id: 128,
+    common_name: "Lebanon",
+    demonym: "Lebanese",
+  },
+  {
+    id: 129,
+    common_name: "Liberia",
+    demonym: "Liberian",
+  },
+  {
+    id: 130,
+    common_name: "Libya",
+    demonym: "Libyan",
+  },
+  {
+    id: 132,
+    common_name: "Liechtenstein",
+    demonym: "Liechtensteiner",
+  },
+  {
+    id: 135,
+    common_name: "Lithuania",
+    demonym: "Lithuanian",
+  },
+  {
+    id: 136,
+    common_name: "Luxembourg",
+    demonym: "Luxembourger",
+  },
+  {
+    id: 138,
+    common_name: "Macau",
+    demonym: "Macanese",
+  },
+  {
+    id: 147,
+    common_name: "Macedonia",
+    demonym: "Macedonian",
+  },
+  {
+    id: 161,
+    common_name: "Mayotte",
+    demonym: "Mahoran",
+  },
+  {
+    id: 143,
+    common_name: "Madagascar",
+    demonym: "Malagasy",
+  },
+  {
+    id: 159,
+    common_name: "Malawi",
+    demonym: "Malawian",
+  },
+  {
+    id: 160,
+    common_name: "Malaysia",
+    demonym: "Malaysian",
+  },
+  {
+    id: 144,
+    common_name: "Maldives",
+    demonym: "Maldivan",
+  },
+  {
+    id: 148,
+    common_name: "Mali",
+    demonym: "Malian",
+  },
+  {
+    id: 149,
+    common_name: "Malta",
+    demonym: "Maltese",
+  },
+  {
+    id: 105,
+    common_name: "Isle of Man",
+    demonym: "Manx",
+  },
+  {
+    id: 153,
+    common_name: "Northern Mariana Islands",
+    demonym: "Mariana",
+  },
+  {
+    id: 146,
+    common_name: "Marshall Islands",
+    demonym: "Marshallese",
+  },
+  {
+    id: 157,
+    common_name: "Martinique",
+    demonym: "Martinican",
+  },
+  {
+    id: 155,
+    common_name: "Mauritania",
+    demonym: "Mauritanian",
+  },
+  {
+    id: 158,
+    common_name: "Mauritius",
+    demonym: "Mauritian",
+  },
+  {
+    id: 145,
+    common_name: "Mexico",
+    demonym: "Mexican",
+  },
+  {
+    id: 79,
+    common_name: "Micronesia",
+    demonym: "Micronesian",
+  },
+  {
+    id: 142,
+    common_name: "Moldova",
+    demonym: "Moldovan",
+  },
+  {
+    id: 141,
+    common_name: "Monaco",
+    demonym: "Monegasque",
+  },
+  {
+    id: 152,
+    common_name: "Mongolia",
+    demonym: "Mongolian",
+  },
+  {
+    id: 151,
+    common_name: "Montenegro",
+    demonym: "Montenegrin",
+  },
+  {
+    id: 156,
+    common_name: "Montserrat",
+    demonym: "Montserratian",
+  },
+  {
+    id: 140,
+    common_name: "Morocco",
+    demonym: "Moroccan",
+  },
+  {
+    id: 134,
+    common_name: "Lesotho",
+    demonym: "Mosotho",
+  },
+  {
+    id: 39,
+    common_name: "Botswana",
+    demonym: "Motswana",
+  },
+  {
+    id: 154,
+    common_name: "Mozambique",
+    demonym: "Mozambican",
+  },
+  {
+    id: 162,
+    common_name: "Namibia",
+    demonym: "Namibian",
+  },
+  {
+    id: 172,
+    common_name: "Nauru",
+    demonym: "Nauruan",
+  },
+  {
+    id: 171,
+    common_name: "Nepal",
+    demonym: "Nepalese",
+  },
+  {
+    id: 163,
+    common_name: "New Caledonia",
+    demonym: "New Caledonian",
+  },
+  {
+    id: 173,
+    common_name: "New Zealand",
+    demonym: "New Zealander",
+  },
+  {
+    id: 167,
+    common_name: "Nicaragua",
+    demonym: "Nicaraguan",
+  },
+  {
+    id: 166,
+    common_name: "Nigeria",
+    demonym: "Nigerian",
+  },
+  {
+    id: 164,
+    common_name: "Niger",
+    demonym: "Nigerien",
+  },
+  {
+    id: 168,
+    common_name: "Niue",
+    demonym: "Niuean",
+  },
+  {
+    id: 244,
+    common_name: "Vanuatu",
+    demonym: "Ni-Vanuatu",
+  },
+  {
+    id: 165,
+    common_name: "Norfolk Island",
+    demonym: "Norfolk Islander",
+  },
+  {
+    id: 184,
+    common_name: "North Korea",
+    demonym: "North Korean",
+  },
+  {
+    id: 170,
+    common_name: "Norway",
+    demonym: "Norwegian",
+  },
+  {
+    id: 174,
+    common_name: "Oman",
+    demonym: "Omani",
+  },
+  {
+    id: 175,
+    common_name: "Pakistan",
+    demonym: "Pakistani",
+  },
+  {
+    id: 180,
+    common_name: "Palau",
+    demonym: "Palauan",
+  },
+  {
+    id: 187,
+    common_name: "Palestine",
+    demonym: "Palestinian",
+  },
+  {
+    id: 176,
+    common_name: "Panama",
+    demonym: "Panamanian",
+  },
+  {
+    id: 181,
+    common_name: "Papua New Guinea",
+    demonym: "Papua New Guinean",
+  },
+  {
+    id: 186,
+    common_name: "Paraguay",
+    demonym: "Paraguayan",
+  },
+  {
+    id: 178,
+    common_name: "Peru",
+    demonym: "Peruvian",
+  },
+  {
+    id: 177,
+    common_name: "Pitcairn Islands",
+    demonym: "Pitcairn Islander",
+  },
+  {
+    id: 182,
+    common_name: "Poland",
+    demonym: "Polish",
+  },
+  {
+    id: 185,
+    common_name: "Portugal",
+    demonym: "Portuguese",
+  },
+  {
+    id: 183,
+    common_name: "Puerto Rico",
+    demonym: "Puerto Rican",
+  },
+  {
+    id: 189,
+    common_name: "Qatar",
+    demonym: "Qatari",
+  },
+  {
+    id: 190,
+    common_name: "Réunion",
+    demonym: "Réunionese",
+  },
+  {
+    id: 191,
+    common_name: "Romania",
+    demonym: "Romanian",
+  },
+  {
+    id: 192,
+    common_name: "Russia",
+    demonym: "Russian",
+  },
+  {
+    id: 193,
+    common_name: "Rwanda",
+    demonym: "Rwandan",
+  },
+  {
+    id: 70,
+    common_name: "Western Sahara",
+    demonym: "Sahrawi",
+  },
+  {
+    id: 27,
+    common_name: "Saint Barthélemy",
+    demonym: "Saint Barthélemy Islander",
+  },
+  {
+    id: 28,
+    common_name: "Saint Helena, Ascension and Tristan da Cunha",
+    demonym: "Saint Helenian",
+  },
+  {
+    id: 131,
+    common_name: "Saint Lucia",
+    demonym: "Saint Lucian",
+  },
+  {
+    id: 139,
+    common_name: "Saint Martin",
+    demonym: "Saint Martin Islander",
+  },
+  {
+    id: 205,
+    common_name: "Saint Pierre and Miquelon",
+    demonym: "Saint-Pierrais",
+  },
+  {
+    id: 239,
+    common_name: "Saint Vincent and the Grenadines",
+    demonym: "Saint Vincentian",
+  },
+  {
+    id: 202,
+    common_name: "El Salvador",
+    demonym: "Salvadoran",
+  },
+  {
+    id: 203,
+    common_name: "San Marino",
+    demonym: "Sammarinese",
+  },
+  {
+    id: 246,
+    common_name: "Samoa",
+    demonym: "Samoan",
+  },
+  {
+    id: 208,
+    common_name: "São Tomé and Príncipe",
+    demonym: "Sao Tomean",
+  },
+  {
+    id: 194,
+    common_name: "Saudi Arabia",
+    demonym: "Saudi Arabian",
+  },
+  {
+    id: 196,
+    common_name: "Senegal",
+    demonym: "Senegalese",
+  },
+  {
+    id: 206,
+    common_name: "Serbia",
+    demonym: "Serbian",
+  },
+  {
+    id: 215,
+    common_name: "Seychelles",
+    demonym: "Seychellois",
+  },
+  {
+    id: 201,
+    common_name: "Sierra Leone",
+    demonym: "Sierra Leonean",
+  },
+  {
+    id: 197,
+    common_name: "Singapore",
+    demonym: "Singaporean",
+  },
+  {
+    id: 210,
+    common_name: "Slovakia",
+    demonym: "Slovak",
+  },
+  {
+    id: 211,
+    common_name: "Slovenia",
+    demonym: "Slovene",
+  },
+  {
+    id: 200,
+    common_name: "Solomon Islands",
+    demonym: "Solomon Islander",
+  },
+  {
+    id: 204,
+    common_name: "Somalia",
+    demonym: "Somali",
+  },
+  {
+    id: 248,
+    common_name: "South Africa",
+    demonym: "South African",
+  },
+  {
+    id: 198,
+    common_name: "South Georgia",
+    demonym: "South Georgian South Sandwich Islander",
+  },
+  {
+    id: 124,
+    common_name: "South Korea",
+    demonym: "South Korean",
+  },
+  {
+    id: 207,
+    common_name: "South Sudan",
+    demonym: "South Sudanese",
+  },
+  {
+    id: 71,
+    common_name: "Spain",
+    demonym: "Spanish",
+  },
+  {
+    id: 133,
+    common_name: "Sri Lanka",
+    demonym: "Sri Lankan",
+  },
+  {
+    id: 214,
+    common_name: "Sint Maarten",
+    demonym: "St. Maartener",
+  },
+  {
+    id: 195,
+    common_name: "Sudan",
+    demonym: "Sudanese",
+  },
+  {
+    id: 209,
+    common_name: "Suriname",
+    demonym: "Surinamer",
+  },
+  {
+    id: 213,
+    common_name: "Eswatini",
+    demonym: "Swazi",
+  },
+  {
+    id: 212,
+    common_name: "Sweden",
+    demonym: "Swedish",
+  },
+  {
+    id: 43,
+    common_name: "Switzerland",
+    demonym: "Swiss",
+  },
+  {
+    id: 216,
+    common_name: "Syria",
+    demonym: "Syrian",
+  },
+  {
+    id: 221,
+    common_name: "Tajikistan",
+    demonym: "Tadzhik",
+  },
+  {
+    id: 230,
+    common_name: "Taiwan",
+    demonym: "Taiwanese",
+  },
+  {
+    id: 231,
+    common_name: "Tanzania",
+    demonym: "Tanzanian",
+  },
+  {
+    id: 220,
+    common_name: "Thailand",
+    demonym: "Thai",
+  },
+  {
+    id: 219,
+    common_name: "Togo",
+    demonym: "Togolese",
+  },
+  {
+    id: 222,
+    common_name: "Tokelau",
+    demonym: "Tokelauan",
+  },
+  {
+    id: 225,
+    common_name: "Tonga",
+    demonym: "Tongan",
+  },
+  {
+    id: 226,
+    common_name: "Trinidad and Tobago",
+    demonym: "Trinidadian",
+  },
+  {
+    id: 227,
+    common_name: "Tunisia",
+    demonym: "Tunisian",
+  },
+  {
+    id: 228,
+    common_name: "Turkey",
+    demonym: "Turkish",
+  },
+  {
+    id: 223,
+    common_name: "Turkmenistan",
+    demonym: "Turkmen",
+  },
+  {
+    id: 217,
+    common_name: "Turks and Caicos Islands",
+    demonym: "Turks and Caicos Islander",
+  },
+  {
+    id: 229,
+    common_name: "Tuvalu",
+    demonym: "Tuvaluan",
+  },
+  {
+    id: 232,
+    common_name: "Uganda",
+    demonym: "Ugandan",
+  },
+  {
+    id: 233,
+    common_name: "Ukraine",
+    demonym: "Ukrainian",
+  },
+  {
+    id: 235,
+    common_name: "Uruguay",
+    demonym: "Uruguayan",
+  },
+  {
+    id: 237,
+    common_name: "Uzbekistan",
+    demonym: "Uzbekistani",
+  },
+  {
+    id: 238,
+    common_name: "Vatican City",
+    demonym: "Vatican",
+  },
+  {
+    id: 240,
+    common_name: "Venezuela",
+    demonym: "Venezuelan",
+  },
+  {
+    id: 243,
+    common_name: "Vietnam",
+    demonym: "Vietnamese",
+  },
+  {
+    id: 242,
+    common_name: "United States Virgin Islands",
+    demonym: "Virgin Islander",
+  },
+  {
+    id: 241,
+    common_name: "British Virgin Islands",
+    demonym: "Virgin Islander",
+  },
+  {
+    id: 245,
+    common_name: "Wallis and Futuna",
+    demonym: "Wallis and Futuna Islander",
+  },
+  {
+    id: 247,
+    common_name: "Yemen",
+    demonym: "Yemeni",
+  },
+  {
+    id: 249,
+    common_name: "Zambia",
+    demonym: "Zambian",
+  },
+  {
+    id: 250,
+    common_name: "Zimbabwe",
+    demonym: "Zimbabwean",
+  },
+];
