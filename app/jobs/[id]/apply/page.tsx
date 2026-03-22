@@ -1,7 +1,8 @@
 "use client";
 
+import { IndustryCombobox } from "@/app/components/ui/industry-combo-box";
 import { NationalityCombobox } from "@/app/components/ui/nationality-combo-box";
-import { entity_list, industry_list } from "@/app/constants";
+import { entity_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { ApplicationNote } from "@/components/ui/application-note";
 import { ConsentDeclarations } from "@/components/ui/consent-declarations";
@@ -739,16 +740,7 @@ export default function JobApplicationPage() {
           <Controller
             control={control}
             name={key as any}
-            render={({ field }) => (
-              <select id={inputId} {...field} className={selectCls}>
-                <option value="">Select an industry</option>
-                {industry_list.map((ind) => (
-                  <option key={ind.id} value={ind.id}>
-                    {ind.name}
-                  </option>
-                ))}
-              </select>
-            )}
+            render={({ field }) => <IndustryCombobox id={inputId} {...field} />}
           />
           <ErrorText path={key} />
         </>
