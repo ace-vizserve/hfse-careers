@@ -107,7 +107,7 @@ export const jobApplicationSchema = z
 
     expected_salary_currency: salaryCurrencyEnum.default("SGD"),
 
-    linkedin: z.url().optional(),
+    linkedin: z.url().optional().or(z.literal("")),
 
     industries: requiredText("Work industry is required"),
     years_of_experience: z
