@@ -654,7 +654,7 @@ export default function JobApplicationPage() {
                 pattern="[0-9]*"
                 value={field.value}
                 onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (!/[0-9]/.test(e.key)) e.preventDefault();
                 }}
                 placeholder="e.g. 3500"
@@ -978,7 +978,7 @@ export default function JobApplicationPage() {
                     const v = e.target.value.toUpperCase();
                     if (/^[STFGM]?[0-9]{0,7}[A-Za-z]?$/i.test(v)) field.onChange(v);
                   }}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (!/[STFGM0-9A-Za-z]/i.test(e.key)) e.preventDefault();
                   }}
                   placeholder="e.g. S1234567A"
@@ -1013,7 +1013,7 @@ export default function JobApplicationPage() {
                   const numericValue = e.target.value.replace(/\D/g, "");
                   field.onChange(maxLength ? numericValue.slice(0, maxLength) : numericValue);
                 }}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (!/[0-9]/.test(e.key)) e.preventDefault();
                 }}
                 placeholder={
@@ -1071,7 +1071,7 @@ export default function JobApplicationPage() {
                 pattern="[0-9+\- ]*"
                 value={field.value}
                 onChange={field.onChange}
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (!/[0-9+\- ]/.test(e.key)) e.preventDefault();
                 }}
                 placeholder="+65 9123 4567"
@@ -1756,7 +1756,7 @@ export default function JobApplicationPage() {
                                 pattern="[0-9]*"
                                 value={field.value}
                                 onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                                onKeyPress={(e) => {
+                                onKeyDown={(e) => {
                                   if (!/[0-9]/.test(e.key)) e.preventDefault();
                                 }}
                                 className={inputBase}
