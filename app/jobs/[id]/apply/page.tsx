@@ -2478,7 +2478,7 @@ export default function JobApplicationPage() {
                     By submitting, you confirm all information provided is accurate.
                   </div>
 
-                  <div className="flex gap-3 flex-shrink-0">
+                  <div className="w-full md:w-max flex flex-col md:flex-row gap-3 flex-shrink-0">
                     <button
                       type="button"
                       onClick={() => router.back()}
@@ -2490,7 +2490,7 @@ export default function JobApplicationPage() {
                     <button
                       type="submit"
                       disabled={submitting || !declareTruth || !declareConsent}
-                      className="cursor-pointer flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm shadow-blue-200">
+                      className="cursor-pointer flex justify-center items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm shadow-blue-200">
                       {submitting ? (
                         <>
                           <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
