@@ -11,18 +11,37 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "HFSE Global Education Group Careers",
+  metadataBase: new URL("https://careers.hfse.edu.sg"),
+
+  title: "HFSE Careers | Education Jobs in Singapore",
   description:
-    "Apply for career opportunities at HFSE Global Education Group. Join a dynamic team in education and make a meaningful impact with Vizserve Workforce Solutions.",
+    "Explore career opportunities at HFSE Global Education Group. Apply online for teaching, school operations, and education support roles in Singapore.",
+
   keywords: [
     "HFSE careers",
     "HFSE Global Education Group jobs",
-    "education careers",
-    "teaching jobs",
-    "Vizserve recruitment",
-    "apply HFSE",
-    "school jobs Singapore",
+    "education jobs Singapore",
+    "teaching jobs Singapore",
+    "school careers Singapore",
+    "HFSE recruitment",
   ],
+
+  alternates: {
+    canonical: "/",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+
   icons: {
     icon: "/assets/geg-favicon.png",
     shortcut: "/assets/geg-favicon.png",
@@ -30,28 +49,29 @@ export const metadata: Metadata = {
   },
 
   openGraph: {
-    title: "HFSE Global Education Group Careers",
+    title: "HFSE Careers | Education Jobs in Singapore",
     description:
-      "Explore career opportunities at HFSE Global Education Group and become part of a passionate education team.",
-    siteName: "Vizserve Workforce Solutions",
+      "Apply for career opportunities at HFSE Global Education Group and join a growing education team in Singapore.",
+    url: "/",
+    siteName: "HFSE Global Education Group",
     locale: "en_US",
     type: "website",
-    url: "https://www.vizserve.com/hfse-careers",
     images: [
       {
-        url: "/assets/og-hfse-careers.jpg",
+        url: "/assets/career-opportunities.jpg",
         width: 1200,
         height: 630,
-        alt: "HFSE Global Education Group Careers",
+        alt: "HFSE Global Education Group careers",
       },
     ],
   },
+
   twitter: {
     card: "summary_large_image",
-    title: "HFSE Careers | Apply Now",
+    title: "HFSE Careers | Education Jobs in Singapore",
     description:
-      "Start your career with HFSE Global Education Group. Apply today and join a leading education institution.",
-    images: ["/assets/og-hfse-careers.jpg"],
+      "Explore HFSE career opportunities and apply online for education and school-based roles in Singapore.",
+    images: ["/assets/career-opportunities.jpg"],
   },
 };
 
