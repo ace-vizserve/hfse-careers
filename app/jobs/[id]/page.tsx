@@ -1,272 +1,380 @@
-"use client"
-import { useParams, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { ArrowLeft, MapPin, Briefcase, Building2, Clock, Calendar, Send, CheckCircle2, DollarSign } from 'lucide-react'
+import { ArrowLeft, Briefcase, Building2, CheckCircle2, Clock, MapPin, Send } from "lucide-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+type Params = {
+  params: Promise<{ id: string }>;
+};
 
 interface JobDetail {
-  id: number
-  position_name: string
-  location: string
-  employment_type: string
-  contract_details?: string
-  description: string
-  salary_min?: number
-  salary_max?: number
-  currency?: string
-  frequency?: string
-  company?: { name: string }
+  id: number;
+  position_name: string;
+  location: string;
+  employment_type: string;
+  contract_details?: string;
+  description: string;
+  salary_min?: number;
+  salary_max?: number;
+  currency?: string;
+  frequency?: string;
+  company?: { name: string };
+  date_posted?: string;
+  valid_through?: string;
+  updated_at?: string;
 }
 
-export default function JobDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const jobId = params.id as string
+const SITE_URL = "https://careers.hfse.edu.sg";
 
-  const [job, setJob] = useState<JobDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+async function getJob(id: string): Promise<JobDetail | null> {
+  const res = await fetch(`${SITE_URL}/api/jobs/${id}`, {
+    next: { revalidate: 300 },
+  });
 
-  const formatEmploymentType = (contractDetails?: string, employmentType?: string) => {
-    if (contractDetails) {
-      const formatted = contractDetails.replace(/_/g, "-");
-      return formatted
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join("-");
-    }
-    return employmentType || "Full-time";
-  };
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to load job");
 
-  const formatSalary = (min?: number, max?: number, currency?: string, frequency?: string) => {
-    if (!min && !max) return null;
-    const currencyCode = currency || "PHP";
-    const formatter = new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    const freqText = frequency === "hour" ? " / hour" : " / month";
-    if (min && max) {
-      return `${formatter.format(min)} - ${formatter.format(max)}${freqText}`;
-    }
-    return `${formatter.format(min || max!)}${freqText}`;
-  };
+  return res.json();
+}
 
-  // ADD THIS HELPER FUNCTION
-  const renderJobDescription = (description: string) => {
-    const text = description.replace(/<[^>]*>/g, "");
-    const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-    return sections.map((section, sectionIdx) => {
-      if (!section.trim()) return null;
-
-      if (section.startsWith('JOB QUALIFICATIONS:') || section.startsWith('JOB DETAILS:')) {
-        const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
-        const header = headerMatch ? headerMatch[0] : '';
-        const content = section.replace(header, '').trim();
-
-        const items = content
-          .split(/(?=[A-Z][a-z]{2,})/)
-          .map(item => item.trim())
-          .filter(item => {
-            const wordCount = item.split(/\s+/).length;
-            return wordCount >= 5;
-          });
-
-        return (
-          <div key={sectionIdx} className="mb-6">
-            <p className="font-bold mb-2">{header}</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              {items.map((item, idx) => (
-                <li key={idx} className="text-gray-700">{item}</li>
-              ))}
-            </ul>
-          </div>
-        );
-      }
-
-      return <p key={sectionIdx} className="text-gray-700 mb-2">{section}</p>;
-    });
-  };
-
-  useEffect(() => {
-    const fetchJob = async () => {
-      try {
-        setLoading(true)
-        const res = await fetch(`/api/jobs/${jobId}`)
-        if (!res.ok) throw new Error('Failed to load job')
-        const data = await res.json()
-        setJob(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Something went wrong')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (jobId) fetchJob()
-  }, [jobId])
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading job details...</p>
-        </div>
-      </div>
-    )
+function formatEmploymentType(contractDetails?: string, employmentType?: string) {
+  if (contractDetails) {
+    const formatted = contractDetails.replace(/_/g, "-");
+    return formatted
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join("-");
   }
 
-  if (error || !job) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-        <div className="text-center bg-white rounded-2xl shadow-lg p-12 max-w-md">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-600 text-3xl">⚠</span>
-          </div>
-          <p className="text-red-600 text-xl mb-6 font-semibold">{error || "Job not found"}</p>
-          <Link 
-            href="/Hero"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Jobs
-          </Link>
-        </div>
-      </div>
-    )
+  return employmentType || "Full-time";
+}
+
+function mapEmploymentType(value?: string) {
+  const raw = (value || "").toUpperCase();
+
+  if (raw.includes("FULL")) return "FULL_TIME";
+  if (raw.includes("PART")) return "PART_TIME";
+  if (raw.includes("CONTRACT")) return "CONTRACTOR";
+  if (raw.includes("TEMP")) return "TEMPORARY";
+  if (raw.includes("INTERN")) return "INTERN";
+
+  return "OTHER";
+}
+
+function salaryUnit(freq?: string) {
+  if (freq === "hour") return "HOUR";
+  if (freq === "day") return "DAY";
+  if (freq === "week") return "WEEK";
+  if (freq === "year") return "YEAR";
+  return "MONTH";
+}
+
+function formatSalary(min?: number, max?: number, currency?: string, frequency?: string) {
+  if (!min && !max) return null;
+
+  const currencyCode = currency || "SGD";
+  const formatter = new Intl.NumberFormat("en-SG", {
+    style: "currency",
+    currency: currencyCode,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const freqText =
+    frequency === "hour"
+      ? " / hour"
+      : frequency === "day"
+        ? " / day"
+        : frequency === "week"
+          ? " / week"
+          : frequency === "year"
+            ? " / year"
+            : " / month";
+
+  if (min && max) {
+    return `${formatter.format(min)} - ${formatter.format(max)}${freqText}`;
   }
+
+  return `${formatter.format(min || max!)}${freqText}`;
+}
+
+function renderJobDescription(description: string) {
+  const text = description.replace(/<[^>]*>/g, "");
+  const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
+
+  return sections.map((section, sectionIdx) => {
+    if (!section.trim()) return null;
+
+    if (section.startsWith("JOB QUALIFICATIONS:") || section.startsWith("JOB DETAILS:")) {
+      const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
+      const header = headerMatch ? headerMatch[0] : "";
+      const content = section.replace(header, "").trim();
+
+      const items = content
+        .split(/(?=[A-Z][a-z]{2,})/)
+        .map((item) => item.trim())
+        .filter((item) => item.split(/\s+/).length >= 5);
+
+      return (
+        <section key={sectionIdx} className="mb-6">
+          <h2 className="font-bold mb-2 text-gray-900">{header}</h2>
+          <ul className="list-disc list-inside space-y-1 ml-4">
+            {items.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    return (
+      <p key={sectionIdx} className="text-gray-700 mb-3 leading-7">
+        {section}
+      </p>
+    );
+  });
+}
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params;
+  const job = await getJob(id);
+
+  if (!job) {
+    return {
+      title: "Job Not Found | HFSE Careers",
+      description: "This job posting is no longer available.",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const title = `${job.position_name} | HFSE Careers`;
+  const description = stripHtml(job.description).slice(0, 155);
+  const canonicalPath = `/jobs/${job.id}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalPath,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalPath,
+      siteName: "HFSE Global Education Group",
+      locale: "en_US",
+      type: "website",
+      images: [
+        {
+          url: "/assets/career-opportunities.jpg",
+          width: 1200,
+          height: 630,
+          alt: `${job.position_name} - HFSE Careers`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/assets/career-opportunities.jpg"],
+    },
+  };
+}
+
+export default async function JobDetailPage({ params }: Params) {
+  const { id } = await params;
+  const job = await getJob(id);
+
+  if (!job) notFound();
+
+  const jobPostingJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.position_name,
+    description: job.description,
+    identifier: {
+      "@type": "PropertyValue",
+      name: job.company?.name || "HFSE Global Education Group",
+      value: String(job.id),
+    },
+    datePosted: job.date_posted || job.updated_at || new Date().toISOString().split("T")[0],
+    ...(job.valid_through ? { validThrough: job.valid_through } : {}),
+    employmentType: mapEmploymentType(job.contract_details || job.employment_type),
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company?.name || "HFSE Global Education Group",
+      sameAs: "https://hfse.edu.sg/",
+      logo: `${SITE_URL}/assets/geg-favicon.png`,
+    },
+    ...(job.location
+      ? {
+          jobLocation: {
+            "@type": "Place",
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: job.location,
+              addressCountry: "SG",
+            },
+          },
+        }
+      : {}),
+    ...(job.salary_min || job.salary_max
+      ? {
+          baseSalary: {
+            "@type": "MonetaryAmount",
+            currency: job.currency || "SGD",
+            value: {
+              "@type": "QuantitativeValue",
+              ...(job.salary_min ? { minValue: job.salary_min } : {}),
+              ...(job.salary_max ? { maxValue: job.salary_max } : {}),
+              unitText: salaryUnit(job.frequency),
+            },
+          },
+        }
+      : {}),
+    directApply: true,
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 py-16 md:py-20 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 right-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 left-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-        </div>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }} />
 
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <Link 
-            href="/Hero"
-            className="text-white/80 hover:text-white mb-8 inline-flex items-center gap-2 text-base font-medium transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to all jobs
-          </Link>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 py-16 md:py-20 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 right-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
+            <div className="absolute bottom-10 left-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+          </div>
 
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-8 leading-tight">
-            {job.position_name}
-          </h1>
+          <div className="max-w-6xl mx-auto px-6 relative z-10">
+            <Link
+              href="/Hero"
+              className="text-white/80 hover:text-white mb-8 inline-flex items-center gap-2 text-base font-medium transition-colors group">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Back to all jobs
+            </Link>
 
-          <div className="flex flex-wrap gap-4 md:gap-6">
-            {job.location && (
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-8 leading-tight">
+              {job.position_name}
+            </h1>
+
+            <div className="flex flex-wrap gap-4 md:gap-6">
+              {job.location && (
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
+                  <MapPin className="w-5 h-5" />
+                  <span className="font-medium">{job.location}</span>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-                <MapPin className="w-5 h-5" />
-                <span className="font-medium">{job.location}</span>
+                <Briefcase className="w-5 h-5" />
+                <span className="font-medium">{formatEmploymentType(job.contract_details, job.employment_type)}</span>
               </div>
-            )}
-            
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-              <Briefcase className="w-5 h-5" />
-              <span className="font-medium">{formatEmploymentType(job.contract_details, job.employment_type)}</span>
+
+              {job.company?.name && (
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
+                  <Building2 className="w-5 h-5" />
+                  <span className="font-medium">{job.company.name}</span>
+                </div>
+              )}
             </div>
-            
-            {formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency) && (
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-                <DollarSign className="w-5 h-5" />
-                <span className="font-medium">{formatSalary(job.salary_min, job.salary_max, job.currency, job.frequency)}</span>
-              </div>
-            )}
-            
-            {job.company?.name && (
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-                <Building2 className="w-5 h-5" />
-                <span className="font-medium">{job.company.name}</span>
-              </div>
-            )}
           </div>
         </div>
+
+        <main className="flex-1 py-12 md:py-16">
+          <div className="max-w-5xl mx-auto px-6">
+            <article className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10 mb-8">
+              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 text-indigo-700" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Job Description</h2>
+              </div>
+
+              <div className="text-gray-700">{renderJobDescription(job.description || "")}</div>
+            </article>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-6 h-6 text-indigo-700" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-gray-900 mb-1">Application Process</h2>
+                    <p className="text-gray-600 text-sm">
+                      We review applications on a rolling basis and will contact qualified candidates within 5-7
+                      business days.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="w-6 h-6 text-indigo-700" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-gray-900 mb-1">What to Expect</h2>
+                    <p className="text-gray-600 text-sm">
+                      Our hiring process includes an initial screening, technical interview, and final conversation with
+                      the team.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <section className="text-center bg-gradient-to-br from-indigo-700 to-indigo-900 rounded-2xl shadow-lg p-10 md:p-12 text-white relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
+              </div>
+
+              <div className="relative z-10">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Send className="w-8 h-8 text-white" />
+                </div>
+
+                <h2 className="text-2xl md:text-3xl font-bold mb-3">Ready to Apply?</h2>
+                <p className="text-white/90 mb-8 text-lg max-w-2xl mx-auto">
+                  Take the next step in your career. We&apos;re excited to learn more about you!
+                </p>
+
+                <Link
+                  href={`/jobs/${job.id}/apply`}
+                  className="inline-flex items-center gap-2 px-10 py-4 bg-white text-indigo-700 font-semibold text-lg rounded-xl hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl hover:scale-105">
+                  Apply for this position
+                  <ArrowLeft className="w-5 h-5 rotate-180" />
+                </Link>
+              </div>
+            </section>
+          </div>
+        </main>
       </div>
-
-      {/* Main Content */}
-      <main className="flex-1 py-12 md:py-16">
-        <div className="max-w-5xl mx-auto px-6">
-          {/* Job Description */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10 mb-8">
-            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-              <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-indigo-700" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Job Description</h2>
-            </div>
-            
-            {/* REPLACE dangerouslySetInnerHTML with renderJobDescription */}
-            <div className="text-gray-700">
-              {renderJobDescription(job.description || '')}
-            </div>
-          </div>
-
-          {/* Quick Info Cards */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-6 h-6 text-indigo-700" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Application Process</h3>
-                  <p className="text-gray-600 text-sm">We review applications on a rolling basis and will contact qualified candidates within 5-7 business days.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-6 h-6 text-indigo-700" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">What to Expect</h3>
-                  <p className="text-gray-600 text-sm">Our hiring process includes an initial screening, technical interview, and final conversation with the team.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Apply CTA */}
-          <div className="text-center bg-gradient-to-br from-indigo-700 to-indigo-900 rounded-2xl shadow-lg p-10 md:p-12 text-white relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
-            </div>
-            
-            <div className="relative z-10">
-              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Send className="w-8 h-8 text-white" />
-              </div>
-              
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">
-                Ready to Apply?
-              </h2>
-              <p className="text-white/90 mb-8 text-lg max-w-2xl mx-auto">
-                Take the next step in your career. We're excited to learn more about you!
-              </p>
-              
-              <Link
-                href={`/jobs/${jobId}/apply`}
-                className="inline-flex items-center gap-2 px-10 py-4 bg-white text-indigo-700 font-semibold text-lg rounded-xl hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-              >
-                Apply for this position
-                <ArrowLeft className="w-5 h-5 rotate-180" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-  )
+    </>
+  );
 }
