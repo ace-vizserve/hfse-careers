@@ -270,7 +270,7 @@ export default async function JobDetailPage({ params }: Params) {
 
           <div className="max-w-6xl mx-auto px-6 relative z-10">
             <Link
-              href="/Hero"
+              href="/"
               className="text-white/80 hover:text-white mb-8 inline-flex items-center gap-2 text-base font-medium transition-colors group">
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               Back to all jobs
