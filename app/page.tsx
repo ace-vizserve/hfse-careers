@@ -215,28 +215,30 @@ body::-webkit-scrollbar {
         .job-card-active { box-shadow: 0 0 0 2px #7c3aed; }
       `}</style>
 
-      <div className="bg-slate-50 min-h-screen">
+      <div className="bg-slate-50 h-screen overflow-hidden">
         {/* Top accent bar */}
         <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gradient-to-r from-blue-500 via-blue-500 to-blue-500" />
 
         <Navbar onSearch={handleSearch} onFilterChange={handleFilterChange} />
 
         {/* Main layout */}
-        <div className="max-w-[1800px] mx-auto md:flex  p-5 sm:p-7 space-y-5 space-x-5">
+        <div
+          className="max-w-[1800px] mx-auto md:flex p-5 sm:p-7 space-x-5"
+          style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
           {/* ── Job List Panel ─────────────────────────────────────────────── */}
           <div
-            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[42%] bg-white border-r border-slate-100 md:overflow-y-auto scrollbar-hide rounded-2xl`}>
+            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[42%] bg-white border-r border-slate-100 rounded-2xl overflow-hidden pb-0.5 mb-8`}>
             {/* Panel header */}
             <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
               {!loading && !error && (
                 <div className="flex items-center justify-between">
                   {/* Results Count */}
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <p className="text-base font-bold text-slate-900">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    <p className="text-lg font-semibold text-slate-900">
                       {filteredJobs.length}
                       <span className="ml-1 font-medium text-slate-500">
-                        {filteredJobs.length === 1 ? "position" : "openings"} found
+                        {filteredJobs.length === 1 ? "role available" : "roles available"}
                       </span>
                     </p>
                   </div>
@@ -337,7 +339,7 @@ body::-webkit-scrollbar {
                             target="_blank"
                             href={job.org_website}
                             onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline mt-0.5 inline-block truncate max-w-full">
+                            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline mt-0.5 inline-block truncate max-w-full">
                             {job.org_name}
                           </a>
                         )}
@@ -365,250 +367,258 @@ body::-webkit-scrollbar {
 
           {/* ── Job Detail Panel ────────────────────────────────────────────── */}
           <div
-            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 bg-slate-50 md:overflow-y-auto scrollbar-hide`}>
-            {selectedJob ? (
-              <div className="space-y-6">
-                {/* Mobile back button */}
-                <button
-                  onClick={handleBack}
-                  className="flex md:hidden items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors py-2 px-3 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 -mx-1 mb-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back to listings
-                </button>
+            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 bg-slate-50 overflow-hidden pb-0.5 mb-7`}>
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+              <div className="space-y-6 p-1">
+                {selectedJob ? (
+                  <div className="space-y-6">
+                    {/* Mobile back button */}
+                    <button
+                      onClick={handleBack}
+                      className="flex md:hidden items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors py-2 px-3 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 -mx-1 mb-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back to listings
+                    </button>
 
-                {/* ── Hero card ─── */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8">
-                  <div className="flex items-start gap-5 mb-6">
-                    {selectedJob.org_logo ? (
-                      <div className="flex-shrink-0 w-16 h-16 rounded-2xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm">
-                        <Image
-                          src={selectedJob.org_logo}
-                          alt={selectedJob.org_name}
-                          width={52}
-                          height={52}
-                          className="object-contain"
+                    {/* ── Hero card ─── */}
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8">
+                      <div className="flex items-start gap-5 mb-6">
+                        {selectedJob.org_logo ? (
+                          <div className="flex-shrink-0 w-16 h-16 rounded-2xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm">
+                            <Image
+                              src={selectedJob.org_logo}
+                              alt={selectedJob.org_name}
+                              width={52}
+                              height={52}
+                              className="object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex-shrink-0 w-16 h-16 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-center">
+                            <Briefcase className="w-7 h-7 text-slate-300" />
+                          </div>
+                        )}
+
+                        <div className="flex-1 min-w-0">
+                          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight tracking-tight mb-1">
+                            {selectedJob.position_name || selectedJob.title}
+                          </h1>
+                          {selectedJob.org_name && (
+                            <a
+                              target="_blank"
+                              href={selectedJob.org_website}
+                              className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                              {selectedJob.org_name}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Meta badges */}
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        <LocationBadge label={formatLocation(selectedJob)} />
+                        <TypeBadge
+                          label={formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
+                        />
+                        {selectedJob.is_remote && <RemoteBadge />}
+                        {selectedJob.urgently_hiring && <UrgentBadge />}
+                      </div>
+
+                      {/* Urgency note */}
+                      {selectedJob.urgently_hiring && (
+                        <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-5 text-xs text-blue-700 leading-relaxed">
+                          <Zap className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500" />
+                          Responded to 75%+ of applications in the past 30 days, typically within 1 day.
+                        </div>
+                      )}
+
+                      {/* CTA row */}
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
+                          className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
+                          Apply Now
+                          <ArrowUpRight className="size-4" />
+                        </button>
+
+                        <button
+                          onClick={handleShare}
+                          className="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-500 hover:text-slate-700"
+                          aria-label="Share">
+                          <Share2 className="w-4 h-4" />
+                        </button>
+
+                        <PopupModal
+                          open={shareModalOpen}
+                          onClose={() => setShareModalOpen(false)}
+                          title="Link copied"
+                          message="The job link has been copied to your clipboard."
                         />
                       </div>
-                    ) : (
-                      <div className="flex-shrink-0 w-16 h-16 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-center">
-                        <Briefcase className="w-7 h-7 text-slate-300" />
+                    </div>
+
+                    {/* ── Profile Insights card ─── */}
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7">
+                      <div className="flex items-center gap-3 mb-1">
+                        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+                          <BookOpen className="w-4 h-4 text-white" />
+                        </div>
+                        <h2 className="text-base font-semibold text-slate-800">Profile Insights</h2>
                       </div>
-                    )}
+                      <p className="text-xs text-slate-400 mb-5 ml-11">
+                        How the job qualifications align with your profile
+                      </p>
 
-                    <div className="flex-1 min-w-0">
-                      <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight tracking-tight mb-1">
-                        {selectedJob.position_name || selectedJob.title}
-                      </h1>
-                      {selectedJob.org_name && (
-                        <a
-                          target="_blank"
-                          href={selectedJob.org_website}
-                          className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline">
-                          {selectedJob.org_name}
-                        </a>
-                      )}
+                      <div className="ml-11 space-y-3">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            Education
+                          </p>
+                          <TypeBadge label="Bachelor's" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Meta badges */}
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    <LocationBadge label={formatLocation(selectedJob)} />
-                    <TypeBadge
-                      label={formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
-                    />
-                    {selectedJob.is_remote && <RemoteBadge />}
-                    {selectedJob.urgently_hiring && <UrgentBadge />}
-                  </div>
+                    {/* ── Job Details card ─── */}
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+                          <Briefcase className="w-4 h-4 text-white" />
+                        </div>
+                        <h2 className="text-base font-semibold text-slate-800">Job Details</h2>
+                      </div>
 
-                  {/* Urgency note */}
-                  {selectedJob.urgently_hiring && (
-                    <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-5 text-xs text-blue-700 leading-relaxed">
-                      <Zap className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500" />
-                      Responded to 75%+ of applications in the past 30 days, typically within 1 day.
-                    </div>
-                  )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Job Type</p>
+                          <TypeBadge
+                            label={formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
+                          />
+                        </div>
+                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Location</p>
+                          <LocationBadge label={formatLocation(selectedJob)} />
+                        </div>
+                      </div>
 
-                  {/* CTA row */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
-                      className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
-                      Apply Now
-                      <ArrowUpRight className="size-4" />
-                    </button>
-
-                    <button
-                      onClick={handleShare}
-                      className="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-500 hover:text-slate-700"
-                      aria-label="Share">
-                      <Share2 className="w-4 h-4" />
-                    </button>
-
-                    <PopupModal
-                      open={shareModalOpen}
-                      onClose={() => setShareModalOpen(false)}
-                      title="Link copied"
-                      message="The job link has been copied to your clipboard."
-                    />
-                  </div>
-                </div>
-
-                {/* ── Profile Insights card ─── */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7">
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
-                      <BookOpen className="w-4 h-4 text-white" />
-                    </div>
-                    <h2 className="text-base font-semibold text-slate-800">Profile Insights</h2>
-                  </div>
-                  <p className="text-xs text-slate-400 mb-5 ml-11">
-                    How the job qualifications align with your profile
-                  </p>
-
-                  <div className="ml-11 space-y-3">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Education</p>
-                      <TypeBadge label="Bachelor's" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* ── Job Details card ─── */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
-                      <Briefcase className="w-4 h-4 text-white" />
-                    </div>
-                    <h2 className="text-base font-semibold text-slate-800">Job Details</h2>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Job Type</p>
-                      <TypeBadge
-                        label={formatEmploymentType(selectedJob.contract_details, selectedJob.employment_type)}
-                      />
-                    </div>
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Location</p>
-                      <LocationBadge label={formatLocation(selectedJob)} />
-                    </div>
-                  </div>
-
-                  {/* Full description */}
-                  <div className="border-t border-slate-100 pt-7">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-                      Full Description
-                    </p>
-                    <div className="text-slate-700 text-sm leading-relaxed space-y-4">
-                      {selectedJob.description ? (
-                        (() => {
-                          const text = selectedJob.description.replace(/<[^>]*>/g, "");
-                          const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
-                          return sections.map((section, sectionIdx) => {
-                            if (!section.trim()) return null;
-                            if (section.startsWith("JOB QUALIFICATIONS:") || section.startsWith("JOB DETAILS:")) {
-                              const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
-                              const header = headerMatch ? headerMatch[0] : "";
-                              const content = section.replace(header, "").trim();
-                              const items = content
-                                .split(/(?=[A-Z][a-z]{2,})/)
-                                .map((item) => item.trim())
-                                .filter((item) => item.split(/\s+/).length >= 5);
-                              return (
-                                <div key={sectionIdx}>
-                                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                                    {header.replace(":", "")}
+                      {/* Full description */}
+                      <div className="border-t border-slate-100 pt-7">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                          Full Description
+                        </p>
+                        <div className="text-slate-700 text-sm leading-relaxed space-y-4">
+                          {selectedJob.description ? (
+                            (() => {
+                              const text = selectedJob.description.replace(/<[^>]*>/g, "");
+                              const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
+                              return sections.map((section, sectionIdx) => {
+                                if (!section.trim()) return null;
+                                if (section.startsWith("JOB QUALIFICATIONS:") || section.startsWith("JOB DETAILS:")) {
+                                  const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
+                                  const header = headerMatch ? headerMatch[0] : "";
+                                  const content = section.replace(header, "").trim();
+                                  const items = content
+                                    .split(/(?=[A-Z][a-z]{2,})/)
+                                    .map((item) => item.trim())
+                                    .filter((item) => item.split(/\s+/).length >= 5);
+                                  return (
+                                    <div key={sectionIdx}>
+                                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                        {header.replace(":", "")}
+                                      </p>
+                                      <ul className="space-y-2">
+                                        {items.map((item, idx) => (
+                                          <li key={idx} className="flex items-start gap-2.5 text-slate-600">
+                                            <span className="flex-shrink-0 w-1 h-1 rounded-full bg-blue-400 mt-2" />
+                                            {item}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <p key={sectionIdx} className="text-slate-600">
+                                    {section}
                                   </p>
-                                  <ul className="space-y-2">
-                                    {items.map((item, idx) => (
-                                      <li key={idx} className="flex items-start gap-2.5 text-slate-600">
-                                        <span className="flex-shrink-0 w-1 h-1 rounded-full bg-blue-400 mt-2" />
-                                        {item}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              );
-                            }
-                            return (
-                              <p key={sectionIdx} className="text-slate-600">
-                                {section}
-                              </p>
-                            );
-                          });
-                        })()
-                      ) : (
-                        <p className="text-slate-400 italic text-sm">No description available.</p>
+                                );
+                              });
+                            })()
+                          ) : (
+                            <p className="text-slate-400 italic text-sm">No description available.</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Requirements */}
+                      {selectedJob.requirements && selectedJob.requirements.length > 0 && (
+                        <div className="border-t border-slate-100 pt-7 mt-7">
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                            Requirements
+                          </p>
+                          <ul className="space-y-2.5">
+                            {selectedJob.requirements.map((req, idx) => (
+                              <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600">
+                                <span className="flex-shrink-0 w-1 h-1 rounded-full bg-blue-400 mt-2" />
+                                {req}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
-                    </div>
-                  </div>
 
-                  {/* Requirements */}
-                  {selectedJob.requirements && selectedJob.requirements.length > 0 && (
-                    <div className="border-t border-slate-100 pt-7 mt-7">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Requirements</p>
-                      <ul className="space-y-2.5">
-                        {selectedJob.requirements.map((req, idx) => (
-                          <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600">
-                            <span className="flex-shrink-0 w-1 h-1 rounded-full bg-blue-400 mt-2" />
-                            {req}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                      {/* Benefits */}
+                      {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+                        <div className="border-t border-slate-100 pt-7 mt-7">
+                          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Benefits</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedJob.benefits.map((benefit, idx) => (
+                              <span
+                                key={idx}
+                                className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-xs font-medium">
+                                {benefit}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Benefits */}
-                  {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                    <div className="border-t border-slate-100 pt-7 mt-7">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Benefits</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedJob.benefits.map((benefit, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-xs font-medium">
-                            {benefit}
-                          </span>
-                        ))}
+                      {/* Bottom apply CTA */}
+                      <div className="border-t border-slate-100 pt-7 mt-7 flex items-center gap-3">
+                        <button
+                          onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
+                          className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
+                          Apply Now
+                          <ArrowUpRight className="size-4" />
+                        </button>
                       </div>
                     </div>
-                  )}
-
-                  {/* Bottom apply CTA */}
-                  <div className="border-t border-slate-100 pt-7 mt-7 flex items-center gap-3">
-                    <button
-                      onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
-                      className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
-                      Apply Now
-                      <ArrowUpRight className="size-4" />
-                    </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
+                    <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center">
+                      <Briefcase className="w-7 h-7 text-slate-300" />
+                    </div>
+                    <div>
+                      <p className="text-slate-600 font-semibold text-sm mb-1">
+                        {filteredJobs.length === 0 &&
+                        (searchQuery || filters.location || filters.employmentType || filters.isRemote !== null)
+                          ? "No jobs match your search"
+                          : "Select a position"}
+                      </p>
+                      <p className="text-slate-400 text-xs">
+                        {filteredJobs.length === 0 &&
+                        (searchQuery || filters.location || filters.employmentType || filters.isRemote !== null)
+                          ? "Try adjusting your filters"
+                          : "Choose a listing on the left to see details"}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
-                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center">
-                  <Briefcase className="w-7 h-7 text-slate-300" />
-                </div>
-                <div>
-                  <p className="text-slate-600 font-semibold text-sm mb-1">
-                    {filteredJobs.length === 0 &&
-                    (searchQuery || filters.location || filters.employmentType || filters.isRemote !== null)
-                      ? "No jobs match your search"
-                      : "Select a position"}
-                  </p>
-                  <p className="text-slate-400 text-xs">
-                    {filteredJobs.length === 0 &&
-                    (searchQuery || filters.location || filters.employmentType || filters.isRemote !== null)
-                      ? "Try adjusting your filters"
-                      : "Choose a listing on the left to see details"}
-                  </p>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
