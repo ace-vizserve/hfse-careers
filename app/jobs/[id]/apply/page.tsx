@@ -21,8 +21,9 @@ import {
 } from "@/lib/utils";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ShieldCheck } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, FieldErrors, useFieldArray, useForm } from "react-hook-form";
@@ -487,7 +488,7 @@ export default function JobApplicationPage() {
   const ErrorText = ({ path }: { path: string }) => {
     const fieldError = getNestedError(path);
     if (!fieldError?.message) return null;
-    return <p className="mt-1.5 text-xs text-rose-500">{String(fieldError.message)}</p>;
+    return <p className="mt-1.5 text-xs text-rose-500 font-medium">{String(fieldError.message)}</p>;
   };
 
   const SectionHeader = ({ number, title, subtitle }: { number: string; title: string; subtitle?: string }) => (
@@ -1307,7 +1308,7 @@ export default function JobApplicationPage() {
                   {job?.org_website && (
                     <>
                       <span className="hidden sm:block text-slate-300">|</span>
-                      <a
+                      <Link
                         href={job.org_website}
                         target="_blank"
                         className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
@@ -1320,7 +1321,7 @@ export default function JobApplicationPage() {
                           strokeWidth="2.5">
                           <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-                      </a>
+                      </Link>
                     </>
                   )}
 
@@ -1333,14 +1334,14 @@ export default function JobApplicationPage() {
               </div>
 
               <div className="shrink-0">
-                <button
-                  onClick={() => router.push("/")}
+                <Link
+                  href={"/"}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 shadow-sm">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                   Back to listings
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -2328,55 +2329,7 @@ export default function JobApplicationPage() {
                             <ErrorText path={`references.${i}.years_known`} />
                           </div>
 
-                          <div>
-                            <Label required>Is this a work-related reference?</Label>
-                            <div
-                              id={pathToFieldId(`references.${i}.is_work_related`)}
-                              tabIndex={-1}
-                              className="flex gap-3 pt-1">
-                              {[
-                                { value: "Yes", label: "Yes" },
-                                { value: "No", label: "No" },
-                              ].map(({ value, label }) => {
-                                const current = watch(`references.${i}.is_work_related`);
-                                const isSelected = String(current) === value;
-
-                                return (
-                                  <label
-                                    key={value}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all select-none ${
-                                      isSelected
-                                        ? value === "Yes"
-                                          ? "border-emerald-400 bg-emerald-50 text-emerald-700"
-                                          : "border-slate-400 bg-slate-100 text-slate-700"
-                                        : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
-                                    }`}>
-                                    <input
-                                      type="radio"
-                                      value={value}
-                                      {...register(`references.${i}.is_work_related`, {
-                                        setValueAs: (v) => v,
-                                      })}
-                                      className="sr-only"
-                                    />
-                                    {isSelected && (
-                                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
-                                        <path
-                                          fillRule="evenodd"
-                                          clipRule="evenodd"
-                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                        />
-                                      </svg>
-                                    )}
-                                    {label}
-                                  </label>
-                                );
-                              })}
-                            </div>
-                            <ErrorText path={`references.${i}.is_work_related`} />
-                          </div>
-
-                          <div>
+                          <div className="mt-4 col-span-2">
                             <Label required>
                               Do you agree to send this reference the appropriate verification form based on your answer
                               above?
@@ -2473,24 +2426,36 @@ export default function JobApplicationPage() {
 
                 <div
                   id="submit-application-action"
-                  className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 flex flex-col sm:flex-row items-center gap-4">
-                  <div className="flex-1 text-sm text-slate-400">
-                    By submitting, you confirm all information provided is accurate.
+                  className="relative bg-white border border-slate-200 rounded-2xl shadow-sm p-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Left: Trust + Info */}
+                  <div className="flex items-start gap-3 text-sm text-slate-500">
+                    <div className="mt-0.5 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    </div>
+
+                    <div className="leading-relaxed max-w-xl">
+                      <p className="text-slate-500 text-balance">
+                        By submitting, you confirm that all information provided is{" "}
+                        <span className="font-medium text-slate-700">accurate</span> and complete. You won’t be able to
+                        edit this after submission.
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="w-full md:w-max flex flex-col md:flex-row gap-3 flex-shrink-0">
+                  {/* Right: Actions */}
+                  <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
                     <button
                       type="button"
                       onClick={() => router.back()}
                       disabled={submitting}
-                      className="px-6 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 transition-all">
+                      className="cursor-pointer px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 transition-all">
                       Cancel
                     </button>
 
                     <button
                       type="submit"
                       disabled={submitting || !declareTruth || !declareConsent}
-                      className="cursor-pointer flex justify-center items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm shadow-blue-200">
+                      className="cursor-pointer flex justify-center items-center gap-2 px-7 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-md shadow-blue-200 active:scale-[0.98]">
                       {submitting ? (
                         <>
                           <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -2504,6 +2469,9 @@ export default function JobApplicationPage() {
                       )}
                     </button>
                   </div>
+
+                  {/* Optional subtle divider accent */}
+                  <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
                 </div>
               </form>
             </>

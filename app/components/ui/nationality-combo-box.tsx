@@ -33,7 +33,6 @@ export const NationalityCombobox = ({
   const listRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Derive the display label from the current value
   const selectedOption = nationalities.find((n) => n.demonym === value);
   const displayValue = selectedOption ? `${selectedOption.demonym} (${selectedOption.common_name})` : value;
 
@@ -45,19 +44,16 @@ export const NationalityCombobox = ({
           return n.demonym.toLowerCase().includes(q) || n.common_name.toLowerCase().includes(q);
         });
 
-  // Reset highlighted when filtered list changes
   useEffect(() => {
     setHighlighted(0);
   }, [query]);
 
-  // Scroll highlighted item into view
   useEffect(() => {
     if (!open || !listRef.current) return;
     const item = listRef.current.children[highlighted] as HTMLElement | undefined;
     item?.scrollIntoView({ block: "nearest" });
   }, [highlighted, open]);
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -117,7 +113,6 @@ export const NationalityCombobox = ({
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Input */}
       <div className="relative">
         <input
           ref={inputRef}
@@ -136,7 +131,6 @@ export const NationalityCombobox = ({
           className={`${inputBase} pr-10`}
         />
 
-        {/* Right icon — clear or chevron */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {value && (
             <button
@@ -164,7 +158,6 @@ export const NationalityCombobox = ({
         </div>
       </div>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute z-30 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
           {/* Search hint */}
@@ -183,7 +176,6 @@ export const NationalityCombobox = ({
             </div>
           )}
 
-          {/* Results */}
           <ul ref={listRef} className="max-h-60 overflow-y-auto py-1">
             {filtered.length > 0 ? (
               filtered.map((option, i) => {
@@ -194,7 +186,7 @@ export const NationalityCombobox = ({
                   <li
                     key={option.id}
                     onMouseDown={(e) => {
-                      e.preventDefault(); // prevent blur before click
+                      e.preventDefault();
                       handleSelect(option);
                     }}
                     onMouseEnter={() => setHighlighted(i)}
@@ -202,7 +194,6 @@ export const NationalityCombobox = ({
                       isHighlighted ? "bg-blue-50" : ""
                     } ${isSelected ? "text-blue-700 font-semibold" : "text-slate-700"}`}>
                     <span>
-                      {/* Highlight matching chars */}
                       {query.trim() !== ""
                         ? (() => {
                             const q = query.toLowerCase();
@@ -245,7 +236,6 @@ export const NationalityCombobox = ({
             )}
           </ul>
 
-          {/* Footer count */}
           {query.trim() !== "" && filtered.length > 0 && (
             <div className="px-4 py-2 border-t border-slate-100">
               <p className="text-[10px] text-slate-400">

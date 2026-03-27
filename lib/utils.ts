@@ -150,7 +150,7 @@ export function formatReferencesToHTML(refs: Reference[]): string {
   return `<ol>${refs
     .map(
       (ref) =>
-        `<li><ul><li>Name : ${ref.name}</li><li>Email : ${ref.email}</li><li>Contact Number : ${ref.contact_no}</li><li>Occupation & Company : ${ref.company_occupation}</li><li>Relationship to Applicant : ${ref.relationship}</li><li>Years Known : ${ref.years_known}</li><li>Work-related Reference : ${ref.is_work_related}</li><li>Reference Consent : ${ref.consent_to_contact}</li></ul></li>`,
+        `<li><ul><li>Name : ${ref.name}</li><li>Email : ${ref.email}</li><li>Contact Number : ${ref.contact_no}</li><li>Occupation & Company : ${ref.company_occupation}</li><li>Relationship to Applicant : ${ref.relationship}</li><li>Years Known : ${ref.years_known}</li><li>Work-related Reference : No</li><li>Reference Consent : ${ref.consent_to_contact}</li></ul></li>`,
     )
     .join("")}</ol>`;
 }
