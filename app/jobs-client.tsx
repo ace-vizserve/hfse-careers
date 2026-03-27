@@ -174,13 +174,16 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
         * { font-family: 'DM Sans', sans-serif; }
+        body{
+          background-color: #F8FAFC;
+        }
         html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .job-card-active { box-shadow: 0 0 0 2px #7c3aed; }
       `}</style>
 
-      <div className="bg-slate-50 h-screen overflow-hidden">
+      <div className="min-h-dvh">
         <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gradient-to-r from-blue-500 via-blue-500 to-blue-500" />
 
         <Navbar onSearch={setSearchQuery} onFilterChange={setFilters} />
