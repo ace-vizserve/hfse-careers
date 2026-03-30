@@ -118,7 +118,7 @@ const buildDefaultValues = (): FormValues => ({
   expected_salary: "",
   expected_salary_currency: "SGD",
   linkedin: "",
-  industries: "",
+  industries: [],
   years_of_experience: "",
   resume: "",
 
