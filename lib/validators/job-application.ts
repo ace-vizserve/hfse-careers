@@ -109,7 +109,7 @@ export const jobApplicationSchema = z
 
     linkedin: z.url().optional().or(z.literal("")),
 
-    industries: requiredText("Work industry is required"),
+    industries: z.array(z.string()).nonempty("Work industry is required"),
     years_of_experience: z
       .string()
       .trim()
