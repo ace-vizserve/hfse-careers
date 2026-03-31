@@ -238,7 +238,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             alt={job.org_name}
                             width={40}
                             height={40}
-                            className="object-contain"
+                            className="object-cover"
                           />
                         </div>
                       ) : (
@@ -309,7 +309,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                               alt={selectedJob.org_name}
                               width={52}
                               height={52}
-                              className="object-contain"
+                              className="object-cover"
                             />
                           </div>
                         ) : (

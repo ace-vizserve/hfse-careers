@@ -242,7 +242,7 @@ export default function JobsWidget() {
                           alt={job.org_name || "Company Logo"}
                           width={64}
                           height={64}
-                          className="object-contain"
+                          className="object-cover"
                         />
                       ) : (
                         <Briefcase className="w-8 h-8 text-slate-300" />

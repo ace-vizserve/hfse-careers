@@ -263,7 +263,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                     alt="Logo"
                     width={220}
                     height={110}
-                    className="h-20 w-auto object-contain"
+                    className="h-20 w-auto object-cover"
                     priority
                   />
                 </a>

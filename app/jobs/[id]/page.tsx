@@ -1,5 +1,7 @@
+import { entity_list } from "@/app/constants";
 import { ArrowLeft, Briefcase, Building2, CheckCircle2, Clock, MapPin, Send } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -19,6 +21,7 @@ interface JobDetail {
   currency?: string;
   frequency?: string;
   company?: { name: string };
+  organization?: number;
   date_posted?: string;
   valid_through?: string;
   updated_at?: string;
@@ -209,6 +212,9 @@ export default async function JobDetailPage({ params }: Params) {
 
   if (!job) notFound();
 
+  const organization = entity_list.find((org) => org.id === job.organization);
+  const orgLogo = organization?.logo;
+
   const jobPostingJsonLd = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
@@ -224,9 +230,9 @@ export default async function JobDetailPage({ params }: Params) {
     employmentType: mapEmploymentType(job.contract_details || job.employment_type),
     hiringOrganization: {
       "@type": "Organization",
-      name: job.company?.name || "HFSE Global Education Group",
-      sameAs: "https://hfse.edu.sg/",
-      logo: `${SITE_URL}/assets/geg-favicon.png`,
+      name: organization?.name || "HFSE Global Education Group",
+      sameAs: organization?.website || "https://hfse.edu.sg/",
+      logo: orgLogo || `${SITE_URL}/assets/geg-favicon.png`,
     },
     ...(job.location
       ? {
@@ -276,9 +282,21 @@ export default async function JobDetailPage({ params }: Params) {
               Back to all jobs
             </Link>
 
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-8 leading-tight">
-              {job.position_name}
-            </h1>
+            <div className="flex flex-col md:gap-6 mb-8">
+              {orgLogo ? (
+                <div className="w-max flex-shrink-0 rounded-xl border border-slate-100 bg-white p-2.5 flex items-center justify-center shadow-sm">
+                  <Image src={orgLogo} alt={organization?.name} width={140} height={64} className="object-cover" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
+                  <Building2 className="w-10 h-10 text-white" />
+                </div>
+              )}
+
+              <h1 className="mt-4 md:mt-0 text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                {job.position_name}
+              </h1>
+            </div>
 
             <div className="flex flex-wrap gap-4 md:gap-6">
               {job.location && (
@@ -287,16 +305,14 @@ export default async function JobDetailPage({ params }: Params) {
                   <span className="font-medium">{job.location}</span>
                 </div>
               )}
-
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
                 <Briefcase className="w-5 h-5" />
                 <span className="font-medium">{formatEmploymentType(job.contract_details, job.employment_type)}</span>
               </div>
 
-              {job.company?.name && (
+              {organization && (
                 <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-                  <Building2 className="w-5 h-5" />
-                  <span className="font-medium">{job.company.name}</span>
+                  <span className="font-medium">{organization?.name}</span>
                 </div>
               )}
             </div>
