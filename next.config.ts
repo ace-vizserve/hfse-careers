@@ -14,6 +14,19 @@ const nextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: "/embed/jobs",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: `frame-ancestors 'self' ${process.env.ALLOWED_PARENT_DOMAINS}`,
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
