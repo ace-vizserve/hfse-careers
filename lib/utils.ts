@@ -225,8 +225,6 @@ export function generateDeclarationList(declarations: Record<number, Declaration
 const MANATAL_API_KEY = process.env.NEXT_PUBLIC_MANATAL_API_KEY;
 const MANATAL_BASE_URL = "https://api.manatal.com/open/v3";
 
-console.log(MANATAL_API_KEY);
-
 type JobMatch = {
   id: number;
   job: number;
