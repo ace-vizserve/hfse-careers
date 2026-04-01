@@ -1184,6 +1184,8 @@ export default function JobApplicationPage() {
         applicationData["1741691"] = normalizedValues.overseasaddress.trim();
       }
 
+      applicationData["1741702"] = values.industries.join(",");
+
       applicationData.organization_name = job?.org_name ?? "";
       applicationData.position_name = job?.position_name ?? "";
       applicationData.job_id = jobId;
