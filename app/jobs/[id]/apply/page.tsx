@@ -6,8 +6,10 @@ import { entity_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { ApplicationNote } from "@/components/ui/application-note";
 import { ConsentDeclarations } from "@/components/ui/consent-declarations";
+import { DatePicker } from "@/components/ui/date-picker";
 import { ErrorSummary, type ErrorSummaryItem } from "@/components/ui/error-summary";
 import { ScrollToSubmitButton } from "@/components/ui/scroll-to-submit-button";
+import { StyledSelect } from "@/components/ui/styled-select";
 import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
 import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
@@ -273,10 +275,6 @@ export default function JobApplicationPage() {
     "hover:border-slate-300 text-sm";
 
   const cardBase = "bg-white border border-slate-100 rounded-2xl shadow-sm";
-
-  const selectCls =
-    inputBase +
-    " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0_0_24_24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6_9l6_6_6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center]";
 
   const getCurrencyId = (code: string) => {
     const map: Record<string, string> = { SGD: "11", USD: "1", EUR: "2", GBP: "3", PHP: "13" };
@@ -603,7 +601,7 @@ export default function JobApplicationPage() {
             control={control}
             name={key as any}
             render={({ field }) => (
-              <input id={inputId} type="date" value={field.value} onChange={field.onChange} className={inputBase} />
+              <DatePicker id={inputId} value={field.value} onChange={(v) => field.onChange(v)} onBlur={field.onBlur} />
             )}
           />
           <ErrorText path={key} />
@@ -654,70 +652,27 @@ export default function JobApplicationPage() {
     }
 
     if (isResidentialStatusField) {
-      const isForeigner = watchedResidentialStatus === "Foreigner";
-
       return (
         <>
           <Controller
             control={control}
             name={key as any}
             render={({ field }) => (
-              <select id={inputId} {...field} className={selectCls}>
-                <option value="">Select residential status</option>
-                <option value="Singaporean">Singaporean</option>
-                <option value="PR">PR</option>
-                <option value="Foreigner">Foreigner</option>
-              </select>
+              <StyledSelect
+                id={inputId}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="Select residential status"
+                options={[
+                  { value: "Singaporean", label: "Singaporean" },
+                  { value: "PR", label: "PR" },
+                  { value: "Foreigner", label: "Foreigner" },
+                ]}
+              />
             )}
           />
           <ErrorText path={key} />
-
-          {isForeigner && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-blue-50/50 border border-blue-100 rounded-xl mt-5">
-              <div className="flex items-start gap-2.5 md:col-span-2 mb-1">
-                <svg
-                  className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <p className="text-xs text-blue-600 font-medium">
-                  Additional information required for foreign applicants
-                </p>
-              </div>
-
-              <div>
-                <Label required>Work Pass</Label>
-                <select id={pathToFieldId("workpermitpass")} {...register("workpermitpass")} className={selectCls}>
-                  <option value="">Select work pass type</option>
-                  {workPassOptions.map((pass) => (
-                    <option key={pass} value={pass}>
-                      {pass}
-                    </option>
-                  ))}
-                </select>
-                <ErrorText path="workpermitpass" />
-              </div>
-
-              <div>
-                <Label required>Overseas Address</Label>
-                <input
-                  id={pathToFieldId("overseasaddress")}
-                  type="text"
-                  {...register("overseasaddress")}
-                  placeholder="Street, City, Country"
-                  className={inputBase}
-                />
-                <ErrorText path="overseasaddress" />
-              </div>
-            </div>
-          )}
         </>
       );
     }
@@ -761,14 +716,20 @@ export default function JobApplicationPage() {
             control={control}
             name={key as any}
             render={({ field }) => (
-              <select id={inputId} {...field} className={selectCls}>
-                <option value="">Select qualification</option>
-                <option value="High School Diploma">High School Diploma</option>
-                <option value="Associates Degree">Associate&apos;s Degree</option>
-                <option value="Bachelors Degree">Bachelor&apos;s Degree</option>
-                <option value="Masters Degree">Master&apos;s Degree</option>
-                <option value="Doctorate">Doctorate</option>
-              </select>
+              <StyledSelect
+                id={inputId}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="Select qualification"
+                options={[
+                  { value: "High School Diploma", label: "High School Diploma" },
+                  { value: "Associates Degree", label: "Associate's Degree" },
+                  { value: "Bachelors Degree", label: "Bachelor's Degree" },
+                  { value: "Masters Degree", label: "Master's Degree" },
+                  { value: "Doctorate", label: "Doctorate" },
+                ]}
+              />
             )}
           />
           <ErrorText path={key} />
@@ -782,15 +743,15 @@ export default function JobApplicationPage() {
           <Controller
             control={control}
             name={key as any}
-            render={({ field }) => (
-              <select id={inputId} {...field} className={selectCls}>
-                <option value="">Select an option</option>
-                {getChoices(field as any).map((choice: string) => (
-                  <option key={choice} value={choice}>
-                    {choice}
-                  </option>
-                ))}
-              </select>
+            render={({ field: controllerField }) => (
+              <StyledSelect
+                id={inputId}
+                value={controllerField.value}
+                onChange={controllerField.onChange}
+                onBlur={controllerField.onBlur}
+                placeholder="Select an option"
+                options={getChoices(field).map((choice: string) => ({ value: choice, label: choice }))}
+              />
             )}
           />
           <ErrorText path={key} />
@@ -805,11 +766,17 @@ export default function JobApplicationPage() {
             control={control}
             name={key as any}
             render={({ field }) => (
-              <select id={inputId} {...field} className={selectCls}>
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
+              <StyledSelect
+                id={inputId}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder="Select gender"
+                options={[
+                  { value: "male", label: "Male" },
+                  { value: "female", label: "Female" },
+                ]}
+              />
             )}
           />
           <ErrorText path={key} />
@@ -845,15 +812,17 @@ export default function JobApplicationPage() {
             control={control}
             name={key as any}
             render={({ field }) => (
-              <select
+              <StyledSelect
                 id={inputId}
-                value={String(field.value ?? "")}
-                onChange={(e) => field.onChange(e.target.value === "true")}
-                className={selectCls}>
-                <option value="">Select option</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
+                value={field.value === true ? "true" : field.value === false ? "false" : ""}
+                onChange={(v) => field.onChange(v === "true")}
+                onBlur={field.onBlur}
+                placeholder="Select option"
+                options={[
+                  { value: "true", label: "Yes" },
+                  { value: "false", label: "No" },
+                ]}
+              />
             )}
           />
           <ErrorText path={key} />
@@ -1264,13 +1233,6 @@ export default function JobApplicationPage() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
         * { font-family: 'DM Sans', sans-serif; }
         .font-mono { font-family: 'DM Mono', monospace; }
-        input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.4; cursor: pointer; }
-        select {
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 14px center;
-        }
       `}</style>
 
       <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -1609,6 +1571,59 @@ export default function JobApplicationPage() {
                     {renderFieldBlock(getField("preferredname", "Preferred Name"))}
                     {renderFieldBlock(getField("residentialstatus", "Residential Status"))}
                     {renderFieldBlock(getField("nationalities", "Nationality"))}
+
+                    {watchedResidentialStatus === "Foreigner" && (
+                      <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-blue-50/50 border border-blue-100 rounded-xl">
+                        <div className="flex items-start gap-2.5 md:col-span-2 mb-1">
+                          <svg
+                            className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <p className="text-xs text-blue-600 font-medium">
+                            Additional information required for foreign applicants
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label required>Work Pass</Label>
+                          <Controller
+                            control={control}
+                            name="workpermitpass"
+                            render={({ field }) => (
+                              <StyledSelect
+                                id={pathToFieldId("workpermitpass")}
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                placeholder="Select work pass type"
+                                options={workPassOptions.map((pass) => ({ value: pass, label: pass }))}
+                              />
+                            )}
+                          />
+                          <ErrorText path="workpermitpass" />
+                        </div>
+
+                        <div>
+                          <Label required>Overseas Address</Label>
+                          <input
+                            id={pathToFieldId("overseasaddress")}
+                            type="text"
+                            {...register("overseasaddress")}
+                            placeholder="Street, City, Country"
+                            className={inputBase}
+                          />
+                          <ErrorText path="overseasaddress" />
+                        </div>
+                      </div>
+                    )}
                     {renderFieldBlock(getField("birth_date", "Date of Birth"))}
                     {renderFieldBlock(getField("gender", "Gender"))}
                     {renderFieldBlock(getField("religion", "Religion"))}
@@ -1679,19 +1694,28 @@ export default function JobApplicationPage() {
 
                           <div>
                             <Label>Relationship</Label>
-                            <select
-                              id={pathToFieldId(`family_members.${i}.relationship`)}
-                              {...register(`family_members.${i}.relationship`)}
-                              className={selectCls}>
-                              <option value="">Select relationship</option>
-                              <option value="Father">Father</option>
-                              <option value="Mother">Mother</option>
-                              <option value="Spouse">Spouse</option>
-                              <option value="Son">Son</option>
-                              <option value="Daughter">Daughter</option>
-                              <option value="Sibling">Sibling</option>
-                              <option value="Relative">Relative</option>
-                            </select>
+                            <Controller
+                              control={control}
+                              name={`family_members.${i}.relationship`}
+                              render={({ field }) => (
+                                <StyledSelect
+                                  id={pathToFieldId(`family_members.${i}.relationship`)}
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  placeholder="Select relationship"
+                                  options={[
+                                    { value: "Father", label: "Father" },
+                                    { value: "Mother", label: "Mother" },
+                                    { value: "Spouse", label: "Spouse" },
+                                    { value: "Son", label: "Son" },
+                                    { value: "Daughter", label: "Daughter" },
+                                    { value: "Sibling", label: "Sibling" },
+                                    { value: "Relative", label: "Relative" },
+                                  ]}
+                                />
+                              )}
+                            />
                             <ErrorText path={`family_members.${i}.relationship`} />
                           </div>
 
@@ -1807,17 +1831,26 @@ export default function JobApplicationPage() {
 
                           <div>
                             <Label required>Highest Qualification</Label>
-                            <select
-                              id={pathToFieldId(`educations.${i}.degree_name`)}
-                              {...register(`educations.${i}.degree_name`)}
-                              className={selectCls}>
-                              <option value="">Select qualification</option>
-                              <option value="High School Diploma">High School Diploma</option>
-                              <option value="Associates Degree">Associate&apos;s Degree</option>
-                              <option value="Bachelors Degree">Bachelor&apos;s Degree</option>
-                              <option value="Masters Degree">Master&apos;s Degree</option>
-                              <option value="Doctorate">Doctorate</option>
-                            </select>
+                            <Controller
+                              control={control}
+                              name={`educations.${i}.degree_name`}
+                              render={({ field }) => (
+                                <StyledSelect
+                                  id={pathToFieldId(`educations.${i}.degree_name`)}
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  onBlur={field.onBlur}
+                                  placeholder="Select qualification"
+                                  options={[
+                                    { value: "High School Diploma", label: "High School Diploma" },
+                                    { value: "Associates Degree", label: "Associate's Degree" },
+                                    { value: "Bachelors Degree", label: "Bachelor's Degree" },
+                                    { value: "Masters Degree", label: "Master's Degree" },
+                                    { value: "Doctorate", label: "Doctorate" },
+                                  ]}
+                                />
+                              )}
+                            />
                             <ErrorText path={`educations.${i}.degree_name`} />
                           </div>
 
@@ -1847,11 +1880,17 @@ export default function JobApplicationPage() {
 
                           <div>
                             <Label required>Start Date</Label>
-                            <input
-                              id={pathToFieldId(`educations.${i}.started_at`)}
-                              type="date"
-                              {...register(`educations.${i}.started_at`)}
-                              className={inputBase}
+                            <Controller
+                              control={control}
+                              name={`educations.${i}.started_at`}
+                              render={({ field }) => (
+                                <DatePicker
+                                  id={pathToFieldId(`educations.${i}.started_at`)}
+                                  value={field.value}
+                                  onChange={(v) => field.onChange(v)}
+                                  onBlur={field.onBlur}
+                                />
+                              )}
                             />
                             <ErrorText path={`educations.${i}.started_at`} />
                           </div>
@@ -1862,12 +1901,11 @@ export default function JobApplicationPage() {
                               control={control}
                               name={`educations.${i}.ended_at`}
                               render={({ field }) => (
-                                <input
+                                <DatePicker
                                   id={pathToFieldId(`educations.${i}.ended_at`)}
-                                  type="date"
                                   value={field.value ?? ""}
-                                  onChange={(e) => field.onChange(e.target.value || null)}
-                                  className={inputBase}
+                                  onChange={(v) => field.onChange(v || null)}
+                                  onBlur={field.onBlur}
                                 />
                               )}
                             />
@@ -1945,11 +1983,17 @@ export default function JobApplicationPage() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <Label required>From</Label>
-                              <input
-                                id={pathToFieldId(`experiences.${i}.started_at`)}
-                                type="date"
-                                {...register(`experiences.${i}.started_at`)}
-                                className={inputBase}
+                              <Controller
+                                control={control}
+                                name={`experiences.${i}.started_at`}
+                                render={({ field }) => (
+                                  <DatePicker
+                                    id={pathToFieldId(`experiences.${i}.started_at`)}
+                                    value={field.value}
+                                    onChange={(v) => field.onChange(v)}
+                                    onBlur={field.onBlur}
+                                  />
+                                )}
                               />
                               <ErrorText path={`experiences.${i}.started_at`} />
                             </div>
@@ -1960,13 +2004,12 @@ export default function JobApplicationPage() {
                                 control={control}
                                 name={`experiences.${i}.ended_at`}
                                 render={({ field }) => (
-                                  <input
+                                  <DatePicker
                                     id={pathToFieldId(`experiences.${i}.ended_at`)}
-                                    type="date"
                                     value={isCurrent ? today : field.value || ""}
-                                    onChange={(e) => field.onChange(e.target.value || null)}
+                                    onChange={(v) => field.onChange(v || null)}
+                                    onBlur={field.onBlur}
                                     disabled={!!isCurrent}
-                                    className={`${inputBase}${isCurrent ? " opacity-40 cursor-not-allowed" : ""}`}
                                   />
                                 )}
                               />
