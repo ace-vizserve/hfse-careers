@@ -134,7 +134,7 @@ export default function JobsWidget() {
   }
 
   return (
-    <div ref={containerRef} className="relative py-10 px-4 group select-none overflow-hidden">
+    <div ref={containerRef} className="relative w-full py-10 px-4 group select-none overflow-hidden">
       <style jsx global>{`
         @keyframes fadeInUp {
           from {
@@ -178,7 +178,7 @@ export default function JobsWidget() {
         }
       `}</style>
 
-      <div className="max-w-screen mx-auto mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-12 animate-fade-in-up">
+      <div className="w-full mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-12 animate-fade-in-up">
         <div className="max-w-xl">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#2638B6]/10 text-[#2638B6] text-[10px] font-black uppercase tracking-[0.2em] mb-4 border border-[#2638B6]/15">
             <Sparkles className="w-3.5 h-3.5" />
