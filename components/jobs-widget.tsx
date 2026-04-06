@@ -224,7 +224,7 @@ export default function JobsWidget() {
               data-idx={idx}
               className="job-card pl-6 basis-[85vw] sm:basis-[45vw] lg:basis-1/3 min-w-[300px] max-w-[450px]">
               <div
-                className={`h-full flex flex-col bg-white/80 backdrop-blur-sm border border-stone-200/50 rounded-[2.5rem] p-8 md:p-10 shadow-sm transition-all duration-700 hover:bg-white hover:border-[#2638B6]/20 hover:shadow-[0_24px_48px_-12px_rgba(38,56,182,0.12)] group/card relative overflow-hidden ${
+                className={`h-full flex flex-col bg-white/80 backdrop-blur-sm border border-stone-200/50 rounded-[2.5rem] p-8 md:p-10 shadow-sm transition-all duration-700 hover:bg-[#FBF8F4] hover:border-[#2638B6]/20 hover:shadow-[0_24px_48px_-12px_rgba(38,56,182,0.12)] group/card relative overflow-hidden ${
                   visibleIndexes.includes(idx) ? "animate-fade-in-up" : "opacity-0"
                 }`}
                 style={{ animationDelay: `${idx * 0.12}s` }}
