@@ -1,37 +1,70 @@
-Execute this workflow for the current Git repository.
+## Commit and Push
 
-1. Detect the current branch name.
-2. Review the changes on the current branch before staging anything:
-   - Run `git status`
-   - Run `git diff --stat`
-   - Run `git diff`
-   - Summarize the changes clearly and identify anything risky or unusual
-3. Run validation checks before any Git write action:
-   - `npm run lint`
-   - `npm run build`
-4. If either command fails:
-   - Stop immediately
-   - Do not run `git add .`, `git commit`, `git pull`, or `git push`
-   - Summarize the errors and what must be fixed
-5. If both commands pass:
-   - Run `git add .`
-   - Create a conventional commit message based on the reviewed changes
-   - The commit message must be comprehensive but no more than 4 lines total
-   - Include the optional user arguments in the commit context when relevant: `$ARGUMENTS`
-6. Before pushing, sync safely with the remote branch:
-   - Run `git pull --rebase origin <current-branch>`
-   - Replace `<current-branch>` with the detected branch name
-7. If rebase fails or has conflicts:
-   - Stop immediately
-   - Do not push
-   - Explain the conflict or failure clearly
-8. If rebase succeeds:
-   - Run `git push origin <current-branch>`
+Execute the following steps in order. Stop immediately if any step fails.
 
-Rules:
-- Use conventional commits such as `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, or `test:`
-- Do not force push
-- Do not push to a different branch
-- Do not skip lint or build
-- Do not continue when there are validation errors or rebase conflicts
-- Keep the output concise: review summary, validation result, commit message used, and final push status
+### 1. Review Changes
+
+- Detect the current Git branch name.
+- Run `git status` and `git diff` (staged + unstaged) to review all changes.
+- Summarize what was modified (files, features, fixes, etc.). Use this summary to generate the commit message later.
+
+### 2. Lint and Build Checks
+
+Run both commands. If **either** fails, STOP and output the errors. Do not proceed.
+
+```
+npm run lint
+npm run build
+```
+
+### 3. Stage All Changes
+
+```
+git add .
+```
+
+### 4. Generate Commit Message
+
+- Use **Conventional Commits** format (`feat`, `fix`, `refactor`, `chore`, `docs`, `style`, `perf`, `test`, etc.).
+- The message must be clear, descriptive, and based on the **actual diff** — never vague like "update" or "fix stuff".
+- Maximum **4 lines** total (subject + body if needed).
+- Use a HEREDOC to pass the message:
+
+```
+git commit -m "$(cat <<'EOF'
+<type>(<optional scope>): <subject>
+
+<optional body — 1-2 lines max>
+EOF
+)"
+```
+
+### 5. Rebase Before Push
+
+Pull with rebase against the current branch:
+
+```
+git pull --rebase origin <current-branch>
+```
+
+If the rebase fails, STOP and report the conflict. Do not push.
+
+### 6. Push
+
+```
+git push origin <current-branch>
+```
+
+### 7. Final Summary
+
+Output a summary including:
+
+- Commit message used
+- Branch name
+- Status of: lint, build, rebase, push
+
+### Rules
+
+- **Never** proceed past a failing step.
+- **Do not** ask for confirmation — execute deterministically.
+- The commit message **must** reflect the actual diff.
