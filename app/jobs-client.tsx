@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import Navbar from "./components/navbar";
-import PopupModal from "./components/ui/PopupModal";
+import Navbar from "@/components/navbar";
+import PopupModal from "@/components/ui/popup-modal";
 
 interface Job {
   id?: number;

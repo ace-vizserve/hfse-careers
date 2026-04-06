@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState } from 'react'
-import Footer from '../components/footer'
-import Navbar from '../components/navbar'
-import BottomSidebar from '../components/bottomSidebar'
+import Footer from '@/components/footer'
+import Navbar from '@/components/navbar'
+import BottomSidebar from '@/components/bottom-sidebar'
 
 // Define types for better type safety
 interface Coach {
@@ -32,7 +32,7 @@ const Page = () => {
       name: "Lebron James",
       role: "Basketball Coach",
       years: "15 years",
-      image: "/assets/Lebron.png",
+      image: "/assets/lebron.png",
       skills: ["Physical Coach", "Diet Coach", "Motivator Coach"]
     },
     {
@@ -40,7 +40,7 @@ const Page = () => {
       name: "Lebron James",
       role: "Basketball Coach",
       years: "15 years",
-      image: "/assets/Lebron.png",
+      image: "/assets/lebron.png",
       skills: ["Physical Coach", "Diet Coach", "Motivator Coach"]
     },
     {
@@ -48,7 +48,7 @@ const Page = () => {
       name: "Lebron James",
       role: "Basketball Coach",
       years: "15 years",
-      image: "/assets/Lebron.png",
+      image: "/assets/lebron.png",
       skills: ["Physical Coach", "Diet Coach", "Motivator Coach"]
     },
     {
@@ -56,7 +56,7 @@ const Page = () => {
       name: "Lebron James",
       role: "Basketball Coach",
       years: "15 years",
-      image: "/assets/Lebron.png",
+      image: "/assets/lebron.png",
       skills: ["Physical Coach", "Diet Coach", "Motivator Coach"]
     },
     {
@@ -64,7 +64,7 @@ const Page = () => {
       name: "Lebron James",
       role: "Basketball Coach",
       years: "15 years",
-      image: "/assets/Lebron.png",
+      image: "/assets/lebron.png",
       skills: ["Physical Coach", "Diet Coach", "Motivator Coach"]
     },
     {
@@ -72,7 +72,7 @@ const Page = () => {
       name: "Lebron James",
       role: "Basketball Coach",
       years: "15 years",
-      image: "/assets/Lebron.png",
+      image: "/assets/lebron.png",
       skills: ["Physical Coach", "Diet Coach", "Motivator Coach"]
     }
   ]

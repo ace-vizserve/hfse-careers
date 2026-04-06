@@ -1,7 +1,7 @@
 "use client";
 
-import { IndustryCombobox } from "@/app/components/ui/industry-combo-box";
-import { NationalityCombobox } from "@/app/components/ui/nationality-combo-box";
+import { IndustryCombobox } from "@/components/ui/industry-combo-box";
+import { NationalityCombobox } from "@/components/ui/nationality-combo-box";
 import { entity_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { ApplicationNote } from "@/components/ui/application-note";
