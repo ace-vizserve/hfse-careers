@@ -153,7 +153,6 @@ export const jobApplicationSchema = z
       "WhatsApp number is invalid",
     ),
     email: z.string().trim().min(1, "Email is required").email("Email is invalid"),
-    city: requiredText("Singapore address is required"),
     address: requiredText("Complete address is required"),
     postalcode: z
       .string()

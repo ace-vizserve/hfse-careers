@@ -1,13 +1,13 @@
 "use client";
 
-import { IndustryCombobox } from "@/components/ui/industry-combo-box";
-import { NationalityCombobox } from "@/components/ui/nationality-combo-box";
 import { entity_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { ApplicationNote } from "@/components/ui/application-note";
 import { ConsentDeclarations } from "@/components/ui/consent-declarations";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ErrorSummary, type ErrorSummaryItem } from "@/components/ui/error-summary";
+import { IndustryCombobox } from "@/components/ui/industry-combo-box";
+import { NationalityCombobox } from "@/components/ui/nationality-combo-box";
 import { ScrollToSubmitButton } from "@/components/ui/scroll-to-submit-button";
 import { StyledSelect } from "@/components/ui/styled-select";
 import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
@@ -147,7 +147,6 @@ const buildDefaultValues = (): FormValues => ({
 
   phone_number: "",
   email: "",
-  city: "",
   address: "",
   postalcode: "",
   overseasaddress: "",
@@ -1629,7 +1628,7 @@ export default function JobApplicationPage() {
                     {renderFieldBlock(getField("religion", "Religion"))}
                     {renderFieldBlock(getField("nricfin", "NRIC/FIN"))}
                     {renderFieldBlock(getField("latest_degree", "Highest Qualification"))}
-                    {renderFieldBlock(getField("city", "Singapore Address"))}
+
                     {renderFieldBlock(getField("passportno", "Passport Number"))}
                     {formFields.filter((f) => getFieldKey(f) === "placedateofissue").map((f) => renderFieldBlock(f))}
                   </div>
