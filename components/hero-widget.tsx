@@ -175,21 +175,6 @@ export default function HeroWidget() {
                       </div>
                     ))}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4 pt-5 border-t border-stone-200/80">
-                    <div>
-                      <div className="text-3xl font-black text-stone-900 tracking-tighter leading-none">94%</div>
-                      <div className="text-[10px] font-black text-stone-500 uppercase tracking-[0.15em] mt-1.5">
-                        Promotion Rate
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-3xl font-black text-stone-900 tracking-tighter leading-none">18mo</div>
-                      <div className="text-[10px] font-black text-stone-500 uppercase tracking-[0.15em] mt-1.5">
-                        Avg. to Leadership
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
