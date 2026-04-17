@@ -63,7 +63,7 @@ export default function HeroWidget() {
       `}</style>
 
       <section
-        className="relative min-h-[100dvh] flex items-center overflow-hidden"
+        className="relative overflow-hidden"
         style={{ background: "linear-gradient(135deg, #2a254a 0%, #4C447A 55%, #6558a0 100%)" }}>
         <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ containerType: "size" }}>
           <iframe
