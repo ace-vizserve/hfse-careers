@@ -39,7 +39,7 @@ export default function HeroWidget() {
   ];
 
   return (
-    <div ref={containerRef} style={{ fontFamily: "Poppins" }} className="bg-white">
+    <div ref={containerRef} style={{ fontFamily: "Poppins, inherit" }} className="bg-white">
       <style jsx global>{`
         @keyframes fadeInUp {
           from {

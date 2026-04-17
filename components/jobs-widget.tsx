@@ -137,7 +137,7 @@ export default function JobsWidget() {
     <div
       ref={containerRef}
       className="relative w-full py-10 px-4 group select-none overflow-hidden"
-      style={{ fontFamily: "Poppins" }}>
+      style={{ fontFamily: "Poppins, inherit" }}>
       <style jsx global>{`
         @keyframes fadeInUp {
           from {
