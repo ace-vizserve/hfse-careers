@@ -7,10 +7,8 @@ export const metadata = {
 
 export default function EmbedJobsPage() {
   return (
-    <main className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <div className="relative">
-        <JobsWidget />
-      </div>
+    <main className="relative overflow-hidden">
+      <JobsWidget />
     </main>
   );
 }

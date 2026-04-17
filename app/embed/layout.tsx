@@ -1,12 +1,10 @@
 export default function EmbedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-transparent overflow-hidden" style={{ fontFamily: "system-ui, sans-serif" }}>
-      {/*
-          Embed layout is minimal to avoid including site-wide
-          navbars, footers, or extra padding/margins.
-          Font is reset to system default so the embedding page's font takes precedence.
-      */}
-      {children}
-    </div>
+    <>
+      <style>{`html, body { overflow: hidden !important; margin: 0; padding: 0; height: auto; }`}</style>
+      <div className="bg-transparent overflow-hidden" style={{ fontFamily: "system-ui, sans-serif" }}>
+        {children}
+      </div>
+    </>
   );
 }
