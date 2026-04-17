@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Award, BadgeCheck, GraduationCap, Sparkles, Star, Target, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Award, BadgeCheck, GraduationCap, Sparkles, Target, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
@@ -39,7 +39,7 @@ export default function HeroWidget() {
   ];
 
   return (
-    <div ref={containerRef} style={{ fontFamily: "inherit" }} className="bg-white">
+    <div ref={containerRef} style={{ fontFamily: "Poppins" }} className="bg-white">
       <style jsx global>{`
         @keyframes fadeInUp {
           from {
@@ -65,9 +65,7 @@ export default function HeroWidget() {
       <section
         className="relative min-h-[100dvh] flex items-center overflow-hidden"
         style={{ background: "linear-gradient(135deg, #2a254a 0%, #4C447A 55%, #6558a0 100%)" }}>
-        <div
-          className="absolute inset-0 overflow-hidden pointer-events-none"
-          style={{ containerType: "size" }}>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ containerType: "size" }}>
           <iframe
             src={YOUTUBE_SRC}
             title="Background video"
@@ -83,7 +81,10 @@ export default function HeroWidget() {
         </div>
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(135deg, rgba(42,37,74,0.85) 0%, rgba(76,68,122,0.65) 50%, rgba(76,68,122,0.45) 100%)" }}
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(42,37,74,0.85) 0%, rgba(76,68,122,0.65) 50%, rgba(76,68,122,0.45) 100%)",
+          }}
         />
 
         <div className="relative z-10 max-w-[1200px] mx-auto px-6 md:px-12 py-20 md:py-28 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
@@ -108,8 +109,8 @@ export default function HeroWidget() {
             </h1>
 
             <p className="text-white/80 text-lg md:text-xl max-w-xl leading-relaxed mb-10">
-              Where intellectual rigor meets real progression. Join HFSE — an atelier of educators shaping tomorrow&apos;s
-              classrooms with mentorship, purpose, and a clear ladder forward.
+              Where intellectual rigor meets real progression. Join HFSE — an atelier of educators shaping
+              tomorrow&apos;s classrooms with mentorship, purpose, and a clear ladder forward.
             </p>
 
             <div className="flex flex-wrap gap-3 mb-12">
@@ -128,8 +129,6 @@ export default function HeroWidget() {
                 See Career Pathways
               </Link>
             </div>
-
-        
           </div>
 
           <div className="lg:col-span-5 hero-fade-in-up" style={{ animationDelay: "0.15s" }}>
