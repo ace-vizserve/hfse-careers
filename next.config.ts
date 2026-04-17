@@ -17,7 +17,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/embed/jobs",
+        source: "/embed/:path*",
         headers: [
           {
             key: "Content-Security-Policy",
