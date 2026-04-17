@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Award, BadgeCheck, GraduationCap, Sparkles, Target, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Award, GraduationCap, Sparkles, Target, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
@@ -89,13 +89,6 @@ export default function HeroWidget() {
 
         <div className="relative z-10 max-w-[1200px] mx-auto px-6 md:px-12 py-20 md:py-28 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
           <div className="lg:col-span-7 hero-fade-in-up">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/25 mb-8">
-              <BadgeCheck className="w-4 h-4 text-white" strokeWidth={2.5} />
-              <span className="text-[11px] font-black text-white uppercase tracking-[0.15em]">
-                Trusted since 1999 · 200+ educators
-              </span>
-            </div>
-
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.02] tracking-tighter mb-6">
               A career that
               <br />
