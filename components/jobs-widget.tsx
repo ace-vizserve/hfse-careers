@@ -8,7 +8,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { ArrowUpRight, Briefcase, ChevronLeft, ChevronRight, Clock, MapPin, Sparkles } from "lucide-react";
+import { ArrowUpRight, Briefcase, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -182,20 +182,6 @@ export default function JobsWidget() {
       `}</style>
 
       <div className="w-full mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-12 animate-fade-in-up">
-        <div className="max-w-xl">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#2638B6]/10 text-[#2638B6] text-[10px] font-black uppercase tracking-[0.2em] mb-4 border border-[#2638B6]/15">
-            <Sparkles className="w-3.5 h-3.5" />
-            Grow With HFSE GEG
-          </div>
-          <h2 className="text-4xl md:text-5xl font-black text-stone-900 tracking-tighter leading-[1.1]">
-            Shape the future <br />
-            <span className="text-[#2638B6]">with our team</span>
-          </h2>
-          <p className="mt-4 text-stone-500 text-base leading-relaxed max-w-md">
-            Discover roles where your passion meets purpose. Join a team dedicated to shaping the next generation.
-          </p>
-        </div>
-
         <div className="hidden md:flex gap-3">
           <button
             onClick={() => api?.scrollPrev()}
@@ -299,19 +285,6 @@ export default function JobsWidget() {
         <CarouselPrevious className="hidden" />
         <CarouselNext className="hidden" />
       </Carousel>
-
-      <div className="mt-8 text-center px-4 animate-fade-in-up" style={{ animationDelay: "0.6s" }}>
-        <Link
-          href="/"
-          target="_top"
-          className="inline-flex items-center gap-4 text-stone-400 hover:text-[#2638B6] font-bold text-sm transition-all group/all">
-          Can&apos;t find what you&apos;re looking for?{" "}
-          <span className="text-stone-800 group-hover/all:text-[#2638B6] underline underline-offset-4 decoration-stone-300 group-hover/all:decoration-[#2638B6]/30">
-            View All Roles
-          </span>
-          <ArrowUpRight className="w-4 h-4" />
-        </Link>
-      </div>
     </div>
   );
 }
