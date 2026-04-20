@@ -181,7 +181,7 @@ export default function JobsWidget() {
         }
       `}</style>
 
-      <div className="w-full mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-in-up">
+      <div className="w-full mb-12 flex justify-end animate-fade-in-up">
         <div className="hidden md:flex gap-3">
           <button
             onClick={() => api?.scrollPrev()}
@@ -189,6 +189,7 @@ export default function JobsWidget() {
             aria-label="Previous">
             <ChevronLeft className="w-6 h-6" />
           </button>
+
           <button
             onClick={() => api?.scrollNext()}
             className="w-14 h-14 rounded-2xl bg-white/70 backdrop-blur-sm border border-stone-200/50 shadow-lg shadow-stone-200/20 flex items-center justify-center text-stone-400 hover:text-[#2638B6] hover:border-[#2638B6]/20 hover:bg-white transition-all active:scale-90"
