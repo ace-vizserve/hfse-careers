@@ -181,23 +181,19 @@ export default function JobsWidget() {
         }
       `}</style>
 
-      <div className="w-full mb-12 flex justify-end animate-fade-in-up">
-        <div className="hidden md:flex gap-3">
-          <button
-            onClick={() => api?.scrollPrev()}
-            className="w-14 h-14 rounded-2xl bg-white/70 backdrop-blur-sm border border-stone-200/50 shadow-lg shadow-stone-200/20 flex items-center justify-center text-stone-400 hover:text-[#2638B6] hover:border-[#2638B6]/20 hover:bg-white transition-all active:scale-90"
-            aria-label="Previous">
-            <ChevronLeft className="w-6 h-6" />
-          </button>
+      <button
+        onClick={() => api?.scrollPrev()}
+        className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
+        aria-label="Previous">
+        <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
+      </button>
 
-          <button
-            onClick={() => api?.scrollNext()}
-            className="w-14 h-14 rounded-2xl bg-white/70 backdrop-blur-sm border border-stone-200/50 shadow-lg shadow-stone-200/20 flex items-center justify-center text-stone-400 hover:text-[#2638B6] hover:border-[#2638B6]/20 hover:bg-white transition-all active:scale-90"
-            aria-label="Next">
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-      </div>
+      <button
+        onClick={() => api?.scrollNext()}
+        className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
+        aria-label="Next">
+        <ChevronRight className="w-6 h-6" strokeWidth={2.5} />
+      </button>
 
       <Carousel
         setApi={setApi}
