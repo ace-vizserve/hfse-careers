@@ -136,7 +136,7 @@ export default function JobsWidget() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full py-10 px-4 group select-none overflow-hidden"
+      className="relative w-full py-10 group select-none overflow-hidden"
       style={{ fontFamily: "Poppins, inherit" }}>
       <style jsx global>{`
         @keyframes fadeInUp {
@@ -181,7 +181,7 @@ export default function JobsWidget() {
         }
       `}</style>
 
-      <div className="w-full mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 px-4 md:px-12 animate-fade-in-up">
+      <div className="w-full mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-in-up">
         <div className="hidden md:flex gap-3">
           <button
             onClick={() => api?.scrollPrev()}
@@ -206,7 +206,7 @@ export default function JobsWidget() {
           containScroll: "trimSnaps",
         }}
         className="w-full">
-        <CarouselContent className="-ml-4 px-4 md:px-12 pb-12">
+        <CarouselContent className="-ml-4 pb-12">
           {jobs.map((job, idx) => (
             <CarouselItem
               key={job.id}
