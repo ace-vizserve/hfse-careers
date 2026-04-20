@@ -183,14 +183,14 @@ export default function JobsWidget() {
 
       <button
         onClick={() => api?.scrollPrev()}
-        className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
+        className="hidden md:flex absolute left-10 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
         aria-label="Previous">
         <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
       </button>
 
       <button
         onClick={() => api?.scrollNext()}
-        className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
+        className="hidden md:flex absolute right-10 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
         aria-label="Next">
         <ChevronRight className="w-6 h-6" strokeWidth={2.5} />
       </button>
