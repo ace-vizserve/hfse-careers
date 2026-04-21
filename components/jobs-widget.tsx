@@ -8,6 +8,7 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
 import { ArrowUpRight, Briefcase, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,8 +35,28 @@ export default function JobsWidget() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [api, setApi] = useState<CarouselApi>();
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+
+  useEffect(() => {
+    if (!api) return;
+
+    const updateScrollState = () => {
+      setCanScrollPrev(api.canScrollPrev());
+      setCanScrollNext(api.canScrollNext());
+    };
+
+    updateScrollState();
+    api.on("select", updateScrollState);
+    api.on("reInit", updateScrollState);
+
+    return () => {
+      api.off("select", updateScrollState);
+      api.off("reInit", updateScrollState);
+    };
+  }, [api]);
 
   useEffect(() => {
     const elements = document.querySelectorAll(".job-card");
@@ -183,14 +204,24 @@ export default function JobsWidget() {
 
       <button
         onClick={() => api?.scrollPrev()}
-        className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
+        className={cn(
+          "hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all duration-300 ease-out active:scale-90",
+          canScrollPrev
+            ? "opacity-100 scale-100 pointer-events-auto"
+            : "opacity-0 scale-75 -translate-x-2 pointer-events-none",
+        )}
         aria-label="Previous">
         <ChevronLeft className="w-6 h-6" strokeWidth={2.5} />
       </button>
 
       <button
         onClick={() => api?.scrollNext()}
-        className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all active:scale-90"
+        className={cn(
+          "hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full bg-[#2638B6] border-2 border-[#2638B6] shadow-lg shadow-[#2638B6]/30 items-center justify-center text-white hover:bg-[#1e2e9a] hover:border-[#1e2e9a] transition-all duration-300 ease-out active:scale-90",
+          canScrollNext
+            ? "opacity-100 scale-100 pointer-events-auto"
+            : "opacity-0 scale-75 translate-x-2 pointer-events-none",
+        )}
         aria-label="Next">
         <ChevronRight className="w-6 h-6" strokeWidth={2.5} />
       </button>
