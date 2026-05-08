@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle2Icon, File, Loader2, Upload, X } from "lucide-react";
 import { createContext, type PropsWithChildren, useCallback, useContext } from "react";
 
-export const formatBytes = (
+const formatBytes = (
   bytes: number,
   decimals = 2,
   size?: "bytes" | "KB" | "MB" | "GB" | "TB" | "PB" | "EB" | "ZB" | "YB",
@@ -218,4 +218,4 @@ const useDropzoneContext = () => {
   return context;
 };
 
-export { Dropzone, DropzoneContent, DropzoneEmptyState, useDropzoneContext };
+export { Dropzone, DropzoneContent, DropzoneEmptyState };

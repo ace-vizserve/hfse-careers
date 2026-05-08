@@ -1,6 +1,7 @@
 "use client";
 
 import { nationalities } from "@/app/constants";
+import { useClickOutside } from "@/hooks/use-click-outside";
 import { useEffect, useRef, useState } from "react";
 
 interface NationalityOption {
@@ -54,17 +55,11 @@ export const NationalityCombobox = ({
     item?.scrollIntoView({ block: "nearest" });
   }, [highlighted, open]);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery("");
-        onBlur?.();
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onBlur]);
+  useClickOutside(containerRef, () => {
+    setOpen(false);
+    setQuery("");
+    onBlur?.();
+  });
 
   const handleSelect = (option: NationalityOption) => {
     onChange(option.demonym);

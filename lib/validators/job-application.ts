@@ -13,7 +13,7 @@ const salaryCurrencyEnum = z.enum(["SGD", "USD", "EUR", "GBP", "PHP"]);
 const residentialStatusEnum = z.enum(["Singaporean", "PR", "Foreigner"]);
 const declarationAnswerEnum = z.enum(["Yes", "No"]);
 
-export const workPassOptions = [
+const workPassOptions = [
   "Dependant's Pass (DP)",
   "Employment Pass (EP)",
   "EntrePass",
@@ -28,9 +28,9 @@ export const workPassOptions = [
   "No Permit/Pass",
 ] as const;
 
-export const workPassEnum = z.enum(workPassOptions);
+const workPassEnum = z.enum(workPassOptions);
 
-export const declarationSchema = z
+const declarationSchema = z
   .object({
     answer: declarationAnswerEnum,
     details: optionalText,
@@ -45,7 +45,7 @@ export const declarationSchema = z
     }
   });
 
-export const familyMemberSchema = z.object({
+const familyMemberSchema = z.object({
   name: requiredText("Family member name is required"),
   relationship: requiredText("Relationship is required"),
   nationality: requiredText("Nationality is required"),
@@ -54,7 +54,7 @@ export const familyMemberSchema = z.object({
   company: requiredText("Company is required"),
 });
 
-export const educationSchema = z.object({
+const educationSchema = z.object({
   school: requiredText("School / institution is required"),
   degree_name: requiredText("Highest qualification is required"),
   specialization: optionalText,
@@ -64,7 +64,7 @@ export const educationSchema = z.object({
   description: optionalText,
 });
 
-export const experienceSchema = z
+const experienceSchema = z
   .object({
     title: requiredText("Job title is required"),
     employer: requiredText("Employer is required"),
@@ -86,7 +86,7 @@ export const experienceSchema = z
     }
   });
 
-export const characterReferenceSchema = z.object({
+const characterReferenceSchema = z.object({
   name: requiredText("Name is required"),
   email: requiredText("Email is required").email("Invalid email"),
   contact_no: requiredText("Contact number is required").refine((v) => phoneRegex.test(v), "Contact number is invalid"),

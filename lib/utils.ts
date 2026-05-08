@@ -6,6 +6,43 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function formatEmploymentType(contractDetails?: string, employmentType?: string, fallback = "Full-Time") {
+  if (contractDetails) {
+    return contractDetails
+      .replace(/_/g, "-")
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join("-");
+  }
+  return employmentType || fallback;
+}
+
+export type JobDescriptionSection =
+  | { type: "header"; header: string; items: string[] }
+  | { type: "text"; text: string };
+
+export function parseJobDescription(description: string): JobDescriptionSection[] {
+  const text = description.replace(/<[^>]*>/g, "");
+  const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
+
+  return sections.flatMap<JobDescriptionSection>((section) => {
+    if (!section.trim()) return [];
+
+    if (section.startsWith("JOB QUALIFICATIONS:") || section.startsWith("JOB DETAILS:")) {
+      const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
+      const header = headerMatch ? headerMatch[0] : "";
+      const content = section.replace(header, "").trim();
+      const items = content
+        .split(/(?=[A-Z][a-z]{2,})/)
+        .map((item) => item.trim())
+        .filter((item) => item.split(/\s+/).length >= 5);
+      return [{ type: "header", header, items }];
+    }
+
+    return [{ type: "text", text: section }];
+  });
+}
+
 type FormValues = JobApplicationFormValues & Record<string, any>;
 
 type EducationPayloadItem = {
@@ -64,11 +101,6 @@ export const formatEducations = (educations: EducationFormItem[]): EducationPayl
         description: edu.description?.trim() || "",
       };
     });
-};
-
-export type ExperienceItem = FormValues["experiences"][number] & {
-  other_allowances?: string;
-  reason_for_leaving?: string;
 };
 
 type ExperiencePayloadItem = {

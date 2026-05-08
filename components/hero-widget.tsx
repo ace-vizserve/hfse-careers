@@ -1,8 +1,9 @@
 "use client";
 
+import { useIframeResize } from "@/hooks/use-iframe-resize";
 import { ArrowUpRight, Award, GraduationCap, Sparkles, Target, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 const YOUTUBE_VIDEO_ID = "ftl-1Y4Ors8";
 const YOUTUBE_START = 11;
@@ -12,18 +13,7 @@ const YOUTUBE_SRC = `https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=
 export default function HeroWidget() {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        window.parent.postMessage({ type: "resize-iframe", height: entry.target.scrollHeight }, "*");
-      }
-    });
-
-    resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
-  }, []);
+  useIframeResize(containerRef);
 
   const features: { Icon: typeof GraduationCap; text: string }[] = [
     { Icon: GraduationCap, text: "1:1 mentorship with senior educators" },

@@ -1,7 +1,8 @@
 "use client";
 
 import { industry_list } from "@/app/constants";
-import { useEffect, useRef, useState } from "react";
+import { useClickOutside } from "@/hooks/use-click-outside";
+import { useRef, useState } from "react";
 
 interface IndustryComboboxProps {
   value: string[];
@@ -18,16 +19,10 @@ export const IndustryCombobox = ({ value = [], onChange, id }: IndustryComboboxP
   const selected = industry_list.filter((ind) => value.includes(String(ind.id)));
   const filtered = industry_list.filter((ind) => ind.name.toLowerCase().includes(query.toLowerCase()));
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setQuery("");
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  useClickOutside(containerRef, () => {
+    setOpen(false);
+    setQuery("");
+  });
 
   const toggle = (id: string) => {
     if (value.includes(id)) {

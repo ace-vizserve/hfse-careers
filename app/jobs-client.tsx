@@ -7,32 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/navbar";
 import PopupModal from "@/components/ui/popup-modal";
-
-interface Job {
-  id?: number;
-  position_name?: string;
-  title?: string;
-  location?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  employment_type?: string;
-  contract_details?: string;
-  description?: string;
-  salary_min?: number;
-  salary_max?: number;
-  currency?: string;
-  frequency?: string;
-  is_remote?: boolean | null;
-  company?: { name: string };
-  requirements?: string[];
-  benefits?: string[];
-  urgently_hiring?: boolean;
-  easily_apply?: boolean;
-  org_logo: string;
-  org_name: string;
-  org_website: string;
-}
+import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
+import type { Job } from "@/lib/types/job";
 
 interface FilterOptions {
   location: string;
@@ -56,17 +32,6 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     employmentType: "",
     isRemote: null,
   });
-
-  const formatEmploymentType = (contractDetails?: string, employmentType?: string) => {
-    if (contractDetails) {
-      const formatted = contractDetails.replace(/_/g, "-");
-      return formatted
-        .split("-")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join("-");
-    }
-    return employmentType || "Full-Time";
-  };
 
   const formatLocation = (job: Job) => (job.is_remote ? "Remote" : job.country || "On-site");
 
@@ -406,28 +371,15 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                               <div className="text-slate-700 text-sm leading-relaxed space-y-4">
                                 {selectedJob.description ? (
                                   (() => {
-                                    const text = selectedJob.description.replace(/<[^>]*>/g, "");
-                                    const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
-                                    return sections.map((section, sectionIdx) => {
-                                      if (!section.trim()) return null;
-                                      if (
-                                        section.startsWith("JOB QUALIFICATIONS:") ||
-                                        section.startsWith("JOB DETAILS:")
-                                      ) {
-                                        const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
-                                        const header = headerMatch ? headerMatch[0] : "";
-                                        const content = section.replace(header, "").trim();
-                                        const items = content
-                                          .split(/(?=[A-Z][a-z]{2,})/)
-                                          .map((item) => item.trim())
-                                          .filter((item) => item.split(/\s+/).length >= 5);
+                                    return parseJobDescription(selectedJob.description).map((section, sectionIdx) => {
+                                      if (section.type === "header") {
                                         return (
                                           <div key={sectionIdx}>
                                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                                              {header.replace(":", "")}
+                                              {section.header.replace(":", "")}
                                             </p>
                                             <ul className="space-y-2">
-                                              {items.map((item, idx) => (
+                                              {section.items.map((item, idx) => (
                                                 <li key={idx} className="flex items-start gap-2.5 text-slate-600">
                                                   <span className="flex-shrink-0 w-1 h-1 rounded-full bg-blue-400 mt-2" />
                                                   {item}
@@ -439,7 +391,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                                       }
                                       return (
                                         <p key={sectionIdx} className="text-slate-600">
-                                          {section}
+                                          {section.text}
                                         </p>
                                       );
                                     });

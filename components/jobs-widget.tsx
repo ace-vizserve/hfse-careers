@@ -8,7 +8,8 @@ import {
   CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { cn } from "@/lib/utils";
+import { cn, formatEmploymentType } from "@/lib/utils";
+import { useIframeResize } from "@/hooks/use-iframe-resize";
 import { ArrowUpRight, Briefcase, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -94,29 +95,7 @@ export default function JobsWidget() {
     fetchJobs();
   }, []);
 
-  useEffect(() => {
-    if (!containerRef.current || loading) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        window.parent.postMessage({ type: "resize-iframe", height: entry.target.scrollHeight }, "*");
-      }
-    });
-
-    resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
-  }, [loading]);
-
-  const formatEmploymentType = (contractDetails?: string, employmentType?: string) => {
-    if (contractDetails) {
-      return contractDetails
-        .replace(/_/g, "-")
-        .split("-")
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join("-");
-    }
-    return employmentType || "Full-Time";
-  };
+  useIframeResize(containerRef, !loading);
 
   if (loading) {
     return (

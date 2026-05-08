@@ -1,4 +1,5 @@
 import { entity_list } from "@/app/constants";
+import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
 import { ArrowLeft, Briefcase, Building2, CheckCircle2, Clock, MapPin, Send } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -45,18 +46,6 @@ function stripHtml(html: string) {
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function formatEmploymentType(contractDetails?: string, employmentType?: string) {
-  if (contractDetails) {
-    const formatted = contractDetails.replace(/_/g, "-");
-    return formatted
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join("-");
-  }
-
-  return employmentType || "Full-time";
 }
 
 function mapEmploymentType(value?: string) {
@@ -109,27 +98,13 @@ function formatSalary(min?: number, max?: number, currency?: string, frequency?:
 }
 
 function renderJobDescription(description: string) {
-  const text = description.replace(/<[^>]*>/g, "");
-  const sections = text.split(/(?=JOB QUALIFICATIONS:|JOB DETAILS:)/);
-
-  return sections.map((section, sectionIdx) => {
-    if (!section.trim()) return null;
-
-    if (section.startsWith("JOB QUALIFICATIONS:") || section.startsWith("JOB DETAILS:")) {
-      const headerMatch = section.match(/^(JOB QUALIFICATIONS:|JOB DETAILS:)/);
-      const header = headerMatch ? headerMatch[0] : "";
-      const content = section.replace(header, "").trim();
-
-      const items = content
-        .split(/(?=[A-Z][a-z]{2,})/)
-        .map((item) => item.trim())
-        .filter((item) => item.split(/\s+/).length >= 5);
-
+  return parseJobDescription(description).map((section, sectionIdx) => {
+    if (section.type === "header") {
       return (
         <section key={sectionIdx} className="mb-6">
-          <h2 className="font-bold mb-2 text-gray-900">{header}</h2>
+          <h2 className="font-bold mb-2 text-gray-900">{section.header}</h2>
           <ul className="list-disc list-inside space-y-1 ml-4">
-            {items.map((item, idx) => (
+            {section.items.map((item, idx) => (
               <li key={idx}>{item}</li>
             ))}
           </ul>
@@ -139,7 +114,7 @@ function renderJobDescription(description: string) {
 
     return (
       <p key={sectionIdx} className="text-gray-700 mb-3 leading-7">
-        {section}
+        {section.text}
       </p>
     );
   });
@@ -307,7 +282,9 @@ export default async function JobDetailPage({ params }: Params) {
               )}
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
                 <Briefcase className="w-5 h-5" />
-                <span className="font-medium">{formatEmploymentType(job.contract_details, job.employment_type)}</span>
+                <span className="font-medium">
+                  {formatEmploymentType(job.contract_details, job.employment_type, "Full-time")}
+                </span>
               </div>
 
               {organization && (
