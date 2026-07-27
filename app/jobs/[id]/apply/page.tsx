@@ -275,11 +275,6 @@ export default function JobApplicationPage() {
 
   const cardBase = "bg-white border border-slate-100 rounded-2xl shadow-sm";
 
-  const getCurrencyId = (code: string) => {
-    const map: Record<string, string> = { SGD: "11", USD: "1", EUR: "2", GBP: "3", PHP: "13" };
-    return map[code] || "11";
-  };
-
   const {
     control,
     register,
@@ -1051,7 +1046,7 @@ export default function JobApplicationPage() {
           finalValue = value.trim();
 
           if (matches(field, "expected_salary") && finalValue) {
-            expectedCurrencyId = getCurrencyId(normalizedValues.expected_salary_currency);
+            expectedCurrencyId = "13";
           }
         } else if (typeof value === "number" || typeof value === "boolean") {
           finalValue = value;

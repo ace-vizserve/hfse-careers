@@ -1,0 +1,5 @@
+{
+  "$schema": "https://docs.fallow.tools/schema/config.json",
+  "ignorePatterns": ["scripts/**", "reports/**"],
+  "ignoreDependencies": ["satori", "satori-html", "@resvg/resvg-js"]
+}

@@ -10,7 +10,8 @@
       "Bash(git pull *)",
       "Bash(git stash *)",
       "Bash(git push *)",
-      "PowerShell(npx fallow --summary)"
+      "PowerShell(npx fallow --summary)",
+      "PowerShell(npx fallow --explain)"
     ]
   }
 }
