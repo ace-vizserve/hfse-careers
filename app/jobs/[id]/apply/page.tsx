@@ -19,7 +19,6 @@ import {
   formatFamilyParticularsToHTML,
   formatReferencesToHTML,
   generateDeclarationList,
-  hasAlreadyAppliedToJob,
 } from "@/lib/utils";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -238,6 +237,9 @@ export default function JobApplicationPage() {
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
     allowedMimeTypes: ["application/pdf"],
+    // Safari reports an empty file.type for PDFs picked from Files / iCloud Drive,
+    // which fails a MIME-only check, so accept the extension as well.
+    allowedFileExtensions: [".pdf"],
     maxFiles: 1,
     maxFileSize: 1000 * 1000 * 5,
   });
@@ -281,6 +283,7 @@ export default function JobApplicationPage() {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     watch,
     trigger,
     formState: { errors },
@@ -291,6 +294,7 @@ export default function JobApplicationPage() {
   });
 
   const errorSummaryRef = useRef<HTMLDivElement | null>(null);
+  const errorBannerRef = useRef<HTMLDivElement | null>(null);
 
   const pathToFieldId = (path: string) => `field-${path.replace(/\./g, "-")}`;
 
@@ -383,13 +387,42 @@ export default function JobApplicationPage() {
   usePreventRefresh(true);
 
   useEffect(() => {
-    if (resumeProps.successes.length > 0) {
-      setValue("resume", String(resumeProps.successes[0]), {
+    const uploadedUrl = resumeProps.successes[0];
+
+    if (uploadedUrl) {
+      setValue("resume", String(uploadedUrl), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    } else if (getValues("resume")) {
+      // The uploaded file was removed, so the stored URL no longer points at it.
+      setValue("resume", "", {
         shouldDirty: true,
         shouldValidate: true,
       });
     }
-  }, [resumeProps.successes, setValue]);
+  }, [resumeProps.successes, setValue, getValues]);
+
+  // Submit-time failures render in a banner at the top of a very long form, so
+  // bring it into view and mirror it as a toast instead of leaving the user at
+  // the submit button with no visible feedback.
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    sileo.error({
+      title: error.error,
+      description: error.details,
+    });
+
+    requestAnimationFrame(() => {
+      errorBannerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+  }, [error]);
 
   useEffect(() => {
     if (!watchedIsReferred) {
@@ -859,7 +892,6 @@ export default function JobApplicationPage() {
                   id={inputId}
                   type="text"
                   inputMode="text"
-                  pattern="[STFGMstfgm][0-9]{7}[A-Za-z]"
                   value={field.value?.toUpperCase()}
                   onChange={(e) => {
                     const v = e.target.value.toUpperCase();
@@ -1008,11 +1040,27 @@ export default function JobApplicationPage() {
     setError(null);
 
     try {
-      const existingMatch = await hasAlreadyAppliedToJob({
-        jobPk: Number(jobId),
-        email: values.email,
-        fullName: values.full_name,
+      // Runs server-side so the browser never talks to api.manatal.com directly.
+      const duplicateCheckResponse = await fetch("/api/applications/check-duplicate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobPk: Number(jobId),
+          email: values.email,
+          fullName: values.full_name,
+        }),
       });
+
+      if (!duplicateCheckResponse.ok) {
+        const duplicateCheckError = await duplicateCheckResponse.json().catch(() => null);
+        setError({
+          error: duplicateCheckError?.error || "Unable to check for an existing application",
+          details: "Please try again. If the problem continues, contact us before re-submitting.",
+        });
+        return;
+      }
+
+      const existingMatch = await duplicateCheckResponse.json();
 
       if (existingMatch.alreadyApplied) {
         sileo.error({
@@ -1335,13 +1383,19 @@ export default function JobApplicationPage() {
             <>
               <ApplicationNote />
               <br />
-              <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+              {/* noValidate: validation is owned by Zod + react-hook-form. Native
+                  constraint validation would cancel submission before the submit
+                  event fires, so handleSubmit/onInvalid never run and the user
+                  sees nothing happen. */}
+              <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
                 <div ref={errorSummaryRef}>
                   <ErrorSummary errors={errorList} onItemClick={scrollToField} />
                 </div>
 
                 {error && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex flex-col gap-1 text-sm">
+                  <div
+                    ref={errorBannerRef}
+                    className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex flex-col gap-1 text-sm">
                     <div>{error.error}</div>
                     {error.details && <div className="text-rose-600">{error.details}</div>}
                   </div>

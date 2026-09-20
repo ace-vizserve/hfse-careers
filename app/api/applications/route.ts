@@ -151,36 +151,38 @@ export async function POST(request: Request) {
       );
     }
 
-    const submitDataToWebhook = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        application_data: {
-          job_id,
-          job_portal,
-          referrer_email,
-          referrer_name,
-          candidate_name: appData["1741679"],
-          candidate_email: appData["1741680"],
-          organization_name,
-          position_name,
+    // The candidate already exists in Manatal at this point. The webhook is a
+    // notification side effect, so a failure here is logged but never reported
+    // to the applicant as a failed submission.
+    try {
+      const submitDataToWebhook = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          application_data: {
+            job_id,
+            job_portal,
+            referrer_email,
+            referrer_name,
+            candidate_name: appData["1741679"],
+            candidate_email: appData["1741680"],
+            organization_name,
+            position_name,
+          },
+        }),
+      });
 
-    const submitDataToWebhookText = await submitDataToWebhook.text();
-
-    if (!submitDataToWebhook.ok) {
-      return Response.json(
-        {
-          error: "Failed to submit data",
-          details: submitDataToWebhookText,
-          status: submitDataToWebhook.status,
-        },
-        { status: submitDataToWebhook.status },
-      );
+      if (!submitDataToWebhook.ok) {
+        const submitDataToWebhookText = await submitDataToWebhook.text();
+        console.error(
+          `Notification webhook failed (${submitDataToWebhook.status}) for candidate ${result.id}:`,
+          submitDataToWebhookText,
+        );
+      }
+    } catch (webhookError) {
+      console.error(`Notification webhook threw for candidate ${result.id}:`, webhookError);
     }
 
     return Response.json({

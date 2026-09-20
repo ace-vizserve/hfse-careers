@@ -61,16 +61,16 @@ const Dropzone = ({
   );
 };
 const DropzoneContent = ({ className }: { className?: string }) => {
-  const { files, setFiles, onUpload, loading, successes, errors, maxFileSize, maxFiles, isSuccess } =
+  const { files, removeFile, onUpload, loading, successNames, errors, maxFileSize, maxFiles, isSuccess } =
     useDropzoneContext();
 
   const exceedMaxFiles = files.length > maxFiles;
 
   const handleRemoveFile = useCallback(
     (fileName: string) => {
-      setFiles(files.filter((file) => file.name !== fileName));
+      removeFile(fileName);
     },
-    [files, setFiles],
+    [removeFile],
   );
 
   if (isSuccess) {
@@ -84,12 +84,20 @@ const DropzoneContent = ({ className }: { className?: string }) => {
           <CheckCircle2Icon size={18} className="text-emerald-600" />
         </div>
 
-        <div className="text-start min-w-0">
+        <div className="text-start min-w-0 shrink grow">
           <p className="text-sm font-semibold text-emerald-700">Upload complete</p>
           <p className="text-xs text-emerald-600">
             {files.length} file{files.length > 1 ? "s" : ""} uploaded successfully
           </p>
         </div>
+
+        <Button
+          type="button"
+          variant="link"
+          className="shrink-0 text-emerald-700 hover:text-emerald-900"
+          onClick={() => files.forEach((file) => handleRemoveFile(file.name))}>
+          Replace
+        </Button>
       </div>
     );
   }
@@ -98,7 +106,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
     <div className={cn("flex flex-col", className)}>
       {files.map((file, idx) => {
         const fileError = errors.find((e) => e.name === file.name);
-        const isSuccessfullyUploaded = !!successes.find((e) => e === file.name);
+        const isSuccessfullyUploaded = successNames.includes(file.name);
 
         return (
           <div key={`${file.name}-${idx}`} className="flex items-center gap-x-4 border-b py-2 first:mt-4 last:mb-4 ">
@@ -137,8 +145,9 @@ const DropzoneContent = ({ className }: { className?: string }) => {
               )}
             </div>
 
-            {!loading && !isSuccessfullyUploaded && (
+            {!loading && (
               <Button
+                type="button"
                 size="icon"
                 variant="link"
                 className="shrink-0 justify-self-end text-muted-foreground hover:text-foreground"
@@ -155,19 +164,16 @@ const DropzoneContent = ({ className }: { className?: string }) => {
           {files.length - maxFiles > 1 ? "s" : ""}.
         </p>
       )}
-      {files.length > 0 && !exceedMaxFiles && (
+      {errors.length > 0 && !exceedMaxFiles && (
         <div className="mt-2">
-          <Button
-            variant="outline"
-            onClick={onUpload}
-            disabled={files.some((file) => file.errors.length !== 0) || loading}>
+          <Button type="button" variant="outline" onClick={() => onUpload()} disabled={loading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Uploading...
               </>
             ) : (
-              <>Upload files</>
+              <>Retry upload</>
             )}
           </Button>
         </div>
@@ -193,11 +199,12 @@ const DropzoneEmptyState = ({ className }: { className?: string }) => {
       <div className="flex flex-col items-center gap-y-1">
         <p className="text-xs text-muted-foreground">
           Drag and drop or{" "}
-          <a
+          <button
+            type="button"
             onClick={() => inputRef.current?.click()}
             className="underline cursor-pointer transition hover:text-foreground">
             select {maxFiles === 1 ? `file` : "files"}
-          </a>{" "}
+          </button>{" "}
           to upload
         </p>
         {maxFileSize !== Number.POSITIVE_INFINITY && (

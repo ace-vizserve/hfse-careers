@@ -41,6 +41,7 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  type,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
@@ -48,12 +49,19 @@ function Button({
   }) {
   const Comp = asChild ? Slot : "button"
 
+  // A <button> inside a <form> defaults to type="submit", so an untyped Button
+  // would submit the form. Default to "button" and let callers opt into submit.
+  // When asChild is set the child element may not be a <button>, so only pass
+  // type through if it was given explicitly.
+  const typeProps = asChild ? (type !== undefined ? { type } : {}) : { type: type ?? "button" }
+
   return (
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      {...typeProps}
       {...props}
     />
   )
