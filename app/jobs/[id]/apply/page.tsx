@@ -234,8 +234,17 @@ export default function JobApplicationPage() {
   const jobId = params.id as string;
   const jobPortal = searchParams.get("job-portal");
 
+  // Uploads used to land in the bucket root under the candidate's own filename,
+  // with upsert on. Two applicants who both sent "resume.pdf" collided: the
+  // second silently overwrote the first, and the first candidate's Manatal
+  // record then pointed at the second candidate's document. A per-application
+  // folder makes that impossible and keeps the URLs unguessable.
+  const uploadFolder = useMemo(() => crypto.randomUUID(), []);
+
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
+    path: `${jobId}/${uploadFolder}`,
+    upsert: false,
     allowedMimeTypes: ["application/pdf"],
     // Safari reports an empty file.type for PDFs picked from Files / iCloud Drive,
     // which fails a MIME-only check, so accept the extension as well.
