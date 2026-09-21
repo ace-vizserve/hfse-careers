@@ -10,6 +10,7 @@ import { ErrorSummary, type ErrorSummaryItem } from "@/components/ui/error-summa
 import { IndustryCombobox } from "@/components/ui/industry-combo-box";
 import { NationalityCombobox } from "@/components/ui/nationality-combo-box";
 import { ScrollToSubmitButton } from "@/components/ui/scroll-to-submit-button";
+import { Stepper, type StepperStep } from "@/components/ui/stepper";
 import { StyledSelect } from "@/components/ui/styled-select";
 import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
 import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
@@ -22,9 +23,10 @@ import {
   generateDeclarationList,
 } from "@/lib/utils";
 import { MANATAL_FIELDS } from "@/lib/forms/application-fields";
+import { useApplicationFormStore } from "@/lib/stores/application-form-store";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -75,6 +77,68 @@ const matchesSection = (field: ManatalSectionField, ...names: string[]) => {
   const pool = [normalize(field.slug), normalize(field.name), normalize(field.label)];
   return names.some((candidate) => pool.includes(normalize(candidate)));
 };
+
+const STEPS: StepperStep[] = [
+  { id: "about", title: "About You", description: "Details & contact" },
+  { id: "background", title: "Family & Education", description: "Family & schooling" },
+  { id: "experience", title: "Experience", description: "Work history" },
+  { id: "declarations", title: "Declarations", description: "Declare & confirm" },
+];
+
+/**
+ * Which schema paths each step owns. `trigger()` runs against this list before
+ * the step advances, so a step can never be left behind in an invalid state,
+ * and every required path belongs to exactly one step.
+ */
+const STEP_FIELDS: (keyof JobApplicationFormValues)[][] = [
+  [
+    "expected_salary",
+    "expected_salary_currency",
+    "linkedin",
+    "industries",
+    "years_of_experience",
+    "resume",
+    "is_referred",
+    "referrer_details",
+    "is_applying_for_teacher",
+    "preferredsubjectsandlevels",
+    "full_name",
+    "preferredname",
+    "residentialstatus",
+    "nationalities",
+    "birth_date",
+    "gender",
+    "religion",
+    "nricfin",
+    "latest_degree",
+    "passportno",
+    "placedateofissue",
+    "phone_number",
+    "email",
+    "address",
+    "postalcode",
+    "overseasaddress",
+    "workpermitpass",
+    "name",
+    "relationship",
+    "address_b",
+    "mobilenumber",
+    "hometelephonenumber",
+    "officetelephonenumber",
+    "emailaddress",
+  ],
+  ["family_members", "educations", "coursename", "coursestartdate", "expectedyearofcompletion"],
+  ["experiences", "membershipsassociations", "description"],
+  [
+    "declarations",
+    "references",
+    "declare_truth",
+    "declare_consent",
+    "skipbackgroundcheck",
+    "rcbcrequestissued",
+    "bcrequestissued",
+  ],
+];
 
 const buildDefaultValues = (): FormValues => ({
   expected_salary: "",
@@ -317,6 +381,22 @@ export default function JobApplicationPage() {
     }
   }, [outstanding, loading]);
 
+
+  const {
+    activeStep,
+    maxVisitedStep,
+    completedSteps,
+    values: draftValues,
+    hydrated,
+    setActiveStep,
+    markStepCompleted,
+    markStepIncomplete,
+    saveValues,
+    startJob,
+    clear: clearDraft,
+  } = useApplicationFormStore();
+
+  const isLastStep = activeStep === STEPS.length - 1;
 
   const scrollToField = (path: string) => {
     const el = document.getElementById(pathToFieldId(path));
@@ -565,6 +645,51 @@ export default function JobApplicationPage() {
     ).length;
   }, [watchedReferences]);
 
+  // A step may only be left once its own fields validate, so the candidate is
+  // never carried past a mistake and told about it pages later.
+  const goToStep = async (target: number) => {
+    if (target === activeStep) return;
+
+    if (target > activeStep) {
+      const valid = await trigger(STEP_FIELDS[activeStep] as never);
+
+      if (!valid) {
+        markStepIncomplete(activeStep);
+        onInvalid();
+        return;
+      }
+
+      markStepCompleted(activeStep);
+    }
+
+    setActiveStep(target);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Drafts are per job, so a stored draft for another job is discarded.
+  useEffect(() => {
+    if (jobId) startJob(String(jobId));
+  }, [jobId, startJob]);
+
+  // Restore once, after the persisted draft has been merged in, so the form
+  // does not reset itself over the draft on first paint.
+  const restoredRef = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated || restoredRef.current || loading) return;
+
+    restoredRef.current = true;
+    if (draftValues) reset({ ...buildDefaultValues(), ...draftValues } as FormValues);
+  }, [hydrated, draftValues, loading, reset]);
+
+  // Persist as they go. Debounced so typing does not write on every keystroke.
+  useEffect(() => {
+    if (!hydrated || !restoredRef.current) return;
+
+    const timer = setTimeout(() => saveValues(watchedValues as never), 500);
+    return () => clearTimeout(timer);
+  }, [watchedValues, hydrated, saveValues]);
+
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     setError(null);
@@ -762,6 +887,7 @@ export default function JobApplicationPage() {
         return;
       }
 
+      clearDraft();
       setSubmitSuccess(true);
     } catch (err: any) {
       console.error("Submission error:", err);
@@ -916,6 +1042,16 @@ export default function JobApplicationPage() {
                   event fires, so handleSubmit/onInvalid never run and the user
                   sees nothing happen. */}
               <FormProvider {...methods}>
+              <div className={`${cardBase} p-5 mb-6`}>
+                <Stepper
+                  steps={STEPS}
+                  activeStep={activeStep}
+                  onStepChange={goToStep}
+                  completedSteps={completedSteps}
+                  maxNavigableStep={maxVisitedStep}
+                />
+              </div>
+
               <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
                 <div ref={errorSummaryRef}>
                   <ErrorSummary errors={errorList} onItemClick={scrollToField} />
@@ -930,6 +1066,8 @@ export default function JobApplicationPage() {
                   </div>
                 )}
 
+                {activeStep === 0 && (
+                  <>
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="01"
@@ -1184,6 +1322,11 @@ export default function JobApplicationPage() {
                   </div>
                 </div>
 
+                  </>
+                )}
+
+                {activeStep === 1 && (
+                  <>
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="05"
@@ -1479,6 +1622,11 @@ export default function JobApplicationPage() {
                   </div>
                 )}
 
+                  </>
+                )}
+
+                {activeStep === 2 && (
+                  <>
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="08"
@@ -1674,6 +1822,11 @@ export default function JobApplicationPage() {
                   </div>
                 </div>
 
+                  </>
+                )}
+
+                {activeStep === 3 && (
+                  <>
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="10"
@@ -2036,6 +2189,28 @@ export default function JobApplicationPage() {
 
                   {/* Optional subtle divider accent */}
                   <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+                </div>
+                  </>
+                )}
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => goToStep(activeStep - 1)}
+                    disabled={activeStep === 0}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    <ArrowLeft className="size-4" />
+                    Back
+                  </button>
+
+                  {!isLastStep && (
+                    <button
+                      type="button"
+                      onClick={() => goToStep(activeStep + 1)}
+                      className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 transition-all active:scale-[0.98]">
+                      Continue
+                      <ArrowRight className="size-4" />
+                    </button>
+                  )}
                 </div>
               </form>
               </FormProvider>

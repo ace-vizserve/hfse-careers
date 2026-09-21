@@ -96,6 +96,8 @@ export async function fillValidApplication(page: Page) {
   await fillText(page, "mobilenumber", "+6598765432");
   await fillText(page, "emailaddress", "mei.ling.e2e@example.com");
 
+  await continueToNextStep(page, "Family Particulars");
+
   // 05 - Family particulars
   await fillText(page, "family_members.0.name", "Wei Ming Tan");
   await chooseOption(page, "family_members.0.relationship", "Father");
@@ -110,11 +112,15 @@ export async function fillValidApplication(page: Page) {
   await pickToday(page, "educations.0.started_at");
   await pickToday(page, "educations.0.ended_at");
 
+  await continueToNextStep(page, "Employment History");
+
   // 07 - Experience. Marking it current clears the end-date requirement.
   await fillText(page, "experiences.0.title", "Mathematics Teacher");
   await fillText(page, "experiences.0.employer", "Raffles Institution");
   await pickToday(page, "experiences.0.started_at");
   await tickCheckbox(page, "#field-experiences-0-is_current_employer");
+
+  await continueToNextStep(page, "Declaration");
 
   // 08 - References: the schema demands three. Click until the rows exist, since
   // a click that lands mid-render is dropped.
@@ -140,10 +146,8 @@ export async function fillValidApplication(page: Page) {
 }
 
 /**
- * These checkboxes are `sr-only` inputs sitting next to a styled box, and the
- * surrounding label swallows clicks, so the visible sibling is the only thing a
- * user (or a test) can actually hit. Retried because an early click can land
- * before React has attached the handler.
+ * `sr-only` inputs beside a styled box; the visible sibling is what a user hits.
+ * Retried because an early click can land before React attaches the handler.
  */
 export async function tickCheckbox(page: Page, selector: string) {
   const input = page.locator(selector);
@@ -158,9 +162,24 @@ export async function tickCheckbox(page: Page, selector: string) {
   await expect(input).toBeChecked();
 }
 
+/**
+ * Candidates click the sentence, not the 20px box. When CheckItem was declared
+ * inside ConsentDeclarations it remounted on every render and this click was
+ * lost, leaving Submit permanently disabled - so clicking the text here is the
+ * regression guard.
+ */
 export async function acceptConsent(page: Page) {
-  await tickCheckbox(page, "#declare-truth");
-  await tickCheckbox(page, "#declare-consent");
+  await page.locator('label[for="declare-truth"] span').click();
+  await expect(page.locator("#declare-truth")).toBeChecked();
+
+  await page.locator('label[for="declare-consent"] span').click();
+  await expect(page.locator("#declare-consent")).toBeChecked();
+}
+
+/** Advances one step, failing loudly if validation held it back. */
+export async function continueToNextStep(page: Page, expectedHeading: string | RegExp) {
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: expectedHeading })).toBeVisible();
 }
 
 export const submitButton = (page: Page) => page.getByRole("button", { name: "Submit Application" });
