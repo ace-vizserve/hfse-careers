@@ -45,3 +45,8 @@ next-env.d.ts
 
 # fallow reports
 /reports/fallow/
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

@@ -202,6 +202,15 @@ export const jobApplicationSchema = z
 
     references: z.array(characterReferenceSchema).min(3, "Please provide at least 3 character references"),
 
+    // The two consent statements live in the schema rather than in local state, so
+    // submission is gated by exactly one thing: whether the form validates.
+    declare_truth: z
+      .boolean()
+      .refine((v) => v === true, "Please confirm that the particulars you gave are true and correct"),
+    declare_consent: z
+      .boolean()
+      .refine((v) => v === true, "Please consent to the collection and use of your personal data"),
+
     skipbackgroundcheck: z.boolean().default(false),
     rcbcrequestissued: z.boolean().default(false),
     bcrequestissued: z.boolean().default(false),

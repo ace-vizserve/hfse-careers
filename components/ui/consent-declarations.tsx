@@ -1,3 +1,51 @@
+/**
+ * Hoisted out of ConsentDeclarations on purpose. Declared inline, it was a new
+ * component type on every render, so React unmounted and remounted the checkbox
+ * each time state changed - which made a click on the label fail to register.
+ */
+const CheckItem = ({
+  checked,
+  onChange,
+  children,
+  id,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: React.ReactNode;
+  id: string;
+}) => (
+  <label
+    htmlFor={id}
+    className={`flex items-start gap-4 p-5 rounded-xl border-2 cursor-pointer transition-all select-none ${
+      checked ? "border-blue-400 bg-blue-50/50" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+    }`}>
+    <div className="flex-shrink-0 mt-0.5">
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only"
+      />
+      <div
+        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+          checked ? "bg-blue-600 border-blue-600" : "border-slate-300 bg-white"
+        }`}>
+        {checked && (
+          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+            />
+          </svg>
+        )}
+      </div>
+    </div>
+    <span className={`text-sm leading-relaxed ${checked ? "text-slate-800" : "text-slate-600"}`}>{children}</span>
+  </label>
+);
+
 export const ConsentDeclarations = ({
   declareTruth,
   setDeclareTruth,
@@ -9,49 +57,6 @@ export const ConsentDeclarations = ({
   declareConsent: boolean;
   setDeclareConsent: (v: boolean) => void;
 }) => {
-  const CheckItem = ({
-    checked,
-    onChange,
-    children,
-    id,
-  }: {
-    checked: boolean;
-    onChange: (v: boolean) => void;
-    children: React.ReactNode;
-    id: string;
-  }) => (
-    <label
-      htmlFor={id}
-      className={`flex items-start gap-4 p-5 rounded-xl border-2 cursor-pointer transition-all select-none ${
-        checked ? "border-blue-400 bg-blue-50/50" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
-      }`}>
-      <div className="flex-shrink-0 mt-0.5">
-        <input
-          id={id}
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="sr-only"
-        />
-        <div
-          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-            checked ? "bg-blue-600 border-blue-600" : "border-slate-300 bg-white"
-          }`}>
-          {checked && (
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              />
-            </svg>
-          )}
-        </div>
-      </div>
-      <span className={`text-sm leading-relaxed ${checked ? "text-slate-800" : "text-slate-600"}`}>{children}</span>
-    </label>
-  );
-
   return (
     <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-8">
       <div className="flex items-start gap-4 mb-7">

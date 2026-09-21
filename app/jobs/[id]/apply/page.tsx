@@ -1,6 +1,7 @@
 "use client";
 
 import { entity_list } from "@/app/constants";
+import { ApplicationFormField } from "@/components/application-form/application-field";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { ApplicationNote } from "@/components/ui/application-note";
 import { ConsentDeclarations } from "@/components/ui/consent-declarations";
@@ -20,6 +21,7 @@ import {
   formatReferencesToHTML,
   generateDeclarationList,
 } from "@/lib/utils";
+import { MANATAL_FIELDS } from "@/lib/forms/application-fields";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUpRight, ShieldCheck } from "lucide-react";
@@ -27,7 +29,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Controller, FieldErrors, useFieldArray, useForm } from "react-hook-form";
+import { Controller, FieldErrors, FormProvider, useFieldArray, useForm } from "react-hook-form";
 import { sileo } from "sileo";
 
 interface JobDetail {
@@ -41,23 +43,6 @@ interface JobDetail {
   org_website?: string;
 }
 
-interface FormField {
-  id: string | number;
-  slug?: string;
-  name?: string;
-  label: string;
-  type: string;
-  is_required?: boolean;
-  isrequired?: boolean;
-  required?: boolean;
-  field_category?: string;
-  fieldcategory?: string;
-  display_type?: string;
-  displaytype?: string;
-  choices?: string[];
-  options?: string[];
-  placeholder?: string;
-}
 
 type FormValues = JobApplicationFormValues & Record<string, any>;
 
@@ -69,51 +54,27 @@ const declarationQuestions = [
   "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
 ] as const;
 
+/** Rendered by ConsentDeclarations, so they have no `field-` element of their own. */
+const CONSENT_PATHS = new Set(["declare_truth", "declare_consent"]);
+
 const normalize = (value?: string | number | null) =>
   String(value ?? "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
-const getFieldKey = (field: FormField) => String(field.slug || field.name || field.id);
-const getRequired = (field: FormField) => Boolean(field.required ?? field.isrequired ?? field.is_required);
-const getCategory = (field: FormField) => field.fieldcategory || field.field_category || "";
-const getDisplayType = (field: FormField) => field.displaytype || field.display_type || "";
-const getChoices = (field: FormField) => field.choices || field.options || [];
 
-const matches = (field: FormField, ...values: string[]) => {
-  const pool = [
-    normalize(field.slug),
-    normalize(field.name),
-    normalize(field.label),
-    normalize(getCategory(field)),
-    normalize(getDisplayType(field)),
-    normalize(field.type),
-    normalize(field.id),
-  ];
 
-  return values.some((value) => {
-    const target = normalize(value);
-    return pool.some((item) => item === target);
-  });
+/**
+ * Scalar fields come from APPLICATION_FIELDS. Only the education and experience
+ * section ids still have to be resolved from Manatal's response, because their
+ * custom-field ids are not documented anywhere in this repo.
+ */
+type ManatalSectionField = { id: string | number; slug?: string; name?: string; label?: string };
+
+const matchesSection = (field: ManatalSectionField, ...names: string[]) => {
+  const pool = [normalize(field.slug), normalize(field.name), normalize(field.label)];
+  return names.some((candidate) => pool.includes(normalize(candidate)));
 };
-
-const isNricFinField = (field: FormField) =>
-  matches(field, "nricfin", "nric", "fin", "singapore id", "pink ic", "identification");
-
-const workPassOptions = [
-  "Dependant's Pass (DP)",
-  "Employment Pass (EP)",
-  "EntrePass",
-  "Long-Term Visit Pass (LTVP)",
-  "Permanent Residency (PR)",
-  "S Pass",
-  "Short-Term Visit Pass (STVP)/Visit Pass",
-  "Training Employment Pass",
-  "Work Holiday Pass",
-  "Work Permit (WP)",
-  "Student Pass",
-  "No Permit/Pass",
-] as const;
 
 const buildDefaultValues = (): FormValues => ({
   expected_salary: "",
@@ -221,6 +182,9 @@ const buildDefaultValues = (): FormValues => ({
     },
   ],
 
+  declare_truth: false,
+  declare_consent: false,
+
   skipbackgroundcheck: false,
   rcbcrequestissued: false,
   bcrequestissued: false,
@@ -253,31 +217,14 @@ export default function JobApplicationPage() {
     maxFileSize: 1000 * 1000 * 5,
   });
 
-  const [declareTruth, setDeclareTruth] = useState<boolean>(false);
-  const [declareConsent, setDeclareConsent] = useState<boolean>(false);
   const [job, setJob] = useState<JobDetail | null>(null);
+  const [sectionFields, setSectionFields] = useState<ManatalSectionField[]>([]);
   const [loading, setLoading] = useState(true);
-  const [formFields, setFormFields] = useState<FormField[]>([]);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<{ error: string; details?: string } | null>(null);
 
-  const defaultFields: FormField[] = [
-    { id: "full_name", slug: "full_name", label: "Full Name", type: "char", required: true },
-    { id: "email", slug: "email", label: "Email", type: "char", required: true },
-    { id: "phone_number", slug: "phone_number", label: "WhatsApp Number", type: "char", required: true },
-    { id: "nationalities", slug: "nationalities", label: "Nationality", type: "char", required: false },
-    {
-      id: "linkedin",
-      slug: "linkedin",
-      label: "LinkedIn Profile URL",
-      type: "char",
-      required: false,
-      field_category: "social_media",
-    },
-    { id: "resume", slug: "resume", label: "Resume", type: "file", required: true, field_category: "resume" },
-  ];
 
   const inputBase =
     "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 " +
@@ -285,6 +232,12 @@ export default function JobApplicationPage() {
     "hover:border-slate-300 text-sm";
 
   const cardBase = "bg-white border border-slate-100 rounded-2xl shadow-sm";
+
+  const methods = useForm({
+    resolver: zodResolver(jobApplicationSchema),
+    defaultValues: buildDefaultValues(),
+    mode: "onTouched",
+  });
 
   const {
     control,
@@ -296,12 +249,8 @@ export default function JobApplicationPage() {
     watch,
     trigger,
     clearErrors,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(jobApplicationSchema),
-    defaultValues: buildDefaultValues(),
-    mode: "onBlur",
-  });
+    formState: { errors, isValid },
+  } = methods;
 
   const errorSummaryRef = useRef<HTMLDivElement | null>(null);
   const errorBannerRef = useRef<HTMLDivElement | null>(null);
@@ -330,6 +279,44 @@ export default function JobApplicationPage() {
   };
 
   const errorList = useMemo(() => flattenErrors(errors), [errors]);
+
+  // A disabled submit button is a dead end unless the candidate can see what is
+  // still outstanding, so derive it from the schema as they type rather than
+  // waiting for a submit that cannot happen.
+  const watchedValues = watch();
+  const outstanding = useMemo<ErrorSummaryItem[]>(() => {
+    const result = jobApplicationSchema.safeParse(watchedValues);
+    if (result.success) return [];
+
+    const seen = new Set<string>();
+    return result.error.issues.reduce<ErrorSummaryItem[]>((acc, issue) => {
+      const path = issue.path.join(".");
+      if (seen.has(path)) return acc;
+
+      seen.add(path);
+      acc.push({ path, message: issue.message });
+      return acc;
+    }, []);
+  }, [watchedValues]);
+
+  // If Manatal's field list omits something the schema requires, the candidate
+  // is told to fix a field that was never rendered. Surface that to us instead
+  // of letting them hit an unsatisfiable form.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" || loading) return;
+
+    const unreachable = outstanding.filter(
+      (item) => !CONSENT_PATHS.has(item.path) && !document.getElementById(pathToFieldId(item.path)),
+    );
+
+    if (unreachable.length > 0) {
+      console.warn(
+        "[apply] required by the schema but no input is rendered, so these can never be satisfied:",
+        unreachable.map((item) => item.path),
+      );
+    }
+  }, [outstanding, loading]);
+
 
   const scrollToField = (path: string) => {
     const el = document.getElementById(pathToFieldId(path));
@@ -389,6 +376,8 @@ export default function JobApplicationPage() {
   // Singaporeans and PRs always hold an NRIC; a foreigner applying from overseas may
   // hold neither an NRIC nor a FIN. Mirrors the rule in jobApplicationSchema.
   const isNricFinRequired = watchedResidentialStatus !== "Foreigner";
+  const watchedDeclareTruth = watch("declare_truth");
+  const watchedDeclareConsent = watch("declare_consent");
   const watchedIsReferred = watch("is_referred");
   const watchedIsApplyingForTeacher = watch("is_applying_for_teacher");
   const watchedDeclarations = watch("declarations");
@@ -484,26 +473,16 @@ export default function JobApplicationPage() {
         }
         setJob(jobData);
 
+        // The form itself is rendered from APPLICATION_FIELDS; this response is
+        // only consulted for the education and experience section ids.
         const fieldsRes = await fetch(`/api/jobs/${jobId}/form-fields`);
-        let fields = defaultFields;
 
         if (fieldsRes.ok) {
           const data = await fieldsRes.json();
-          if (data.fields?.length > 0) fields = data.fields;
+          if (Array.isArray(data.fields)) setSectionFields(data.fields);
         }
 
-        setFormFields(fields);
-
-        const nextDefaults = buildDefaultValues();
-
-        fields.forEach((field) => {
-          const key = getFieldKey(field);
-          if (normalize(field.type) !== "file" && !(key in nextDefaults)) {
-            nextDefaults[key] = "";
-          }
-        });
-
-        reset(nextDefaults);
+        reset(buildDefaultValues());
       } catch {
         setError({
           error: "Unable to load the application form.",
@@ -517,8 +496,6 @@ export default function JobApplicationPage() {
     fetchData();
   }, [jobId, reset]);
 
-  const getField = (...values: string[]) => formFields.find((field) => matches(field, ...values));
-  const getFields = (...values: string[]) => formFields.filter((field) => matches(field, ...values));
 
   const getNestedError = (path: string) => {
     return path.split(".").reduce<any>((acc, part) => {
@@ -580,474 +557,7 @@ export default function JobApplicationPage() {
     </button>
   );
 
-  const renderField = (field: FormField) => {
-    const key = getFieldKey(field);
-    const inputId = pathToFieldId(key);
 
-    const isResumeField = matches(field, "resume");
-    const isSocialField = matches(field, "social_media", "LinkedIn Profile URL");
-    const isDateField =
-      normalize(field.type) === "datetime" ||
-      normalize(getDisplayType(field)) === "date" ||
-      matches(field, "birthdate", "date of birth", "coursestartdate", "course start date");
-    const isLongTextField = normalize(field.type) === "longtext" || matches(field, "longtext");
-    const isIntegerField = normalize(field.type) === "integer" || matches(field, "expectedyearofcompletion");
-    const isBooleanField = normalize(field.type) === "boolean" || matches(field, "boolean");
-    const isDropdownField = matches(field, "dropdown") && getChoices(field).length > 0;
-    const isEmailField = matches(field, "email", "emailaddress");
-    const isPhoneField = matches(
-      field,
-      "phonenumber",
-      "mobilenumber",
-      "hometelephonenumber",
-      "officetelephonenumber",
-      "whatsapp number",
-      "mobile number",
-      "telephone number",
-    );
-    const isPostalCodeField = matches(field, "postalcode", "postal code");
-    const isGenderField = matches(field, "gender");
-    const isResidentialStatusField = matches(field, "residentialstatus", "residential status");
-    const isNationalityField = matches(field, "nationalities", "nationality");
-    const isIndustryField = matches(field, "industries", "work industry");
-    const isHighestQualificationField = matches(field, "latestdegree", "highest qualification");
-    const isExpectedSalaryField = matches(field, "expectedsalary", "expected salary");
-    const isStrictNumericField =
-      normalize(field.type) === "integer" ||
-      normalize(field.slug) === "postalcode" ||
-      normalize(field.slug) === "yearsofexperience";
-
-    if (field.label === "Briefly share your skills, experiences, and achievements beyond your resume") {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <textarea
-                id={inputId}
-                rows={5}
-                value={field.value}
-                onChange={field.onChange}
-                className={`${inputBase} resize-none`}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isDateField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <DatePicker id={inputId} value={field.value} onChange={(v) => field.onChange(v)} onBlur={field.onBlur} />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isExpectedSalaryField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={"expected_salary" as any}
-            render={({ field }) => (
-              <input
-                id={pathToFieldId("expected_salary")}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={(e) => {
-                  if (!/[0-9]/.test(e.key)) e.preventDefault();
-                }}
-                placeholder="e.g. 3500"
-                className={inputBase}
-              />
-            )}
-          />
-
-          <ErrorText path="expected_salary" />
-        </>
-      );
-    }
-
-    if (isResumeField) {
-      return (
-        <>
-          <div id={pathToFieldId("resume")} tabIndex={-1} className="mt-1">
-            <Dropzone {...resumeProps}>
-              <DropzoneEmptyState />
-              <DropzoneContent />
-            </Dropzone>
-          </div>
-          <ErrorText path="resume" />
-        </>
-      );
-    }
-
-    if (isResidentialStatusField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <StyledSelect
-                id={inputId}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="Select residential status"
-                options={[
-                  { value: "Singaporean", label: "Singaporean" },
-                  { value: "PR", label: "PR" },
-                  { value: "Foreigner", label: "Foreigner" },
-                ]}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isNationalityField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => <NationalityCombobox id={inputId} {...field} />}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isIndustryField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <IndustryCombobox
-                id={inputId}
-                value={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
-                onChange={field.onChange}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isHighestQualificationField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <StyledSelect
-                id={inputId}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="Select qualification"
-                options={[
-                  { value: "High School Diploma", label: "High School Diploma" },
-                  { value: "Associates Degree", label: "Associate's Degree" },
-                  { value: "Bachelors Degree", label: "Bachelor's Degree" },
-                  { value: "Masters Degree", label: "Master's Degree" },
-                  { value: "Doctorate", label: "Doctorate" },
-                ]}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isDropdownField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field: controllerField }) => (
-              <StyledSelect
-                id={inputId}
-                value={controllerField.value}
-                onChange={controllerField.onChange}
-                onBlur={controllerField.onBlur}
-                placeholder="Select an option"
-                options={getChoices(field).map((choice: string) => ({ value: choice, label: choice }))}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isGenderField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <StyledSelect
-                id={inputId}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder="Select gender"
-                options={[
-                  { value: "male", label: "Male" },
-                  { value: "female", label: "Female" },
-                ]}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isLongTextField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <textarea
-                id={inputId}
-                rows={4}
-                value={field.value}
-                onChange={field.onChange}
-                className={`${inputBase} resize-none`}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isBooleanField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <StyledSelect
-                id={inputId}
-                value={field.value === true ? "true" : field.value === false ? "false" : ""}
-                onChange={(v) => field.onChange(v === "true")}
-                onBlur={field.onBlur}
-                placeholder="Select option"
-                options={[
-                  { value: "true", label: "Yes" },
-                  { value: "false", label: "No" },
-                ]}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isSocialField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <input
-                id={inputId}
-                type="url"
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="https://linkedin.com/in/yourprofile"
-                className={inputBase}
-              />
-            )}
-          />
-
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isNricFinField(field)) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <div className="relative">
-                <input
-                  id={inputId}
-                  type="text"
-                  inputMode="text"
-                  value={field.value?.toUpperCase()}
-                  onChange={(e) => {
-                    const v = e.target.value.toUpperCase();
-                    if (/^[STFGM]?[0-9]{0,7}[A-Za-z]?$/i.test(v)) field.onChange(v);
-                  }}
-                  onKeyDown={(e) => {
-                    if (!/[STFGM0-9A-Za-z]/i.test(e.key)) e.preventDefault();
-                  }}
-                  placeholder="e.g. S1234567A"
-                  className={`${inputBase} uppercase tracking-widest font-mono`}
-                  maxLength={9}
-                />
-                <p className="mt-1.5 text-xs text-slate-400">
-                  Singapore NRIC / FIN - 9 characters
-                  {!isNricFinRequired && " - optional if you do not hold one"}
-                </p>
-              </div>
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isStrictNumericField || isIntegerField || isPostalCodeField) {
-      const maxLength = isPostalCodeField ? 6 : undefined;
-
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <input
-                id={inputId}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={field.value}
-                onChange={(e) => {
-                  const numericValue = e.target.value.replace(/\D/g, "");
-                  field.onChange(maxLength ? numericValue.slice(0, maxLength) : numericValue);
-                }}
-                onKeyDown={(e) => {
-                  if (!/[0-9]/.test(e.key)) e.preventDefault();
-                }}
-                placeholder={
-                  isPostalCodeField
-                    ? "e.g. 123456"
-                    : field.name?.toLowerCase().includes("salary")
-                      ? "e.g. 3500"
-                      : field.name?.toLowerCase().includes("expectedyearofcompletion")
-                        ? "e.g. 2025"
-                        : "e.g. 5"
-                }
-                className={inputBase}
-                maxLength={maxLength}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isEmailField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <input
-                id={inputId}
-                type="email"
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="you@email.com"
-                className={inputBase}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    if (isPhoneField) {
-      return (
-        <>
-          <Controller
-            control={control}
-            name={key as any}
-            render={({ field }) => (
-              <input
-                id={inputId}
-                type="tel"
-                inputMode="tel"
-                pattern="[0-9+\- ]*"
-                value={field.value}
-                onChange={field.onChange}
-                onKeyDown={(e) => {
-                  if (!/[0-9+\- ]/.test(e.key)) e.preventDefault();
-                }}
-                placeholder="+65 9123 4567"
-                className={inputBase}
-                maxLength={20}
-              />
-            )}
-          />
-          <ErrorText path={key} />
-        </>
-      );
-    }
-
-    return (
-      <>
-        <Controller
-          control={control}
-          name={key as any}
-          render={({ field }) => (
-            <input id={inputId} type="text" value={field.value} onChange={field.onChange} className={inputBase} />
-          )}
-        />
-        <ErrorText path={key} />
-      </>
-    );
-  };
-
-  const renderFieldBlock = (field?: FormField, className = "", requiredOverride?: boolean) => {
-    if (!field) return null;
-
-    return (
-      <div key={String(field.id)} className={className}>
-        <Label required={requiredOverride ?? getRequired(field)}>{field.label}</Label>
-        {renderField(field)}
-      </div>
-    );
-  };
 
   const referenceCompletedCount = useMemo(() => {
     return (watchedReferences || []).filter(
@@ -1105,15 +615,14 @@ export default function JobApplicationPage() {
 
       const dynamicValues = normalizedValues as FormValues;
 
-      formFields.forEach((field) => {
-        const key = getFieldKey(field);
-        const value = dynamicValues[key];
+      MANATAL_FIELDS.forEach((field) => {
+        const value = dynamicValues[field.key];
         let finalValue: any = "";
 
         if (typeof value === "string") {
           finalValue = value.trim();
 
-          if (matches(field, "expected_salary") && finalValue) {
+          if (field.key === "expected_salary" && finalValue) {
             expectedCurrencyId = "13";
           }
         } else if (typeof value === "number" || typeof value === "boolean") {
@@ -1124,7 +633,7 @@ export default function JobApplicationPage() {
           finalValue = value;
         }
 
-        applicationData[String(field.id)] = finalValue;
+        applicationData[field.manatalId] = finalValue;
       });
 
       const trimmedFamilyMembers = normalizedValues.family_members
@@ -1145,8 +654,8 @@ export default function JobApplicationPage() {
 
       const formattedEducations = formatEducations(normalizedValues.educations);
 
-      const educationField = formFields.find((field) =>
-        matches(field, "educations", "education", "educational_profile", "educationalprofile"),
+      const educationField = sectionFields.find((field) =>
+        matchesSection(field, "educations", "education", "educational_profile", "educationalprofile"),
       );
 
       if (educationField && formattedEducations.length) {
@@ -1155,8 +664,8 @@ export default function JobApplicationPage() {
 
       const formattedExperiences = formatExperiences(normalizedValues.experiences);
 
-      const experienceField = formFields.find((field) =>
-        matches(field, "experiences", "experience", "employment_history", "employmenthistory", "work_experience"),
+      const experienceField = sectionFields.find((field) =>
+        matchesSection(field, "experiences", "experience", "employment_history", "employmenthistory", "work_experience"),
       );
 
       if (experienceField && formattedExperiences.length) {
@@ -1200,10 +709,9 @@ export default function JobApplicationPage() {
 
       applicationData["1741708"] = generateDeclarationList(declarationMap);
 
-      const resumeField = formFields.find((field) => matches(field, "resume"));
       if (normalizedValues.resume?.trim()) {
-        if (resumeField) applicationData[String(resumeField.id)] = normalizedValues.resume.trim();
-      } else if (resumeField && getRequired(resumeField)) {
+        applicationData["1741683"] = normalizedValues.resume.trim();
+      } else {
         throw new Error("Please upload a resume file");
       }
 
@@ -1407,6 +915,7 @@ export default function JobApplicationPage() {
                   constraint validation would cancel submission before the submit
                   event fires, so handleSubmit/onInvalid never run and the user
                   sees nothing happen. */}
+              <FormProvider {...methods}>
               <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
                 <div ref={errorSummaryRef}>
                   <ErrorSummary errors={errorList} onItemClick={scrollToField} />
@@ -1428,20 +937,22 @@ export default function JobApplicationPage() {
                     subtitle="Basic details about this application"
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {renderFieldBlock(getField("expected_salary", "Expected Salary"))}
-                    {renderFieldBlock(getField("social_media", "LinkedIn Profile URL"))}
-                    {renderFieldBlock(getField("industries", "Work Industry"))}
-                    {renderFieldBlock(getField("years_of_experience", "Years of Experience"))}
-                    {formFields
-                      .filter(
-                        (f) =>
-                          getCategory(f) === "resume" ||
-                          normalize(f.slug) === "resume" ||
-                          normalize(f.name) === "resume" ||
-                          normalize(f.label) === "resume" ||
-                          String(f.id) === "1741683",
-                      )
-                      .map((f) => renderFieldBlock(f, "md:col-span-2"))}
+                    <ApplicationFormField name="expected_salary" />
+                    <ApplicationFormField name="linkedin" />
+                    <ApplicationFormField name="industries" />
+                    <ApplicationFormField name="years_of_experience" />
+                    <ApplicationFormField
+                      name="resume"
+                      className="md:col-span-2"
+                      slot={
+                        <div id={pathToFieldId("resume")} tabIndex={-1} className="mt-1">
+                          <Dropzone {...resumeProps}>
+                            <DropzoneEmptyState />
+                            <DropzoneContent />
+                          </Dropzone>
+                        </div>
+                      }
+                    />
 
                     <div
                       className={`md:col-span-2 rounded-2xl border p-5 transition-all duration-200 ${
@@ -1588,42 +1099,11 @@ export default function JobApplicationPage() {
 
                   {watchedIsApplyingForTeacher && (
                     <div className="mt-6 pt-6 border-t border-amber-100">
-                      {getField("preferredsubjectsandlevels", "Preferred Subjects and Levels") ? (
-                        <div>
-                          <Label
-                            required={getRequired(
-                              getField("preferredsubjectsandlevels", "Preferred Subjects and Levels")!,
-                            )}>
-                            {getField("preferredsubjectsandlevels", "Preferred Subjects and Levels")!.label}
-                          </Label>
-                          <textarea
-                            id={pathToFieldId("preferredsubjectsandlevels")}
-                            rows={4}
-                            {...register("preferredsubjectsandlevels")}
-                            placeholder="e.g. English - Primary / Secondary, Mathematics - Secondary"
-                            className={`${inputBase} resize-none focus:ring-amber-400/60 focus:border-amber-400`}
-                          />
-
-                          <p className="mt-1.5 text-xs text-slate-400">
-                            List each subject and its corresponding level(s), one per line if needed
-                          </p>
-                          <ErrorText path="preferredsubjectsandlevels" />
-                        </div>
-                      ) : (
-                        <div>
-                          <Label required>Preferred Subjects &amp; Levels</Label>
-                          <textarea
-                            rows={4}
-                            {...register("preferredsubjectsandlevels")}
-                            placeholder="e.g. English - Primary & Secondary, Mathematics - Secondary"
-                            className={`${inputBase} resize-none focus:ring-amber-400/60 focus:border-amber-400`}
-                          />
-                          <p className="mt-1.5 text-xs text-slate-400">
-                            List each subject and its corresponding level(s), one per line if needed
-                          </p>
-                          <ErrorText path="preferredsubjectsandlevels" />
-                        </div>
-                      )}
+                      <ApplicationFormField
+                        name="preferredsubjectsandlevels"
+                        required
+                        description="List each subject and its corresponding level(s), one per line if needed"
+                      />
                     </div>
                   )}
                 </div>
@@ -1635,10 +1115,10 @@ export default function JobApplicationPage() {
                     subtitle="Your personal details and identification"
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {renderFieldBlock(getField("full_name", "Full Name"))}
-                    {renderFieldBlock(getField("preferredname", "Preferred Name"))}
-                    {renderFieldBlock(getField("residentialstatus", "Residential Status"))}
-                    {renderFieldBlock(getField("nationalities", "Nationality"))}
+                    <ApplicationFormField name="full_name" />
+                    <ApplicationFormField name="preferredname" />
+                    <ApplicationFormField name="residentialstatus" />
+                    <ApplicationFormField name="nationalities" />
 
                     {watchedResidentialStatus === "Foreigner" && (
                       <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-blue-50/50 border border-blue-100 rounded-xl">
@@ -1660,57 +1140,30 @@ export default function JobApplicationPage() {
                           </p>
                         </div>
 
-                        <div>
-                          <Label required>Work Pass</Label>
-                          <Controller
-                            control={control}
-                            name="workpermitpass"
-                            render={({ field }) => (
-                              <StyledSelect
-                                id={pathToFieldId("workpermitpass")}
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                placeholder="Select work pass type"
-                                options={workPassOptions.map((pass) => ({ value: pass, label: pass }))}
-                              />
-                            )}
-                          />
-                          <ErrorText path="workpermitpass" />
-                        </div>
+                        <ApplicationFormField name="workpermitpass" required />
 
-                        <div>
-                          <Label required>Overseas Address</Label>
-                          <input
-                            id={pathToFieldId("overseasaddress")}
-                            type="text"
-                            {...register("overseasaddress")}
-                            placeholder="Street, City, Country"
-                            className={inputBase}
-                          />
-                          <ErrorText path="overseasaddress" />
-                        </div>
+                        <ApplicationFormField name="overseasaddress" required />
                       </div>
                     )}
-                    {renderFieldBlock(getField("birth_date", "Date of Birth"))}
-                    {renderFieldBlock(getField("gender", "Gender"))}
-                    {renderFieldBlock(getField("religion", "Religion"))}
-                    {renderFieldBlock(getField("nricfin", "NRIC/FIN"), "", isNricFinRequired)}
-                    {renderFieldBlock(getField("latest_degree", "Highest Qualification"))}
+                    <ApplicationFormField name="birth_date" />
+                    <ApplicationFormField name="gender" />
+                    <ApplicationFormField name="religion" />
+                    {<ApplicationFormField name="nricfin" required={isNricFinRequired} />}
+                    <ApplicationFormField name="latest_degree" />
 
-                    {renderFieldBlock(getField("passportno", "Passport Number"))}
-                    {formFields.filter((f) => getFieldKey(f) === "placedateofissue").map((f) => renderFieldBlock(f))}
+                    <ApplicationFormField name="passportno" />
+                    <ApplicationFormField name="placedateofissue" />
                   </div>
                 </div>
 
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader number="03" title="Contact Information" subtitle="How we can reach you" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {renderFieldBlock(getField("phone_number", "WhatsApp Number"))}
-                    {renderFieldBlock(getField("email", "Email"))}
-                    {renderFieldBlock(getField("address", "Complete Address"))}
+                    <ApplicationFormField name="phone_number" />
+                    <ApplicationFormField name="email" />
+                    <ApplicationFormField name="address" />
 
-                    {renderFieldBlock(getField("postalcode", "Postal Code"))}
+                    <ApplicationFormField name="postalcode" />
                   </div>
                 </div>
 
@@ -1721,13 +1174,13 @@ export default function JobApplicationPage() {
                     subtitle="Someone we can reach if needed"
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {renderFieldBlock(getField("name", "Emergency Contact Name"))}
-                    {renderFieldBlock(getField("relationship", "Emergency Contact Relationship"))}
-                    {renderFieldBlock(getField("address_b", "Emergency Contact Address"), "md:col-span-2")}
-                    {renderFieldBlock(getField("mobilenumber", "Emergency Contact Mobile Number"))}
-                    {renderFieldBlock(getField("hometelephonenumber", "Emergency Contact Home Telephone Number"))}
-                    {renderFieldBlock(getField("officetelephonenumber", "Emergency Contact Office Telephone Number"))}
-                    {renderFieldBlock(getField("emailaddress", "Emergency Contact Email Address"))}
+                    <ApplicationFormField name="name" />
+                    <ApplicationFormField name="relationship" />
+                    {<ApplicationFormField name="address_b" className={"md:col-span-2"} />}
+                    <ApplicationFormField name="mobilenumber" />
+                    <ApplicationFormField name="hometelephonenumber" />
+                    <ApplicationFormField name="officetelephonenumber" />
+                    <ApplicationFormField name="emailaddress" />
                   </div>
                 </div>
 
@@ -1812,9 +1265,6 @@ export default function JobApplicationPage() {
                                   pattern="[0-9]*"
                                   value={field.value}
                                   onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                                  onKeyDown={(e) => {
-                                    if (!/[0-9]/.test(e.key)) e.preventDefault();
-                                  }}
                                   className={inputBase}
                                   placeholder="e.g. 45"
                                 />
@@ -2014,7 +1464,7 @@ export default function JobApplicationPage() {
                   </div>
                 </div>
 
-                {getFields("coursename", "coursestartdate", "expectedyearofcompletion").length > 0 && (
+                {(
                   <div className={`${cardBase} p-8`}>
                     <SectionHeader
                       number="07"
@@ -2022,9 +1472,9 @@ export default function JobApplicationPage() {
                       subtitle="Any ongoing studies or certifications"
                     />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      {renderFieldBlock(getField("coursename", "Course Name"), "md:col-span-2")}
-                      {renderFieldBlock(getField("coursestartdate", "Course Start Date"))}
-                      {renderFieldBlock(getField("expectedyearofcompletion", "Expected Year of Completion"))}
+                      {<ApplicationFormField name="coursename" className={"md:col-span-2"} />}
+                      <ApplicationFormField name="coursestartdate" />
+                      <ApplicationFormField name="expectedyearofcompletion" />
                     </div>
                   </div>
                 )}
@@ -2219,17 +1669,8 @@ export default function JobApplicationPage() {
                     subtitle="Other details relevant to your application"
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {renderFieldBlock(
-                      getField("membershipsassociations", "Memberships & Associations"),
-                      "md:col-span-2",
-                    )}
-                    {renderFieldBlock(
-                      getField(
-                        "description",
-                        "Briefly share your skills, experiences, and achievements beyond your resume",
-                      ),
-                      "md:col-span-2",
-                    )}
+                    <ApplicationFormField name="membershipsassociations" className="md:col-span-2" />
+                    <ApplicationFormField name="description" className="md:col-span-2" />
                   </div>
                 </div>
 
@@ -2529,13 +1970,23 @@ export default function JobApplicationPage() {
                 </div>
 
                 <ConsentDeclarations
-                  declareConsent={declareConsent}
-                  declareTruth={declareTruth}
-                  setDeclareConsent={setDeclareConsent}
-                  setDeclareTruth={setDeclareTruth}
+                  declareConsent={watchedDeclareConsent}
+                  declareTruth={watchedDeclareTruth}
+                  setDeclareConsent={(v) => setValue("declare_consent", v, { shouldValidate: true, shouldDirty: true })}
+                  setDeclareTruth={(v) => setValue("declare_truth", v, { shouldValidate: true, shouldDirty: true })}
                 />
 
                 <ApplicationNote />
+
+                {!isValid && outstanding.length > 0 && (
+                  <ErrorSummary
+                    errors={outstanding}
+                    onItemClick={scrollToField}
+                    title={`${outstanding.length} ${
+                      outstanding.length === 1 ? "field still needs" : "fields still need"
+                    } your attention before you can submit:`}
+                  />
+                )}
 
                 <div
                   id="submit-application-action"
@@ -2567,7 +2018,7 @@ export default function JobApplicationPage() {
 
                     <button
                       type="submit"
-                      disabled={submitting || !declareTruth || !declareConsent}
+                      disabled={submitting || !isValid}
                       className="cursor-pointer flex justify-center items-center gap-2 px-7 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-md shadow-blue-200 active:scale-[0.98]">
                       {submitting ? (
                         <>
@@ -2587,6 +2038,7 @@ export default function JobApplicationPage() {
                   <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
                 </div>
               </form>
+              </FormProvider>
             </>
           )}
         </div>
