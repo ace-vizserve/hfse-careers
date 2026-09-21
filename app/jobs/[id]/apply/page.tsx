@@ -4,6 +4,8 @@ import { entity_list } from "@/app/constants";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { ApplicationNote } from "@/components/ui/application-note";
 import { ConsentDeclarations } from "@/components/ui/consent-declarations";
+import { Stepper, type StepperStep } from "@/components/ui/stepper";
+import { useApplicationFormStore } from "@/lib/stores/application-form-store";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ErrorSummary, type ErrorSummaryItem } from "@/components/ui/error-summary";
 import { IndustryCombobox } from "@/components/ui/industry-combo-box";
@@ -22,12 +24,12 @@ import {
 } from "@/lib/utils";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUpRight, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Controller, FieldErrors, useFieldArray, useForm } from "react-hook-form";
+import { Controller, FieldErrors, FormProvider, useFieldArray, useForm, useFormContext } from "react-hook-form";
 import { sileo } from "sileo";
 
 interface JobDetail {
@@ -226,6 +228,145 @@ const buildDefaultValues = (): FormValues => ({
   bcrequestissued: false,
 });
 
+/**
+ * The four wizard steps, and which schema fields each one owns. Continue runs
+ * `trigger()` against the active step's list, so a step cannot be left behind
+ * in an invalid state.
+ */
+const STEPS: StepperStep[] = [
+  { id: "about", title: "About You", description: "Details & contact" },
+  { id: "background", title: "Family & Education", description: "Family & schooling" },
+  { id: "experience", title: "Experience", description: "Work history" },
+  { id: "declarations", title: "Declarations", description: "Declare & confirm" },
+];
+
+const STEP_SUMMARY = [
+  "Application details, resume, personal information, contact and emergency contact",
+  "Family particulars, educational profile and other courses",
+  "Employment history and additional information",
+  "Declaration questions and character references",
+];
+
+const STEP_FIELDS: (keyof JobApplicationFormValues)[][] = [
+  [
+    "expected_salary",
+    "expected_salary_currency",
+    "linkedin",
+    "industries",
+    "years_of_experience",
+    "resume",
+    "is_referred",
+    "referrer_details",
+    "is_applying_for_teacher",
+    "preferredsubjectsandlevels",
+    "full_name",
+    "preferredname",
+    "residentialstatus",
+    "nationalities",
+    "birth_date",
+    "gender",
+    "religion",
+    "nricfin",
+    "latest_degree",
+    "passportno",
+    "placedateofissue",
+    "phone_number",
+    "email",
+    "address",
+    "postalcode",
+    "overseasaddress",
+    "workpermitpass",
+    "name",
+    "relationship",
+    "address_b",
+    "mobilenumber",
+    "hometelephonenumber",
+    "officetelephonenumber",
+    "emailaddress",
+  ],
+  ["family_members", "educations", "coursename", "coursestartdate", "expectedyearofcompletion"],
+  ["experiences", "membershipsassociations", "description"],
+  ["declarations", "references", "skipbackgroundcheck", "rcbcrequestissued", "bcrequestissued"],
+];
+
+const pathToFieldId = (path: string) => `field-${path.replace(/\./g, "-")}`;
+
+const getNestedError = (errors: FieldErrors<any>, path: string) =>
+  path.split(".").reduce<any>((acc, part) => {
+    if (!acc) return undefined;
+    return /^\d+$/.test(part) ? acc[Number(part)] : acc[part];
+  }, errors);
+
+/**
+ * Defined at module scope on purpose. Declaring a component inside the page body
+ * makes React see a new component type on every render and remount the subtree,
+ * which drops focus and jumps the caret while typing.
+ */
+function ErrorText({ path }: { path: string }) {
+  const {
+    clearErrors,
+    formState: { errors },
+  } = useFormContext();
+  const fieldError = getNestedError(errors, path);
+  if (!fieldError?.message) return null;
+  return <p className="mt-1.5 text-xs text-rose-500 font-medium">{String(fieldError.message)}</p>;
+}
+
+function SectionHeader({ number, title, subtitle }: { number: string; title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-start gap-4 mb-7">
+      <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+        <span className="text-white text-xs font-bold tracking-wider">{number}</span>
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-slate-800 leading-tight">{title}</h3>
+        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+function Label({ children, required }: { children: ReactNode; required?: boolean }) {
+  return (
+    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+      {children}
+      {required && <span className="text-rose-400 ml-1">*</span>}
+    </label>
+  );
+}
+
+function AddButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors py-2 px-3 rounded-lg hover:bg-blue-50">
+      <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-base leading-none">
+        +
+      </span>
+      {label}
+    </button>
+  );
+}
+
+function RemoveButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-rose-500 transition-colors py-1.5 px-2 rounded-lg hover:bg-rose-50">
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+        />
+      </svg>
+      Remove
+    </button>
+  );
+}
+
 export default function JobApplicationPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -277,6 +418,12 @@ export default function JobApplicationPage() {
 
   const cardBase = "bg-white border border-slate-100 rounded-2xl shadow-sm";
 
+  const methods = useForm({
+    resolver: zodResolver(jobApplicationSchema),
+    defaultValues: buildDefaultValues(),
+    mode: "onBlur",
+  });
+
   const {
     control,
     register,
@@ -286,17 +433,80 @@ export default function JobApplicationPage() {
     getValues,
     watch,
     trigger,
+    clearErrors,
     formState: { errors },
-  } = useForm({
-    resolver: zodResolver(jobApplicationSchema),
-    defaultValues: buildDefaultValues(),
-    mode: "onBlur",
-  });
+  } = methods;
 
   const errorSummaryRef = useRef<HTMLDivElement | null>(null);
   const errorBannerRef = useRef<HTMLDivElement | null>(null);
+  const stepTopRef = useRef<HTMLDivElement | null>(null);
 
-  const pathToFieldId = (path: string) => `field-${path.replace(/\./g, "-")}`;
+  const activeStep = useApplicationFormStore((s) => s.activeStep);
+  const maxVisitedStep = useApplicationFormStore((s) => s.maxVisitedStep);
+  const completedSteps = useApplicationFormStore((s) => s.completedSteps);
+  const setActiveStep = useApplicationFormStore((s) => s.setActiveStep);
+  const markStepCompleted = useApplicationFormStore((s) => s.markStepCompleted);
+  const markStepIncomplete = useApplicationFormStore((s) => s.markStepIncomplete);
+  const saveDraftValues = useApplicationFormStore((s) => s.saveValues);
+  const startJob = useApplicationFormStore((s) => s.startJob);
+  const clearDraft = useApplicationFormStore((s) => s.clear);
+
+  // Drops any draft belonging to a different job before the form is populated.
+  useEffect(() => {
+    if (jobId) {
+      startJob(jobId);
+    }
+  }, [jobId, startJob]);
+
+  const isLastStep = activeStep === STEPS.length - 1;
+
+  const invalidSteps = useMemo(() => {
+    const errorKeys = Object.keys(errors);
+    if (errorKeys.length === 0) return [];
+    return STEP_FIELDS.reduce<number[]>((acc, fields, index) => {
+      if (fields.some((field) => errorKeys.includes(field as string))) acc.push(index);
+      return acc;
+    }, []);
+  }, [errors]);
+
+  const scrollToStepTop = () => {
+    requestAnimationFrame(() => {
+      stepTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const goToStep = async (target: number) => {
+    if (target === activeStep) return;
+
+    // Going back never validates — people must be able to retreat and fix things.
+    if (target < activeStep) {
+      saveDraftValues(getValues());
+      setActiveStep(target);
+      scrollToStepTop();
+      return;
+    }
+
+    // Going forward validates every step being skipped over, so a step can never
+    // be left behind in an invalid state.
+    for (let step = activeStep; step < target; step++) {
+      const valid = await trigger(STEP_FIELDS[step] as any);
+      if (!valid) {
+        markStepIncomplete(step);
+        setActiveStep(step);
+        onInvalid();
+        return;
+      }
+      markStepCompleted(step);
+    }
+
+    saveDraftValues(getValues());
+    setActiveStep(target);
+    scrollToStepTop();
+  };
+
+  const handleContinue = () => goToStep(activeStep + 1);
+  const handleBack = () => goToStep(activeStep - 1);
+
 
   const flattenErrors = (obj: FieldErrors<any>, parent = ""): ErrorSummaryItem[] => {
     const result: ErrorSummaryItem[] = [];
@@ -376,7 +586,9 @@ export default function JobApplicationPage() {
   });
 
   const watchedResidentialStatus = watch("residentialstatus");
-  const watchedNationalities = watch("nationalities");
+  // Singaporeans and PRs always hold an NRIC; a foreigner applying from overseas may
+  // hold neither an NRIC nor a FIN. Mirrors the rule in jobApplicationSchema.
+  const isNricFinRequired = watchedResidentialStatus !== "Foreigner";
   const watchedIsReferred = watch("is_referred");
   const watchedIsApplyingForTeacher = watch("is_applying_for_teacher");
   const watchedDeclarations = watch("declarations");
@@ -444,11 +656,16 @@ export default function JobApplicationPage() {
   }, [watchedIsApplyingForTeacher, setValue]);
 
   useEffect(() => {
-    if (watchedResidentialStatus !== "Foreigner") {
-      setValue("workpermitpass", "", { shouldDirty: true, shouldValidate: false });
-      setValue("overseasaddress", "", { shouldDirty: true, shouldValidate: false });
+    if (watchedResidentialStatus === "Foreigner") {
+      // NRIC/FIN just became optional, so a "required" error left over from an earlier
+      // selection would block the step for no reason.
+      clearErrors("nricfin");
+      return;
     }
-  }, [watchedResidentialStatus, setValue]);
+
+    setValue("workpermitpass", "", { shouldDirty: true, shouldValidate: false });
+    setValue("overseasaddress", "", { shouldDirty: true, shouldValidate: false });
+  }, [watchedResidentialStatus, setValue, clearErrors]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -486,7 +703,10 @@ export default function JobApplicationPage() {
           }
         });
 
-        reset(nextDefaults);
+        // A draft saved earlier in this tab wins over the blank defaults, so a
+        // refresh mid-application does not throw the answers away.
+        const savedDraft = useApplicationFormStore.getState().values;
+        reset(savedDraft ? { ...nextDefaults, ...savedDraft } : nextDefaults);
       } catch {
         setError({
           error: "Unable to load the application form.",
@@ -502,66 +722,6 @@ export default function JobApplicationPage() {
 
   const getField = (...values: string[]) => formFields.find((field) => matches(field, ...values));
   const getFields = (...values: string[]) => formFields.filter((field) => matches(field, ...values));
-
-  const getNestedError = (path: string) => {
-    return path.split(".").reduce<any>((acc, part) => {
-      if (!acc) return undefined;
-      return /^\d+$/.test(part) ? acc[Number(part)] : acc[part];
-    }, errors);
-  };
-
-  const ErrorText = ({ path }: { path: string }) => {
-    const fieldError = getNestedError(path);
-    if (!fieldError?.message) return null;
-    return <p className="mt-1.5 text-xs text-rose-500 font-medium">{String(fieldError.message)}</p>;
-  };
-
-  const SectionHeader = ({ number, title, subtitle }: { number: string; title: string; subtitle?: string }) => (
-    <div className="flex items-start gap-4 mb-7">
-      <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
-        <span className="text-white text-xs font-bold tracking-wider">{number}</span>
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 leading-tight">{title}</h3>
-        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
-      </div>
-    </div>
-  );
-
-  const Label = ({ children, required }: { children: ReactNode; required?: boolean }) => (
-    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-      {children}
-      {required && <span className="text-rose-400 ml-1">*</span>}
-    </label>
-  );
-
-  const AddButton = ({ onClick, label }: { onClick: () => void; label: string }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors py-2 px-3 rounded-lg hover:bg-blue-50">
-      <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-base leading-none">
-        +
-      </span>
-      {label}
-    </button>
-  );
-
-  const RemoveButton = ({ onClick }: { onClick: () => void }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-rose-500 transition-colors py-1.5 px-2 rounded-lg hover:bg-rose-50">
-      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-        />
-      </svg>
-      Remove
-    </button>
-  );
 
   const renderField = (field: FormField) => {
     const key = getFieldKey(field);
@@ -904,7 +1064,10 @@ export default function JobApplicationPage() {
                   className={`${inputBase} uppercase tracking-widest font-mono`}
                   maxLength={9}
                 />
-                <p className="mt-1.5 text-xs text-slate-400">Singapore NRIC / FIN - 9 characters</p>
+                <p className="mt-1.5 text-xs text-slate-400">
+                  Singapore NRIC / FIN - 9 characters
+                  {!isNricFinRequired && " - optional if you do not hold one"}
+                </p>
               </div>
             )}
           />
@@ -1018,12 +1181,12 @@ export default function JobApplicationPage() {
     );
   };
 
-  const renderFieldBlock = (field?: FormField, className = "") => {
+  const renderFieldBlock = (field?: FormField, className = "", requiredOverride?: boolean) => {
     if (!field) return null;
 
     return (
       <div key={String(field.id)} className={className}>
-        <Label required={getRequired(field)}>{field.label}</Label>
+        <Label required={requiredOverride ?? getRequired(field)}>{field.label}</Label>
         {renderField(field)}
       </div>
     );
@@ -1234,6 +1397,7 @@ export default function JobApplicationPage() {
         return;
       }
 
+      clearDraft();
       setSubmitSuccess(true);
     } catch (err: any) {
       console.error("Submission error:", err);
@@ -1264,11 +1428,13 @@ export default function JobApplicationPage() {
     <>
       {submitting && <SubmittingOverlay />}
 
+      {/* The submit bar only exists on the last step, so earlier steps point the
+          floating button at that step's Continue bar instead. */}
       <ScrollToSubmitButton
-        targetId="submit-application-action"
+        targetId={isLastStep ? "submit-application-action" : "step-nav-action"}
         threshold={900}
         disabled={submitting || submitSuccess}
-        label="Scroll to submit"
+        label={isLastStep ? "Scroll to submit" : "Scroll to continue"}
       />
 
       <style>{`
@@ -1387,6 +1553,7 @@ export default function JobApplicationPage() {
                   constraint validation would cancel submission before the submit
                   event fires, so handleSubmit/onInvalid never run and the user
                   sees nothing happen. */}
+              <FormProvider {...methods}>
               <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
                 <div ref={errorSummaryRef}>
                   <ErrorSummary errors={errorList} onItemClick={scrollToField} />
@@ -1401,6 +1568,29 @@ export default function JobApplicationPage() {
                   </div>
                 )}
 
+                <div ref={stepTopRef} className="scroll-mt-4" />
+
+                <div className={`${cardBase} sticky top-4 z-20 px-6 py-5`}>
+                  <Stepper
+                    steps={STEPS}
+                    activeStep={activeStep}
+                    onStepChange={(index) => void goToStep(index)}
+                    completedSteps={completedSteps}
+                    invalidSteps={invalidSteps}
+                    maxNavigableStep={maxVisitedStep}
+                  />
+                  <div className="mt-4 flex items-baseline justify-between gap-4 border-t border-slate-100 pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Step {activeStep + 1} of {STEPS.length}
+                      <span className="mx-2 text-slate-300">|</span>
+                      <span className="text-slate-800">{STEPS[activeStep].title}</span>
+                    </p>
+                    <p className="hidden text-xs text-slate-400 sm:block">{STEP_SUMMARY[activeStep]}</p>
+                  </div>
+                </div>
+
+                {activeStep === 0 && (
+                  <div className="flex flex-col gap-6">
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="01"
@@ -1675,7 +1865,7 @@ export default function JobApplicationPage() {
                     {renderFieldBlock(getField("birth_date", "Date of Birth"))}
                     {renderFieldBlock(getField("gender", "Gender"))}
                     {renderFieldBlock(getField("religion", "Religion"))}
-                    {renderFieldBlock(getField("nricfin", "NRIC/FIN"))}
+                    {renderFieldBlock(getField("nricfin", "NRIC/FIN"), "", isNricFinRequired)}
                     {renderFieldBlock(getField("latest_degree", "Highest Qualification"))}
 
                     {renderFieldBlock(getField("passportno", "Passport Number"))}
@@ -1711,6 +1901,11 @@ export default function JobApplicationPage() {
                   </div>
                 </div>
 
+                  </div>
+                )}
+
+                {activeStep === 1 && (
+                  <div className="flex flex-col gap-6">
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="05"
@@ -2009,6 +2204,11 @@ export default function JobApplicationPage() {
                   </div>
                 )}
 
+                  </div>
+                )}
+
+                {activeStep === 2 && (
+                  <div className="flex flex-col gap-6">
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="08"
@@ -2213,6 +2413,11 @@ export default function JobApplicationPage() {
                   </div>
                 </div>
 
+                  </div>
+                )}
+
+                {activeStep === 3 && (
+                  <div className="flex flex-col gap-6">
                 <div className={`${cardBase} p-8`}>
                   <SectionHeader
                     number="10"
@@ -2539,6 +2744,15 @@ export default function JobApplicationPage() {
                   <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
                     <button
                       type="button"
+                      onClick={handleBack}
+                      disabled={submitting}
+                      className="cursor-pointer flex items-center justify-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 transition-all">
+                      <ArrowLeft className="size-4" />
+                      Back
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => router.back()}
                       disabled={submitting}
                       className="cursor-pointer px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 transition-all">
@@ -2566,7 +2780,35 @@ export default function JobApplicationPage() {
                   {/* Optional subtle divider accent */}
                   <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
                 </div>
+                  </div>
+                )}
+
+                {!isLastStep && (
+                  <div id="step-nav-action" className={`${cardBase} p-6 flex items-center justify-between gap-4`}>
+                    <button
+                      type="button"
+                      onClick={handleBack}
+                      disabled={activeStep === 0}
+                      className="cursor-pointer flex items-center gap-2 px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                      <ArrowLeft className="size-4" />
+                      Back
+                    </button>
+
+                    <p className="hidden text-xs text-slate-400 sm:block">
+                      {STEPS.length - activeStep - 1} step{STEPS.length - activeStep - 1 > 1 ? "s" : ""} remaining
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={handleContinue}
+                      className="cursor-pointer flex items-center gap-2 px-7 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-all shadow-md shadow-blue-200 active:scale-[0.98]">
+                      Continue
+                      <ArrowRight className="size-4" />
+                    </button>
+                  </div>
+                )}
               </form>
+              </FormProvider>
             </>
           )}
         </div>

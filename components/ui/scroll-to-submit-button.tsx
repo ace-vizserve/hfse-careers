@@ -27,8 +27,9 @@ export function ScrollToSubmitButton({
       const target = document.getElementById(targetId);
       const passedThreshold = window.scrollY > threshold;
 
+      // No target means the click would do nothing, so don't offer the button.
       if (!target) {
-        setVisible(passedThreshold);
+        setVisible(false);
         return;
       }
 

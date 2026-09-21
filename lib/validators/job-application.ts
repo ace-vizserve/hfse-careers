@@ -139,11 +139,10 @@ export const jobApplicationSchema = z
     birth_date: requiredText("Date of birth is required"),
     gender: requiredText("Gender is required"),
     religion: requiredText("Religion is required"),
-    nricfin: z
-      .string()
-      .trim()
-      .min(1, "NRIC / FIN is required")
-      .refine((v) => nricFinRegex.test(v), "NRIC / FIN format is invalid"),
+    // Foreigners with no Singapore pass have no NRIC/FIN, so the presence check lives
+    // in superRefine where residential status is available. A value that is supplied
+    // still has to be well formed.
+    nricfin: optionalText.refine((v) => !v || nricFinRegex.test(v), "NRIC / FIN format is invalid"),
     latest_degree: requiredText("Highest qualification is required"),
     passportno: requiredText("Passport number is required"),
     placedateofissue: requiredText("Place & date of issue is required"),
@@ -234,6 +233,16 @@ export const jobApplicationSchema = z
       });
     }
 
+    // Singaporeans and PRs always hold an NRIC; foreigners may have neither an NRIC
+    // nor a FIN when they are applying from overseas.
+    if (value.residentialstatus !== "Foreigner" && !value.nricfin?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["nricfin"],
+        message: "NRIC / FIN is required",
+      });
+    }
+
     if (value.residentialstatus === "Foreigner") {
       if (!value.workpermitpass?.trim()) {
         ctx.addIssue({
@@ -254,3 +263,5 @@ export const jobApplicationSchema = z
   });
 
 export type JobApplicationFormValues = z.infer<typeof jobApplicationSchema>;
+
+export type JobApplicationFormInput = z.input<typeof jobApplicationSchema>;

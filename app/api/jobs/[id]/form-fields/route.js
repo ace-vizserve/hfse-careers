@@ -3,7 +3,7 @@
 export async function GET(request, { params }) {
   const MANATAL_API_KEY = process.env.MANATAL_API_KEY;
   const MANATAL_CLIENT_SLUG = process.env.MANATAL_CLIENT_SLUG;
-  const { id } = params;
+  const { id } = await params;
 
   if (!MANATAL_API_KEY) {
     return Response.json({ error: "API key not configured" }, { status: 500 });
