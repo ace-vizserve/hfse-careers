@@ -18,6 +18,9 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
+
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import React, { useEffect, useRef, useState } from "react";
 
 interface NavbarProps {
@@ -88,36 +91,20 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
     "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8] transition-all duration-200";
 
   // ── Radio pill (Bigger text & padding) ──────────────────────────────────
-  const RadioPill = ({
-    label,
-    checked,
-    onChange,
-    name,
-  }: {
-    label: string;
-    checked: boolean;
-    onChange: () => void;
-    name: string;
-  }) => (
-    <label
-      className={`flex items-center gap-2 min-h-[40px] px-4 py-2.5 rounded-[7px] border cursor-pointer text-[12px] font-semibold transition-all select-none
-        ${
-          checked
-            ? "border-[#1E2FA8] bg-[#1E2FA8] text-white"
-            : "border-[#D5DAE8] bg-white text-[#4A5273] hover:border-[#C8CEE0]"
-        }`}>
-      <input type="radio" name={name} checked={checked} onChange={onChange} className="sr-only" />
-      {checked && (
-        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fillRule="evenodd"
-            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-            clipRule="evenodd"
-          />
-        </svg>
-      )}
-      {label}
-    </label>
+  /**
+   * A segmented option built on the shadcn RadioGroup: the real radio keeps
+   * arrow-key navigation and screen-reader semantics, while the label carries
+   * the look. The hand-rolled version had neither.
+   */
+  const RadioPill = ({ label, value, id }: { label: string; value: string; id: string }) => (
+    <div className="relative">
+      <RadioGroupItem id={id} value={value} className="peer sr-only" />
+      <label
+        htmlFor={id}
+        className="flex min-h-[40px] cursor-pointer select-none items-center gap-2 rounded-[7px] border border-[#D5DAE8] bg-white px-4 py-2.5 text-[12px] font-semibold text-[#4A5273] transition-all hover:border-[#C8CEE0] peer-data-[state=checked]:border-[#1E2FA8] peer-data-[state=checked]:bg-[#1E2FA8] peer-data-[state=checked]:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#1E2FA8]/40">
+        {label}
+      </label>
+    </div>
   );
 
   const FilterPanel = ({ namePrefix }: { namePrefix: string }) => (
@@ -183,72 +170,40 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
           <Clock className="w-4 h-4" />
           Pay Basis
         </label>
-        <div className="flex flex-wrap gap-3">
-          <RadioPill
-            name={`${namePrefix}-frequency`}
-            label="Any"
-            checked={filters.frequency === ""}
-            onChange={() => handleFilterUpdate("frequency", "")}
-          />
-          <RadioPill
-            name={`${namePrefix}-frequency`}
-            label="Monthly"
-            checked={filters.frequency === "month"}
-            onChange={() => handleFilterUpdate("frequency", "month")}
-          />
-          <RadioPill
-            name={`${namePrefix}-frequency`}
-            label="Hourly"
-            checked={filters.frequency === "hour"}
-            onChange={() => handleFilterUpdate("frequency", "hour")}
-          />
-        </div>
+        <RadioGroup
+          value={filters.frequency || "any"}
+          onValueChange={(v) => handleFilterUpdate("frequency", v === "any" ? "" : v)}
+          className="flex flex-wrap gap-3">
+          <RadioPill id={`${namePrefix}-freq-any`} value="any" label="Any" />
+          <RadioPill id={`${namePrefix}-freq-month`} value="month" label="Monthly" />
+          <RadioPill id={`${namePrefix}-freq-hour`} value="hour" label="Hourly" />
+        </RadioGroup>
       </div>
 
       {/* Urgently hiring */}
-      <label className="flex cursor-pointer items-center gap-3 rounded-[7px] border border-[#D5DAE8] bg-white px-4 py-3 transition-colors hover:border-[#C8CEE0]">
-        <input
-          type="checkbox"
+      <label
+        htmlFor={`${namePrefix}-urgent`}
+        className="flex cursor-pointer items-center gap-3 rounded-[7px] border border-[#D5DAE8] bg-white px-4 py-3 transition-colors hover:border-[#C8CEE0]">
+        <Checkbox
+          id={`${namePrefix}-urgent`}
           checked={filters.urgentOnly}
-          onChange={(e) => handleFilterUpdate("urgentOnly", e.target.checked)}
-          className="sr-only"
+          onCheckedChange={(checked) => handleFilterUpdate("urgentOnly", checked === true)}
+          className="size-[18px] rounded-[4px] border-[#B9C2D9] data-[state=checked]:border-[#1E2FA8] data-[state=checked]:bg-[#1E2FA8]"
         />
-        <span
-          className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
-            filters.urgentOnly ? "border-[#1E2FA8] bg-[#1E2FA8]" : "border-[#B9C2D9] bg-white"
-          }`}>
-          {filters.urgentOnly && (
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </span>
         <span className="text-[13px] font-medium text-[#10162B]">Urgently hiring only</span>
       </label>
 
       {/* Work Setting */}
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591] mb-3">Work Setting</p>
-        <div className="flex flex-wrap gap-3">
-          <RadioPill
-            name={`${namePrefix}-remote`}
-            label="All"
-            checked={filters.isRemote === null}
-            onChange={() => handleFilterUpdate("isRemote", null)}
-          />
-          <RadioPill
-            name={`${namePrefix}-remote`}
-            label="Remote"
-            checked={filters.isRemote === true}
-            onChange={() => handleFilterUpdate("isRemote", true)}
-          />
-          <RadioPill
-            name={`${namePrefix}-remote`}
-            label="On-site"
-            checked={filters.isRemote === false}
-            onChange={() => handleFilterUpdate("isRemote", false)}
-          />
-        </div>
+        <RadioGroup
+          value={filters.isRemote === null ? "all" : filters.isRemote ? "remote" : "onsite"}
+          onValueChange={(v) => handleFilterUpdate("isRemote", v === "all" ? null : v === "remote")}
+          className="flex flex-wrap gap-3">
+          <RadioPill id={`${namePrefix}-remote-all`} value="all" label="All" />
+          <RadioPill id={`${namePrefix}-remote-yes`} value="remote" label="Remote" />
+          <RadioPill id={`${namePrefix}-remote-no`} value="onsite" label="On-site" />
+        </RadioGroup>
       </div>
     </div>
   );
