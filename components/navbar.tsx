@@ -20,8 +20,9 @@ import {
 import Image from "next/image";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 
 interface NavbarProps {
   showBackButton?: boolean;
@@ -45,18 +46,8 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({ employmentType: "", isRemote: null, employer: "", frequency: "", urgentOnly: false });
 
-  const filterRef = useRef<HTMLDivElement>(null);
 
   // Close filter dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setShowFilters(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -293,28 +284,27 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                   />
                 </div>
 
-                {/* Filter button (Bigger Text & Padding) */}
-                <div className="relative" ref={filterRef}>
-                  <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="relative flex items-center gap-2 min-h-[46px] px-7 py-3 rounded-[7px] text-[15px] font-semibold text-white bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110">
-                    <Filter className="w-[18px] h-[18px]" />
-                    Filter Positions
-                    {activeFilterCount > 0 && (
-                      <span className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-[#1E2FA8] text-white text-[11px] rounded-md flex items-center justify-center font-semibold shadow-[0_1px_3px_rgba(30,47,168,0.3)] border border-white">
-                        {activeFilterCount}
-                      </span>
-                    )}
-                  </button>
+                {/* Filter button */}
+                <Popover open={showFilters} onOpenChange={setShowFilters}>
+                  <PopoverTrigger asChild>
+                    <button className="relative flex items-center gap-2 min-h-[46px] px-7 py-3 rounded-[7px] text-[15px] font-semibold text-white bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110">
+                      <Filter className="w-[18px] h-[18px]" />
+                      Filter Positions
+                      {activeFilterCount > 0 && (
+                        <span className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-[#1E2FA8] text-white text-[11px] rounded-md flex items-center justify-center font-semibold shadow-[0_1px_3px_rgba(30,47,168,0.3)] border border-white">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </button>
+                  </PopoverTrigger>
 
-                  {/* Desktop filter dropdown */}
-                  {showFilters && (
-                    <div className="absolute right-0 top-[calc(100%+12px)] w-96 bg-white border border-[#E1E5F0] rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 z-50">
-                      <div className="absolute -top-2 right-8 w-4 h-4 bg-white border-l border-t border-[#E1E5F0] rotate-45" />
-                      <FilterPanel namePrefix="desktop" />
-                    </div>
-                  )}
-                </div>
+                  <PopoverContent
+                    align="end"
+                    sideOffset={12}
+                    className="w-96 rounded-xl border-[#E1E5F0] bg-white p-6 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">
+                    <FilterPanel namePrefix="desktop" />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Mobile menu toggle */}
