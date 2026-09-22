@@ -6,7 +6,6 @@ import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/drop
 import { ApplicationNote } from "@/components/ui/application-note";
 import { ConsentDeclarations } from "@/components/ui/consent-declarations";
 import { DatePicker } from "@/components/ui/date-picker";
-import { ErrorSummary, type ErrorSummaryItem } from "@/components/ui/error-summary";
 import { IndustryCombobox } from "@/components/ui/industry-combo-box";
 import { NationalityCombobox } from "@/components/ui/nationality-combo-box";
 import { ScrollToSubmitButton } from "@/components/ui/scroll-to-submit-button";
@@ -57,6 +56,8 @@ const declarationQuestions = [
 ] as const;
 
 /** Rendered by ConsentDeclarations, so they have no `field-` element of their own. */
+type FieldIssue = { path: string; message: string };
+
 const CONSENT_PATHS = new Set(["declare_truth", "declare_consent"]);
 
 const normalize = (value?: string | number | null) =>
@@ -316,13 +317,12 @@ export default function JobApplicationPage() {
     formState: { errors, isValid },
   } = methods;
 
-  const errorSummaryRef = useRef<HTMLDivElement | null>(null);
   const errorBannerRef = useRef<HTMLDivElement | null>(null);
 
   const pathToFieldId = (path: string) => `field-${path.replace(/\./g, "-")}`;
 
-  const flattenErrors = (obj: FieldErrors<any>, parent = ""): ErrorSummaryItem[] => {
-    const result: ErrorSummaryItem[] = [];
+  const flattenErrors = (obj: FieldErrors<any>, parent = ""): FieldIssue[] => {
+    const result: FieldIssue[] = [];
 
     Object.entries(obj).forEach(([key, value]) => {
       const path = parent ? `${parent}.${key}` : key;
@@ -342,18 +342,16 @@ export default function JobApplicationPage() {
     return result;
   };
 
-  const errorList = useMemo(() => flattenErrors(errors), [errors]);
-
   // A disabled submit button is a dead end unless the candidate can see what is
   // still outstanding, so derive it from the schema as they type rather than
   // waiting for a submit that cannot happen.
   const watchedValues = watch();
-  const outstanding = useMemo<ErrorSummaryItem[]>(() => {
+  const outstanding = useMemo<FieldIssue[]>(() => {
     const result = jobApplicationSchema.safeParse(watchedValues);
     if (result.success) return [];
 
     const seen = new Set<string>();
-    return result.error.issues.reduce<ErrorSummaryItem[]>((acc, issue) => {
+    return result.error.issues.reduce<FieldIssue[]>((acc, issue) => {
       const path = issue.path.join(".");
       if (seen.has(path)) return acc;
 
@@ -398,21 +396,64 @@ export default function JobApplicationPage() {
 
   const isLastStep = activeStep === STEPS.length - 1;
 
-  const scrollToField = (path: string) => {
-    const el = document.getElementById(pathToFieldId(path));
+  /** Used by the error summaries, whose entries may point at another step. */
+  const scrollToField = (path: string) => focusFirstInvalidField([path]);
 
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      (el as HTMLElement).focus?.();
-    }
+  /** Which step owns a schema path, or -1 when it belongs to none. */
+  const stepForPath = (path: string) => {
+    const root = path.split(".")[0];
+    return STEP_FIELDS.findIndex((fields) => (fields as string[]).includes(root));
   };
 
-  const onInvalid = () => {
+  /**
+   * Sends the candidate to the first field that actually needs fixing rather
+   * than to the top of the form. react-hook-form reports errors in schema
+   * order, which is not the order the fields appear in, so pick by DOM
+   * position. Falls back to the summary only when no error has a rendered
+   * input - which would itself be a bug worth seeing.
+   */
+  const focusFirstInvalidField = (paths: string[]) => {
+    const targets = paths
+      .map((path) => ({ path, element: document.getElementById(pathToFieldId(path)) }))
+      .filter((entry): entry is { path: string; element: HTMLElement } => Boolean(entry.element));
+
+    // Nothing rendered means the field lives on another step, so go there first
+    // instead of dumping the candidate at the top of the form with no clue.
+    if (targets.length === 0) {
+      const elsewhere = paths
+        .map((path) => ({ path, step: stepForPath(path) }))
+        .filter((entry) => entry.step >= 0)
+        .sort((a, b) => a.step - b.step)[0];
+
+      if (elsewhere) {
+        setActiveStep(elsewhere.step);
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(() => {
+            const element = document.getElementById(pathToFieldId(elsewhere.path));
+            element?.scrollIntoView({ behavior: "smooth", block: "center" });
+            element?.focus?.({ preventScroll: true });
+          }),
+        );
+        return;
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    const first = targets.reduce((earliest, entry) =>
+      earliest.element.compareDocumentPosition(entry.element) & Node.DOCUMENT_POSITION_PRECEDING
+        ? entry
+        : earliest,
+    );
+
+    first.element.scrollIntoView({ behavior: "smooth", block: "center" });
+    first.element.focus?.({ preventScroll: true });
+  };
+
+  const onInvalid = (formErrors: FieldErrors<FormValues>) => {
     requestAnimationFrame(() => {
-      errorSummaryRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      focusFirstInvalidField(flattenErrors(formErrors).map((item) => item.path));
     });
   };
 
@@ -655,7 +696,13 @@ export default function JobApplicationPage() {
 
       if (!valid) {
         markStepIncomplete(activeStep);
-        onInvalid();
+
+        const stepPaths = new Set(STEP_FIELDS[activeStep] as string[]);
+        const onThisStep = outstanding
+          .map((item) => item.path)
+          .filter((path) => stepPaths.has(path.split(".")[0]));
+
+        requestAnimationFrame(() => focusFirstInvalidField(onThisStep));
         return;
       }
 
@@ -1053,10 +1100,6 @@ export default function JobApplicationPage() {
               </div>
 
               <form noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-                <div ref={errorSummaryRef}>
-                  <ErrorSummary errors={errorList} onItemClick={scrollToField} />
-                </div>
-
                 {error && (
                   <div
                     ref={errorBannerRef}
@@ -2130,16 +2173,6 @@ export default function JobApplicationPage() {
                 />
 
                 <ApplicationNote />
-
-                {!isValid && outstanding.length > 0 && (
-                  <ErrorSummary
-                    errors={outstanding}
-                    onItemClick={scrollToField}
-                    title={`${outstanding.length} ${
-                      outstanding.length === 1 ? "field still needs" : "fields still need"
-                    } your attention before you can submit:`}
-                  />
-                )}
 
                 <div
                   id="submit-application-action"
