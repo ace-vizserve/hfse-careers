@@ -160,8 +160,14 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
       const uploaded = responses.filter((x) => x.message === undefined);
       uploaded.forEach((x) => urlByNameRef.current.set(x.name, x.publicUrl as string));
 
-      setSuccessNames((prev) => Array.from(new Set([...prev, ...uploaded.map((x) => x.name)])));
-      setSuccesses((prev) => Array.from(new Set([...prev, ...uploaded.map((x) => x.publicUrl as string)])));
+      // Only touch these when something actually landed. Setting them
+      // unconditionally hands out a new array identity even for a batch that
+      // failed outright, and consumers that mirror `successes` into form state
+      // read that as "the upload was cleared".
+      if (uploaded.length > 0) {
+        setSuccessNames((prev) => Array.from(new Set([...prev, ...uploaded.map((x) => x.name)])));
+        setSuccesses((prev) => Array.from(new Set([...prev, ...uploaded.map((x) => x.publicUrl as string)])));
+      }
 
       // Only the files in this batch had their outcome re-decided, so an error
       // belonging to a file outside the batch is left untouched.

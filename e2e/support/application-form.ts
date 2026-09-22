@@ -14,20 +14,34 @@ const COLD_START_TIMEOUT = 90_000;
 export async function gotoApplyPage(page: Page) {
   await page.goto(`/jobs/${JOB_ID}/apply`, { waitUntil: "domcontentloaded" });
 
-  await expect(page.locator("#job-application-form")).toHaveAttribute("data-interactive", "true", {
+  // `data-interactive` sits on the page root rather than the form, because the
+  // Back/Continue/Submit bar is outside the form and needs the same guard.
+  await expect(page.locator("[data-interactive]")).toHaveAttribute("data-interactive", "true", {
     timeout: COLD_START_TIMEOUT,
   });
   await dismissPdpaNotice(page);
-  await expect(field(page, "full_name")).toBeVisible();
+  // Step-agnostic: a restored draft can open the form on any step, so there is
+  // no one field that is always on screen.
+  await expect(page.locator("#job-application-form")).toBeVisible();
 }
+
+/** Acknowledgement is remembered in this cookie for a year. */
+const PDPA_COOKIE = "hfse_pdpa_notice";
 
 /**
  * The PDPA notice opens over every non-embed page on a first visit and its
  * overlay swallows clicks. None of these tests are about the notice, so they
  * acknowledge it the way a candidate would and get on with the form. It only
  * appears once the page has hydrated, hence the same generous timeout.
+ *
+ * It appears once per browser context, so a reload or a second visit inside one
+ * test will not show it again -- the cookie says which of the two this is,
+ * without a timeout to wait out either way.
  */
 export async function dismissPdpaNotice(page: Page) {
+  const cookies = await page.context().cookies();
+  if (cookies.some((cookie) => cookie.name === PDPA_COOKIE)) return;
+
   const acknowledge = page.getByRole("button", { name: "I understand" });
 
   await acknowledge.click({ timeout: COLD_START_TIMEOUT });
@@ -38,7 +52,27 @@ export async function dismissPdpaNotice(page: Page) {
 export const field = (page: Page, path: string) => page.locator(`#field-${path.replace(/\./g, "-")}`);
 
 export async function fillText(page: Page, path: string, value: string) {
-  await field(page, path).fill(value);
+  const input = field(page, path);
+
+  // Clearing a field on purpose, for tests about what a form does with a hole
+  // in it.
+  if (value === "") {
+    await input.fill("");
+    await expect(input).toHaveValue("");
+    return;
+  }
+
+  // A fill landing while the form is mid-render is dropped without a word, and
+  // only surfaces much later as a step that will not advance -- roughly one run
+  // in five on a phone viewport under load. Retry until it takes.
+  //
+  // Several of these fields normalise what they are handed (digits only, upper
+  // case), so this asks whether the value stuck at all, not whether it came
+  // back verbatim.
+  await expect(async () => {
+    await input.fill(value);
+    await expect(input).not.toHaveValue("");
+  }).toPass({ timeout: 15_000 });
 }
 
 /** Radix Select: click the trigger, then pick a listbox option. */
@@ -52,7 +86,13 @@ export async function chooseOption(page: Page, path: string, name?: string) {
 /** react-day-picker marks today's cell, which saves the test naming a date. */
 export async function pickToday(page: Page, path: string) {
   await field(page, path).click();
-  await page.locator("td[data-today] button").click();
+
+  const calendar = page.locator('[data-slot="popover-content"]').filter({ has: page.locator("td[data-today]") });
+  await calendar.last().locator("td[data-today] button").click();
+
+  // Two date fields in a row: the first popover has to be gone before the next
+  // one opens, or "today" matches a cell in each of two calendars.
+  await expect(calendar).toHaveCount(0);
 }
 
 /** Popover + Command; the row commits the demonym and closes the popover. */
@@ -84,12 +124,8 @@ export async function uploadResume(page: Page) {
   await upload;
 }
 
-/**
- * Fills every field the Zod schema requires for a Singaporean applicant, using
- * the same widgets a real candidate would touch. Leaves the form one click away
- * from submission.
- */
-export async function fillValidApplication(page: Page) {
+/** Step 1 - everything the schema needs before "About You" will let go. */
+export async function fillAboutYou(page: Page) {
   // 01 - Application details
   await fillText(page, "expected_salary", "6500");
   await pickFirstIndustry(page);
@@ -121,9 +157,10 @@ export async function fillValidApplication(page: Page) {
   await fillText(page, "address_b", "10 Bayfront Avenue, #12-34");
   await fillText(page, "mobilenumber", "+6598765432");
   await fillText(page, "emailaddress", "mei.ling.e2e@example.com");
+}
 
-  await continueToNextStep(page, "Family Particulars");
-
+/** Step 2 - family particulars and education. */
+export async function fillFamilyAndEducation(page: Page) {
   // 05 - Family particulars
   await fillText(page, "family_members.0.name", "Wei Ming Tan");
   await chooseOption(page, "family_members.0.relationship", "Father");
@@ -137,23 +174,29 @@ export async function fillValidApplication(page: Page) {
   await chooseOption(page, "educations.0.degree_name");
   await pickToday(page, "educations.0.started_at");
   await pickToday(page, "educations.0.ended_at");
+}
 
-  await continueToNextStep(page, "Employment History");
-
-  // 07 - Experience. Marking it current clears the end-date requirement.
+/** Step 3 - work history. Marking it current clears the end-date requirement. */
+export async function fillExperience(page: Page) {
   await fillText(page, "experiences.0.title", "Mathematics Teacher");
   await fillText(page, "experiences.0.employer", "Raffles Institution");
   await pickToday(page, "experiences.0.started_at");
   await tickCheckbox(page, "#field-experiences-0-is_current_employer");
+}
 
-  await continueToNextStep(page, "Declaration");
-
-  // 08 - References: the schema demands three, and the form now seeds all
-  // three rather than hiding the last two behind Add.
+/**
+ * Step 4 - references and consent. `skipReference` leaves one row short, for
+ * tests about what the form does while something is still outstanding.
+ */
+export async function fillDeclarations(page: Page, { skipReference }: { skipReference?: number } = {}) {
+  // The schema demands three references, and the form seeds all three rather
+  // than hiding the last two behind Add.
   const referenceRows = page.locator('[id^="field-references-"][id$="-name"]');
   await expect(referenceRows).toHaveCount(3);
 
   for (let i = 0; i < 3; i++) {
+    if (i === skipReference) continue;
+
     await fillText(page, `references.${i}.name`, `Referee ${i + 1}`);
     await fillText(page, `references.${i}.email`, `referee${i + 1}.e2e@example.com`);
     await fillText(page, `references.${i}.contact_no`, `+65912345${i}0`);
@@ -165,6 +208,24 @@ export async function fillValidApplication(page: Page) {
   // Declarations default to "No" and references default to "I agree", so only
   // the two consent boxes remain; the submit button stays disabled without them.
   await acceptConsent(page);
+}
+
+/**
+ * Fills every field the Zod schema requires for a Singaporean applicant, using
+ * the same widgets a real candidate would touch. Leaves the form one click away
+ * from submission.
+ */
+export async function fillValidApplication(page: Page) {
+  await fillAboutYou(page);
+  await continueToNextStep(page, "Family Particulars");
+
+  await fillFamilyAndEducation(page);
+  await continueToNextStep(page, "Employment History");
+
+  await fillExperience(page);
+  await continueToNextStep(page, "Declaration");
+
+  await fillDeclarations(page);
 }
 
 /**
@@ -205,3 +266,77 @@ export async function continueToNextStep(page: Page, expectedHeading: string | R
 }
 
 export const submitButton = (page: Page) => page.getByRole("button", { name: "Submit Application" });
+
+/** The key the zustand persist middleware writes the draft under. */
+export const DRAFT_KEY = "hfse-application-draft";
+
+export type PersistedDraft = {
+  state: {
+    jobId: string | null;
+    activeStep: number;
+    maxVisitedStep: number;
+    completedSteps: number[];
+    values: Record<string, unknown> | null;
+  };
+  version: number;
+};
+
+/** Reads the draft the form has autosaved, as the browser sees it. */
+export async function readDraft(page: Page): Promise<PersistedDraft | null> {
+  return page.evaluate((key) => {
+    const raw = window.sessionStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as PersistedDraft) : null;
+  }, DRAFT_KEY);
+}
+
+/**
+ * Plants a draft before the page loads, which is the only way to exercise a
+ * draft this build did not write -- an older shape, or an older version.
+ */
+export async function seedDraft(page: Page, draft: PersistedDraft) {
+  await page.addInitScript(
+    ([key, payload]) => window.sessionStorage.setItem(key as string, payload as string),
+    [DRAFT_KEY, JSON.stringify(draft)] as const,
+  );
+}
+
+/**
+ * The step rail is a row of four at md and up, and hides behind a menu on
+ * phones. Opening that menu first makes a test read the same either way.
+ */
+export async function openStepRail(page: Page) {
+  const rail = page.locator("[data-step-rail]:visible");
+
+  // Idempotent on purpose. The trigger is a toggle, so asking twice in a row
+  // shuts the popover again -- and a click then lands on a marker that is
+  // animating out from under it.
+  if ((await rail.count()) === 0) {
+    await page.locator('button[aria-label*="Change step"]').click();
+    await expect(rail).toHaveCount(1);
+  }
+
+  return rail;
+}
+
+/** The rail button for a step, by its position. */
+export async function stepMarker(page: Page, index: number) {
+  return (await openStepRail(page)).locator("button").nth(index);
+}
+
+/** Jumps via the rail rather than Continue, which is what allows a skip. */
+export async function jumpToStep(page: Page, index: number) {
+  const rail = await openStepRail(page);
+  await rail.locator("button").nth(index).click();
+
+  // On a phone the rail is a popover and picking a step closes it. Nothing else
+  // may start while it is on its way out, or the next call finds it still
+  // visible and clicks a marker that is being detached underneath it. Off the
+  // popover, only the one hidden rail is ever in the DOM.
+  await expect(page.locator("[data-step-rail]")).toHaveCount(1);
+}
+
+/** Which step is on screen, read off the footer's own counter. */
+export async function currentStep(page: Page) {
+  const label = await page.getByText(/^Step \d of 4$/).textContent();
+  return Number(label?.match(/\d/)?.[0]) - 1;
+}

@@ -1,7 +1,29 @@
-# Application submission tests
+# Application form tests
 
-Covers the one thing that must never break: a candidate can complete the apply
-form and the submission actually reaches the API.
+`application-submit.spec.ts` covers the one thing that must never break: a
+candidate can complete the apply form and the submission actually reaches the
+API.
+
+`application-state.spec.ts` covers the form's state management — the saved
+draft, step navigation, and what the form does while something is still
+outstanding. Every test in it is a regression guard: each one was written
+against a defect that had shipped, and each was confirmed to fail before the
+fix and pass after.
+
+| What it guards | The defect it was written against |
+| --- | --- |
+| Answers survive a reload | Baseline — passes either way, so a broken draft shows up as a failure here first |
+| An older draft is discarded | The store had no `version`, so a draft from a previous build merged into the new shape |
+| A short section is topped up | Only `references` was topped up; a draft saved with fewer declarations rendered questions that could not be answered |
+| Storage refusing writes | A `QuotaExceededError` threw from inside the debounced save and took hydration down with it |
+| A broken step cannot be skipped | `Continue` only validated the step underfoot, so the rail could carry a candidate over a step they had just broken |
+| The rail flags a stale step | `markStepIncomplete` only fired on the way out of a step, so a step edited into an invalid state kept its green tick |
+| Outstanding answers are named | The summary was computed but never rendered: a disabled Submit with nothing to say why |
+| …including on an earlier step | Same, for the case where the field is not on screen at all |
+| The draft is gone after submitting | A debounced save armed before Submit landed after the clear, putting an NRIC and passport number back into storage |
+| No warning after submitting | `beforeunload` was registered unconditionally, so the confirmation screen asked about unsaved work |
+| A warning before throwing work away | The other half of the same fix — the guard has to stay on for an unsent form |
+| A resume survives a failed re-upload | A batch that uploaded nothing still published a new `successes` array, which read as "the file was removed" |
 
 ## Run them
 

@@ -39,6 +39,7 @@ function Stepper({
 
   return (
     <ol
+      data-step-rail
       className={cn(
         isVertical ? "flex flex-col gap-1" : "flex flex-col justify-between gap-4 sm:flex-row sm:items-center",
         className,
@@ -70,6 +71,9 @@ function Stepper({
               disabled={!isNavigable}
               aria-current={isActive ? "step" : undefined}
               aria-label={`Step ${index + 1}: ${step.title}`}
+              // The marker's state is carried entirely in colour and an icon,
+              // which nothing outside a screenshot can assert on.
+              data-step-state={isInvalid ? "invalid" : isActive ? "active" : isCompleted ? "complete" : "upcoming"}
               className={cn(
                 "group flex items-center gap-[14px] rounded-[10px] text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E2FA8]/40 focus-visible:ring-offset-2",
                 isVertical && "w-full px-3 py-3",

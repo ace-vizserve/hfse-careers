@@ -25,7 +25,7 @@ import {
   generateDeclarationList,
 } from "@/lib/utils";
 import { MANATAL_FIELDS } from "@/lib/forms/application-fields";
-import { useApplicationFormStore } from "@/lib/stores/application-form-store";
+import { type ApplicationDraft, useApplicationFormStore } from "@/lib/stores/application-form-store";
 import type { JobDetail } from "@/lib/types/job";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +33,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, Chevron
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, FieldErrors, FormProvider, useFieldArray, useForm, useFormContext } from "react-hook-form";
 import { sileo } from "sileo";
 
@@ -263,6 +263,54 @@ const buildDefaultValues = (): FormValues => ({
 });
 
 /**
+ * Lay a saved draft over a fresh set of defaults.
+ *
+ * A shallow spread is not enough. A draft is written by whichever build the
+ * candidate started in and lives as long as their tab, so an array can be
+ * shorter than the section the form now renders -- declarations are indexed
+ * against a fixed question list, references against a minimum of three -- and
+ * a nested object can be missing a key the schema has since gained. Either one
+ * reaches the form as a value that fails validation with no input on screen to
+ * fix it in. So merge position by position, and drop any key the defaults no
+ * longer describe.
+ */
+const mergeDraft = (defaults: FormValues, draft: ApplicationDraft): FormValues => {
+  const merged: FormValues = { ...defaults };
+  const saved = draft as Record<string, unknown>;
+
+  Object.keys(defaults).forEach((key) => {
+    if (saved[key] === undefined) return;
+
+    const fallback = defaults[key];
+    const value = saved[key];
+
+    if (Array.isArray(fallback)) {
+      const savedRows = Array.isArray(value) ? value : [];
+      const seedRow = fallback[0];
+
+      // Keep every row the candidate added, but never fewer than the section
+      // seeds, and fill each row out from the shape it was seeded with.
+      merged[key] = Array.from({ length: Math.max(savedRows.length, fallback.length) }, (_, index) => {
+        const seed = fallback[index] ?? seedRow;
+        const row = savedRows[index];
+
+        return seed && typeof seed === "object" && row && typeof row === "object" ? { ...seed, ...row } : (row ?? seed);
+      });
+      return;
+    }
+
+    if (fallback && typeof fallback === "object" && value && typeof value === "object") {
+      merged[key] = { ...fallback, ...value };
+      return;
+    }
+
+    merged[key] = value;
+  });
+
+  return merged;
+};
+
+/**
  * These render on every section of a very long form, so they live at module
  * scope. Declared inside the page component they would be a new component type
  * on every render, and React would tear down and rebuild each one rather than
@@ -350,6 +398,60 @@ const RemoveButton = ({ onClick }: { onClick: () => void }) => (
   </button>
 );
 
+type OutstandingGroup = { step: number; title: string; items: FieldIssue[] };
+
+/**
+ * "Relationship is required" three times over tells a candidate nothing about
+ * which of their three references is short. Array paths carry the row index, so
+ * say it.
+ */
+const issueLabel = (issue: FieldIssue) => {
+  const row = issue.path.split(".").find((part) => /^\d+$/.test(part));
+  return row === undefined ? issue.message : `${issue.message} — entry ${Number(row) + 1}`;
+};
+
+/**
+ * Submit stays disabled until the whole schema passes. On a form this long the
+ * answer holding it up is usually on a step the candidate has already left
+ * behind, so a greyed-out button on its own is a dead end: nothing names the
+ * field and nothing points at the step. This lists what is left and takes them
+ * there.
+ */
+const OutstandingSummary = ({ groups, onJump }: { groups: OutstandingGroup[]; onJump: (path: string) => void }) => {
+  const count = groups.reduce((total, group) => total + group.items.length, 0);
+
+  return (
+    <div
+      className="rounded-[9px] border border-[#F6D6B8] bg-[#FDECD9] px-4 py-3.5"
+      role="status"
+      aria-live="polite">
+      <div className="text-[13px] font-semibold text-[#8A3D0B]">
+        {count === 1 ? "1 answer is still needed" : `${count} answers are still needed`} before you can submit
+      </div>
+
+      <div className="mt-3 space-y-3">
+        {groups.map((group) => (
+          <div key={group.step}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#A4551C]">{group.title}</div>
+            <ul className="mt-1.5 space-y-1">
+              {group.items.map((item) => (
+                <li key={item.path}>
+                  <button
+                    type="button"
+                    onClick={() => onJump(item.path)}
+                    className="text-left text-[12px] font-medium text-[#8A3D0B] underline decoration-[#E0B48C] underline-offset-2 transition-colors hover:text-[#6B2F08] hover:decoration-[#8A3D0B]">
+                    {issueLabel(item)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 /**
  * react-hook-form focuses the first input of an appended row by default. On a
  * form this long that scrolls the viewport to the new row, and the next click
@@ -425,7 +527,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     watch,
     trigger,
     clearErrors,
-    formState: { errors, isValid },
+    formState: { errors, isValid, isDirty },
   } = methods;
 
   const errorBannerRef = useRef<HTMLDivElement | null>(null);
@@ -457,8 +559,13 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   // still outstanding, so derive it from the schema as they type rather than
   // waiting for a submit that cannot happen.
   const watchedValues = watch();
+  // Parsing the whole schema on the keystroke that caused it makes typing in a
+  // long text field stutter. Deferring lets React paint the character first and
+  // recompute the summary behind it, and drops the parse entirely when several
+  // keystrokes land inside one frame.
+  const deferredValues = useDeferredValue(watchedValues);
   const outstanding = useMemo<FieldIssue[]>(() => {
-    const result = jobApplicationSchema.safeParse(watchedValues);
+    const result = jobApplicationSchema.safeParse(deferredValues);
     if (result.success) return [];
 
     const seen = new Set<string>();
@@ -470,7 +577,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       acc.push({ path, message: issue.message });
       return acc;
     }, []);
-  }, [watchedValues]);
+  }, [deferredValues]);
 
   // If Manatal's field list omits something the schema requires, the candidate
   // is told to fix a field that was never rendered. Surface that to us instead
@@ -517,6 +624,36 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     const root = path.split(".")[0];
     return STEP_FIELDS.findIndex((fields) => (fields as string[]).includes(root));
   };
+
+  /** What is left to answer, in step order, for the summary above Submit. */
+  const outstandingGroups = useMemo<OutstandingGroup[]>(() => {
+    const byStep = new Map<number, FieldIssue[]>();
+
+    outstanding.forEach((item) => {
+      const step = stepForPath(item.path);
+      if (step < 0) return;
+
+      const bucket = byStep.get(step);
+      if (bucket) bucket.push(item);
+      else byStep.set(step, [item]);
+    });
+
+    return [...byStep.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([step, items]) => ({ step, title: STEPS[step].title, items }));
+  }, [outstanding]);
+
+  /**
+   * Derived rather than recorded. `markStepIncomplete` only fires when a step
+   * fails on the way out of it, so a step edited back into an invalid state
+   * kept its green tick and the candidate had no idea where to look.
+   * Steps ahead of the furthest one visited are left alone -- flagging an
+   * untouched step red would be scolding someone for not having got there yet.
+   */
+  const invalidSteps = useMemo(
+    () => outstandingGroups.map((group) => group.step).filter((step) => step <= maxVisitedStep),
+    [outstandingGroups, maxVisitedStep],
+  );
 
   /**
    * Sends the candidate to the first field that actually needs fixing rather
@@ -616,21 +753,43 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   const watchedIsApplyingForTeacher = watch("is_applying_for_teacher");
   const watchedDeclarations = watch("declarations");
   const watchedReferences = watch("references");
+  const watchedResume = watch("resume");
+
+  /** A resume the draft carried in, which the dropzone itself knows nothing about. */
+  const hasRestoredResume = Boolean(watchedResume) && resumeProps.files.length === 0;
 
   const today = new Date().toISOString().split("T")[0];
 
-  usePreventRefresh(true);
+  // Only guard work that would actually be lost. Unconditionally, this asked an
+  // untouched form "are you sure you want to leave?" -- and asked it again on
+  // the confirmation screen, after the application had already been sent.
+  usePreventRefresh(isDirty && !submitSuccess);
+
+  /**
+   * The URL this effect last wrote. A resume restored from a draft was uploaded
+   * in an earlier session, so the dropzone knows nothing about it even though
+   * the file is still in the bucket -- and clearing the field just because
+   * `successes` is empty threw that away the moment anything else nudged the
+   * upload state.
+   */
+  const appliedResumeRef = useRef<string | null>(null);
 
   useEffect(() => {
     const uploadedUrl = resumeProps.successes[0];
 
     if (uploadedUrl) {
+      appliedResumeRef.current = String(uploadedUrl);
       setValue("resume", String(uploadedUrl), {
         shouldDirty: true,
         shouldValidate: true,
       });
-    } else if (getValues("resume")) {
-      // The uploaded file was removed, so the stored URL no longer points at it.
+      return;
+    }
+
+    // Nothing uploaded in this session: only clear a URL this effect put there.
+    // That is the file having been removed. A restored one is left alone.
+    if (appliedResumeRef.current && getValues("resume") === appliedResumeRef.current) {
+      appliedResumeRef.current = null;
       setValue("resume", "", {
         shouldDirty: true,
         shouldValidate: true,
@@ -710,80 +869,96 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     if (target === activeStep) return;
 
     if (target > activeStep) {
-      const valid = await trigger(STEP_FIELDS[activeStep] as never);
+      // Every step being skipped, not just the one underfoot. The rail allows a
+      // jump to any step already visited, so going back to fix something and
+      // then jumping forward used to sail straight over the step just broken --
+      // leaving Submit disabled with nothing to say why.
+      for (let step = activeStep; step < target; step++) {
+        const valid = await trigger(STEP_FIELDS[step] as never);
 
-      if (!valid) {
-        markStepIncomplete(activeStep);
+        if (valid) {
+          markStepCompleted(step);
+          continue;
+        }
 
-        const stepPaths = new Set(STEP_FIELDS[activeStep] as string[]);
-        const onThisStep = outstanding
+        markStepIncomplete(step);
+        // Only when the failure is on a step being skipped over. Re-setting the
+        // step underfoot still writes a new store state, and the render that
+        // follows lands after the focus below and takes it away again.
+        if (step !== activeStep) setActiveStep(step);
+
+        // Read back from the validation that just ran, not from `outstanding`:
+        // that one is derived from a deferred snapshot of the values, so a
+        // click landing in the same frame as the last keystroke would aim at a
+        // field the candidate had already filled in.
+        const stepPaths = new Set(STEP_FIELDS[step] as string[]);
+        const onThisStep = flattenErrors(methods.formState.errors)
           .map((item) => item.path)
           .filter((path) => stepPaths.has(path.split(".")[0]));
 
         requestAnimationFrame(() => focusFirstInvalidField(onThisStep));
         return;
       }
-
-      markStepCompleted(activeStep);
     }
 
     setActiveStep(target);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /**
+   * The pending debounced write, held at component scope so submission can
+   * cancel it. A save armed by the last keystroke before Submit would otherwise
+   * land *after* the draft was cleared whenever the round-trip came back inside
+   * 500ms, writing an NRIC, a passport number and a date of birth back into
+   * storage for a form the candidate had already sent.
+   */
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const savingStoppedRef = useRef(false);
+
+  // Restore once, after the persisted draft has been merged in, so the form
+  // does not reset itself over the draft on first paint. Keyed by job: nothing
+  // in the router guarantees this component is torn down when the id changes,
+  // and a restore that did not re-run would leave one job's answers sitting in
+  // another job's form, to be saved back under the new id.
+  const restoredForJobRef = useRef<string | null>(null);
+
   // Drafts are per job, so a stored draft for another job is discarded.
   useEffect(() => {
     if (jobId) startJob(String(jobId));
   }, [jobId, startJob]);
 
-  // Restore once, after the persisted draft has been merged in, so the form
-  // does not reset itself over the draft on first paint.
-  const restoredRef = useRef(false);
-
   useEffect(() => {
-    if (!hydrated || restoredRef.current) return;
+    if (!hydrated || restoredForJobRef.current === jobId) return;
 
-    restoredRef.current = true;
-    const draftValues = useApplicationFormStore.getState().values;
-    if (!draftValues) return;
-
+    restoredForJobRef.current = jobId;
+    savingStoppedRef.current = false;
     const defaults = buildDefaultValues();
-    const restored = { ...defaults, ...draftValues } as FormValues;
+    const draftValues = useApplicationFormStore.getState().values;
 
-    // A draft saved before references were seeded can hold fewer than three
-    // rows; top it up so the section still opens with the full set.
-    const draftReferences = Array.isArray(restored.references) ? restored.references : [];
-    if (draftReferences.length < MIN_REFERENCES) {
-      restored.references = [
-        ...draftReferences,
-        ...defaults.references.slice(draftReferences.length),
-      ] as FormValues["references"];
-    }
-
-    reset(restored);
-  }, [hydrated, reset]);
+    reset(draftValues ? mergeDraft(defaults, draftValues) : defaults);
+  }, [hydrated, jobId, reset]);
 
   // Persist as they go. Debounced so typing does not write on every keystroke.
   // Driven by the form's own subscription rather than by a `watch()` snapshot:
   // a snapshot is a fresh object on every render, so the effect re-armed itself
   // each time it ran and an untouched form kept saving itself forever.
   useEffect(() => {
-    if (!hydrated || !restoredRef.current) return;
-
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (!hydrated || restoredForJobRef.current === null) return;
 
     const subscription = watch((values) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => saveValues(values as never), 500);
+      clearTimeout(saveTimerRef.current);
+      if (savingStoppedRef.current) return;
+
+      saveTimerRef.current = setTimeout(() => saveValues(values as never), 500);
     });
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(saveTimerRef.current);
       subscription.unsubscribe();
     };
     // `hydrated` is what re-runs this: the restore effect above is declared
-    // first, so it has already set `restoredRef` by the time this runs on that
-    // same commit.
+    // first, so it has already set `restoredForJobRef` by the time this runs on
+    // that same commit.
   }, [watch, hydrated, saveValues]);
 
   const onSubmit = async (values: FormValues) => {
@@ -983,6 +1158,10 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
         return;
       }
 
+      // Order matters: stop the autosave and drop any write it already armed
+      // before clearing, or the draft reappears a few hundred milliseconds later.
+      savingStoppedRef.current = true;
+      clearTimeout(saveTimerRef.current);
       clearDraft();
       setSubmitSuccess(true);
     } catch (err: any) {
@@ -1001,7 +1180,10 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     <>
       {submitting && <SubmittingOverlay />}
 
-      <div className="min-h-screen bg-[#EFF1F6]">
+      {/* `data-interactive` is read by a rule in globals.css that holds clicks
+          off every button until React has attached. It sits here rather than on
+          the form because the Back/Continue/Submit bar lives outside it. */}
+      <div className="min-h-screen bg-[#EFF1F6]" data-interactive={interactive}>
         {/* The navy job bar is this page's header; the stepper rides with it */}
         <div className="sticky top-0 z-40">
         <div className="bg-[#1B2A8F] px-4 py-4 shadow-[0_1px_0_#E1E5F0] sm:px-[30px] sm:py-7">
@@ -1095,6 +1277,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                     goToStep(index);
                   }}
                   completedSteps={completedSteps}
+                  invalidSteps={invalidSteps}
                   maxNavigableStep={maxVisitedStep}
                 />
               </PopoverContent>
@@ -1106,6 +1289,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                 activeStep={activeStep}
                 onStepChange={goToStep}
                 completedSteps={completedSteps}
+                invalidSteps={invalidSteps}
                 maxNavigableStep={maxVisitedStep}
                 className="mx-auto w-full max-w-[1060px]"
               />
@@ -1156,7 +1340,6 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
               <form
                 id={FORM_ID}
                 noValidate
-                data-interactive={interactive}
                 onSubmit={handleSubmit(onSubmit, onInvalid)}
                 className="space-y-4">
                 {error && (
@@ -1190,6 +1373,22 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                             <DropzoneEmptyState />
                             <DropzoneContent />
                           </Dropzone>
+                          {/* The dropzone only knows about files dropped on it
+                              this session, so a resume carried in on a restored
+                              draft would show as nothing at all. */}
+                          {hasRestoredResume && (
+                            <p className="mt-2 text-[12px] text-[#4A5273]">
+                              A resume from your saved draft is attached.{" "}
+                              <a
+                                href={String(watchedResume)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-medium text-[#1E2FA8] underline underline-offset-2">
+                                View it
+                              </a>
+                              , or upload another to replace it.
+                            </p>
+                          )}
                         </div>
                       }
                     />
@@ -2239,6 +2438,10 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                   setDeclareConsent={(v) => setValue("declare_consent", v, { shouldValidate: true, shouldDirty: true })}
                   setDeclareTruth={(v) => setValue("declare_truth", v, { shouldValidate: true, shouldDirty: true })}
                 />
+
+                {outstandingGroups.length > 0 && (
+                  <OutstandingSummary groups={outstandingGroups} onJump={scrollToField} />
+                )}
 
                 {/* The artboard keeps only this reassurance here; Submit lives in the footer bar. */}
                 <div className="flex items-start gap-3 rounded-xl bg-white px-[26px] py-5 text-[13px] leading-[1.65] text-[#4A5273] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">

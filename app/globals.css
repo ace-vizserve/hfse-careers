@@ -141,3 +141,12 @@ body {
     @apply bg-background text-foreground;
   }
 }
+/* The application form ships prerendered, so it is painted well before React
+   has attached to it. Text inputs survive that gap -- the DOM keeps what was
+   typed -- but a click on a button in it is dropped silently, and on a form
+   this long that reads as a broken Add or Continue. Hold the pointer off the
+   buttons until the page marks itself live. */
+[data-interactive="false"] button {
+  cursor: progress;
+  pointer-events: none;
+}
