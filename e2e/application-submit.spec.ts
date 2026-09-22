@@ -34,6 +34,7 @@ test.describe("job application submission", () => {
     // Fill everything on step 1 except one field in the middle of the step, so
     // a scroll to the top of the form would clearly be the wrong answer.
     await fillText(page, "expected_salary", "6500");
+    await fillText(page, "years_of_experience", "5");
     await fillText(page, "full_name", "Alex Tan");
 
     await page.getByRole("button", { name: "Continue" }).click();

@@ -31,7 +31,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, ChevronLeft, MapPin, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, FieldErrors, FormProvider, useFieldArray, useForm, useFormContext } from "react-hook-form";
 import { sileo } from "sileo";
@@ -41,6 +41,14 @@ import { sileo } from "sileo";
 type FormValues = JobApplicationFormValues & Record<string, any>;
 
 const FORM_ID = "job-application-form";
+
+/**
+ * Which portal sent the candidate here, carried on the URL. It is only ever
+ * needed in the submitted payload, so reading it at submit time keeps
+ * `useSearchParams` out of the render — and with it, the Suspense boundary that
+ * would stop this whole form from being prerendered.
+ */
+const readJobPortal = () => new URLSearchParams(window.location.search).get("job-portal") ?? "";
 
 /** The schema asks for three; the UI mirrors that instead of hiding it behind Add. */
 const MIN_REFERENCES = 3;
@@ -357,11 +365,9 @@ type ApplyClientProps = {
 };
 
 export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   const jobId = String(job.id);
-  const jobPortal = searchParams.get("job-portal");
 
   // Uploads used to land in the bucket root under the candidate's own filename,
   // with upsert on. Two applicants who both sent "resume.pdf" collided: the
@@ -382,6 +388,15 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     maxFileSize: 1000 * 1000 * 5,
   });
 
+
+  /**
+   * The form ships as prerendered HTML, so it is painted well before React has
+   * attached to it and a click in that gap does nothing at all. This says when
+   * the gap has closed.
+   */
+  const [interactive, setInteractive] = useState(false);
+
+  useEffect(() => setInteractive(true), []);
 
   const [submitting, setSubmitting] = useState(false);
   /** The compact step menu shown in place of the full rail on phones. */
@@ -933,7 +948,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       applicationData.organization_name = job?.org_name ?? "";
       applicationData.position_name = job?.position_name ?? "";
       applicationData.job_id = jobId;
-      applicationData.job_portal = jobPortal ?? "";
+      applicationData.job_portal = readJobPortal();
       applicationData.referrer_email = normalizedValues.is_referred
         ? (normalizedValues.referrer_details?.referrer_email ?? "")
         : "";
@@ -1137,7 +1152,12 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                   event fires, so handleSubmit/onInvalid never run and the user
                   sees nothing happen. */}
               <FormProvider {...methods}>
-              <form id={FORM_ID} noValidate onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4">
+              <form
+                id={FORM_ID}
+                noValidate
+                data-interactive={interactive}
+                onSubmit={handleSubmit(onSubmit, onInvalid)}
+                className="space-y-4">
                 {error && (
                   <div
                     ref={errorBannerRef}

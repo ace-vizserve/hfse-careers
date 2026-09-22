@@ -1,13 +1,22 @@
 import { expect, type Page } from "@playwright/test";
 import { applicant, JOB_ID, resumePdf } from "./fixtures";
 
+/** Next compiles a route on first hit, and five browser projects share one dev server. */
+const COLD_START_TIMEOUT = 90_000;
+
 /**
- * Opens the apply page and waits for the form to be interactive. The timeout is
- * generous because Next compiles the route on first hit, and five browser
- * projects share one dev server.
+ * Opens the apply page and waits for the form to be genuinely interactive.
+ * The page is prerendered, so its fields paint before React attaches and a
+ * click that lands in that gap does nothing; `data-interactive` says when the
+ * gap has closed. The timeout is generous because Next compiles the route on
+ * first hit and five browser projects share one dev server.
  */
 export async function gotoApplyPage(page: Page) {
   await page.goto(`/jobs/${JOB_ID}/apply`, { waitUntil: "domcontentloaded" });
+
+  await expect(page.locator("#job-application-form")).toHaveAttribute("data-interactive", "true", {
+    timeout: COLD_START_TIMEOUT,
+  });
   await dismissPdpaNotice(page);
   await expect(field(page, "full_name")).toBeVisible();
 }
@@ -15,12 +24,13 @@ export async function gotoApplyPage(page: Page) {
 /**
  * The PDPA notice opens over every non-embed page on a first visit and its
  * overlay swallows clicks. None of these tests are about the notice, so they
- * acknowledge it the way a candidate would and get on with the form.
+ * acknowledge it the way a candidate would and get on with the form. It only
+ * appears once the page has hydrated, hence the same generous timeout.
  */
 export async function dismissPdpaNotice(page: Page) {
   const acknowledge = page.getByRole("button", { name: "I understand" });
 
-  await acknowledge.click();
+  await acknowledge.click({ timeout: COLD_START_TIMEOUT });
   await expect(acknowledge).toBeHidden();
 }
 
@@ -39,29 +49,33 @@ export async function chooseOption(page: Page, path: string, name?: string) {
   await expect(page.getByRole("listbox")).toBeHidden();
 }
 
-/** The custom calendar has no text input, so use its "Today" shortcut. */
+/** react-day-picker marks today's cell, which saves the test naming a date. */
 export async function pickToday(page: Page, path: string) {
   await field(page, path).click();
-  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await page.locator("td[data-today] button").click();
 }
 
-/** Typeahead combobox: options commit on mousedown and live in a sibling <ul>. */
+/** Popover + Command; the row commits the demonym and closes the popover. */
 export async function pickNationality(page: Page, path: string, demonym: string) {
-  const input = field(page, path);
-  await input.click();
-  await input.fill(demonym);
-  const container = input.locator("xpath=ancestor::div[2]");
-  await container.locator("ul > li").filter({ hasText: demonym }).first().click();
-  await expect(input).toHaveValue(new RegExp(demonym));
+  const trigger = field(page, path);
+
+  await trigger.click();
+  await page.getByPlaceholder("Type to filter…").fill(demonym);
+  await page.getByRole("option").filter({ hasText: demonym }).first().click();
+  await expect(trigger).toContainText(demonym);
 }
 
 /** Multi-select popover; picks the first industry so the test owns no option names. */
 export async function pickFirstIndustry(page: Page) {
   const trigger = field(page, "industries");
+
   await trigger.click();
-  const container = trigger.locator("xpath=ancestor::div[1]");
-  await container.locator("ul > li > button").first().click();
-  await trigger.click({ force: true });
+  await page.getByRole("option").first().click();
+
+  // Selecting does not close a multi-select, and the open popover covers the
+  // fields below it.
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("option").first()).toBeHidden();
 }
 
 export async function uploadResume(page: Page) {
@@ -134,13 +148,10 @@ export async function fillValidApplication(page: Page) {
 
   await continueToNextStep(page, "Declaration");
 
-  // 08 - References: the schema demands three and the form starts with one.
+  // 08 - References: the schema demands three, and the form now seeds all
+  // three rather than hiding the last two behind Add.
   const referenceRows = page.locator('[id^="field-references-"][id$="-name"]');
-  await expect(referenceRows).toHaveCount(1);
-  for (let expected = 2; expected <= 3; expected++) {
-    await page.getByRole("button", { name: /Add Reference/i }).click();
-    await expect(referenceRows).toHaveCount(expected);
-  }
+  await expect(referenceRows).toHaveCount(3);
 
   for (let i = 0; i < 3; i++) {
     await fillText(page, `references.${i}.name`, `Referee ${i + 1}`);

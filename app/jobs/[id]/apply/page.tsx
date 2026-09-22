@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -14,7 +13,8 @@ type Params = {
  * The form used to fetch the job and its Manatal field ids from the browser,
  * after hydration, one after the other — three round trips before the first
  * field appeared. Both now resolve on the server, in parallel, from the same
- * cache the job page uses, and the shell is prerendered.
+ * cache the job page uses, and the page itself is prerendered: the fields are
+ * in the HTML, and React only has to attach to them.
  */
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -44,11 +44,5 @@ export default async function JobApplicationPage({ params }: Params) {
 
   if (!job) notFound();
 
-  return (
-    // The form reads `?job-portal` via useSearchParams, which needs a boundary
-    // for the shell to prerender.
-    <Suspense fallback={null}>
-      <ApplyClient job={job} sectionFields={sectionFields} />
-    </Suspense>
-  );
+  return <ApplyClient job={job} sectionFields={sectionFields} />;
 }
