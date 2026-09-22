@@ -1,14 +1,19 @@
 "use client";
 
-import { nationalities } from "@/app/constants";
-import { useClickOutside } from "@/hooks/use-click-outside";
-import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, X } from "lucide-react";
+import { useState } from "react";
 
-interface NationalityOption {
-  id: number;
-  common_name: string;
-  demonym: string;
-}
+import { nationalities } from "@/app/constants";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface NationalityComboboxProps {
   value: string;
@@ -19,227 +24,92 @@ interface NationalityComboboxProps {
   id?: string;
 }
 
+/**
+ * Popover + Command, replacing a hand-rolled listbox. The stored value stays the
+ * demonym, as the Manatal payload expects; the common name is only shown to help
+ * a candidate find the right row.
+ */
 export const NationalityCombobox = ({
   value,
   onChange,
   onBlur,
-  required,
   placeholder = "Search nationality…",
   id,
 }: NationalityComboboxProps) => {
-  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const [highlighted, setHighlighted] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const selectedOption = nationalities.find((n) => n.demonym === value);
-  const displayValue = selectedOption ? `${selectedOption.demonym} (${selectedOption.common_name})` : value;
-
-  const filtered: NationalityOption[] =
-    query.trim() === ""
-      ? nationalities
-      : nationalities.filter((n) => {
-          const q = query.toLowerCase();
-          return n.demonym.toLowerCase().includes(q) || n.common_name.toLowerCase().includes(q);
-        });
-
-  useEffect(() => {
-    setHighlighted(0);
-  }, [query]);
-
-  useEffect(() => {
-    if (!open || !listRef.current) return;
-    const item = listRef.current.children[highlighted] as HTMLElement | undefined;
-    item?.scrollIntoView({ block: "nearest" });
-  }, [highlighted, open]);
-
-  useClickOutside(containerRef, () => {
-    setOpen(false);
-    setQuery("");
-    onBlur?.();
-  });
-
-  const handleSelect = (option: NationalityOption) => {
-    onChange(option.demonym);
-    setQuery("");
-    setOpen(false);
-    onBlur?.();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!open) {
-      if (e.key === "Enter" || e.key === "ArrowDown") {
-        setOpen(true);
-        e.preventDefault();
-      }
-      return;
-    }
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setHighlighted((h) => Math.min(h + 1, filtered.length - 1));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setHighlighted((h) => Math.max(h - 1, 0));
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (filtered[highlighted]) handleSelect(filtered[highlighted]);
-        break;
-      case "Escape":
-        setOpen(false);
-        setQuery("");
-        break;
-      case "Tab":
-        setOpen(false);
-        setQuery("");
-        break;
-    }
-  };
-
-  const inputBase =
-    "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 " +
-    "focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all duration-200 " +
-    "hover:border-slate-300 text-sm";
+  const selected = nationalities.find((n) => n.demonym === value);
 
   return (
-    <div ref={containerRef} className="relative">
-      <div className="relative">
-        <input
-          ref={inputRef}
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) onBlur?.();
+      }}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
           id={id}
-          type="text"
-          required={required}
-          autoComplete="off"
-          placeholder={open ? "Type to search…" : placeholder}
-          value={open ? query : displayValue}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            if (!open) setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={handleKeyDown}
-          className={`${inputBase} pr-10`}
-        />
+          role="combobox"
+          aria-expanded={open}
+          className={cn(
+            "flex w-full min-h-[40px] items-center justify-between gap-2 rounded-[7px] border border-[#D5DAE8] bg-white px-3 py-2.5 text-[13px]",
+            "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] transition-colors hover:border-[#C8CEE0]",
+            "focus-visible:border-[#1E2FA8] focus-visible:ring-2 focus-visible:ring-[#1E2FA8]/40 focus-visible:outline-none",
+            selected ? "text-[#10162B]" : "text-[#8A92AB]",
+          )}>
+          <span className="truncate">
+            {selected ? `${selected.demonym} (${selected.common_name})` : placeholder}
+          </span>
 
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {value && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange("");
-                setQuery("");
-                inputRef.current?.focus();
-              }}
-              className="p-0.5 rounded-md text-slate-400 hover:text-slate-600 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-          <svg
-            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-
-      {open && (
-        <div className="absolute z-30 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
-          {/* Search hint */}
-          {query === "" && (
-            <div className="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
-              <svg
-                className="w-3.5 h-3.5 text-slate-400 flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}>
-                <circle cx="11" cy="11" r="8" />
-                <path strokeLinecap="round" d="M21 21l-4.35-4.35" />
-              </svg>
-              <span className="text-xs text-slate-400">Type to filter {nationalities.length} nationalities</span>
-            </div>
-          )}
-
-          <ul ref={listRef} className="max-h-60 overflow-y-auto py-1">
-            {filtered.length > 0 ? (
-              filtered.map((option, i) => {
-                const isSelected = option.demonym === value;
-                const isHighlighted = i === highlighted;
-
-                return (
-                  <li
-                    key={option.id}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSelect(option);
-                    }}
-                    onMouseEnter={() => setHighlighted(i)}
-                    className={`flex items-center justify-between px-4 py-2.5 cursor-pointer transition-colors text-sm ${
-                      isHighlighted ? "bg-blue-50" : ""
-                    } ${isSelected ? "text-blue-700 font-semibold" : "text-slate-700"}`}>
-                    <span>
-                      {query.trim() !== ""
-                        ? (() => {
-                            const q = query.toLowerCase();
-                            const label = `${option.demonym} (${option.common_name})`;
-                            const idx = label.toLowerCase().indexOf(q);
-                            if (idx === -1) return label;
-                            return (
-                              <>
-                                {label.slice(0, idx)}
-                                <mark className="bg-blue-100 text-blue-700 rounded-sm px-0.5 not-italic font-semibold">
-                                  {label.slice(idx, idx + q.length)}
-                                </mark>
-                                {label.slice(idx + q.length)}
-                              </>
-                            );
-                          })()
-                        : `${option.demonym} (${option.common_name})`}
-                    </span>
-
-                    {isSelected && (
-                      <svg
-                        className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 ml-2"
-                        fill="currentColor"
-                        viewBox="0 0 20 20">
-                        <path
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        />
-                      </svg>
-                    )}
-                  </li>
-                );
-              })
-            ) : (
-              <li className="px-4 py-6 text-center">
-                <p className="text-sm text-slate-400">No results for &ldquo;{query}&rdquo;</p>
-                <p className="text-xs text-slate-300 mt-0.5">Try a different spelling or country name</p>
-              </li>
+          <span className="flex shrink-0 items-center gap-1">
+            {value && (
+              <span
+                role="button"
+                aria-label="Clear nationality"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange("");
+                }}
+                className="rounded p-0.5 text-[#6C7591] transition-colors hover:text-[#10162B]">
+                <X className="size-3.5" />
+              </span>
             )}
-          </ul>
+            <ChevronDown className="size-4 text-[#6C7591]" />
+          </span>
+        </button>
+      </PopoverTrigger>
 
-          {query.trim() !== "" && filtered.length > 0 && (
-            <div className="px-4 py-2 border-t border-slate-100">
-              <p className="text-[10px] text-slate-400">
-                {filtered.length} result{filtered.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] rounded-[10px] border-[#E1E5F0] p-0 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">
+        <Command>
+          <CommandInput placeholder="Type to filter…" className="text-[13px]" />
+          <CommandList className="max-h-60">
+            <CommandEmpty className="py-6 text-center text-[13px] text-[#6C7591]">
+              No nationality matches
+            </CommandEmpty>
+            <CommandGroup>
+              {nationalities.map((option) => (
+                <CommandItem
+                  key={option.id}
+                  value={`${option.demonym} ${option.common_name}`}
+                  onSelect={() => {
+                    onChange(option.demonym);
+                    setOpen(false);
+                  }}
+                  className="text-[13px] text-[#10162B] data-[selected=true]:bg-[#E7EAFB] data-[selected=true]:text-[#1B2A8F]">
+                  <Check
+                    className={cn("size-4 text-[#1E2FA8]", option.demonym === value ? "opacity-100" : "opacity-0")}
+                  />
+                  {option.demonym}
+                  <span className="ml-1 text-[#6C7591]">({option.common_name})</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 };

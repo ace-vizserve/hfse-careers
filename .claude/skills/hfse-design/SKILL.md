@@ -171,7 +171,9 @@ Installed and in use:
 | `select` | `components/ui/styled-select.tsx` |
 | `radio-group` | the `RadioPill` in `components/navbar.tsx` |
 | `checkbox` | the urgent-only filter in `components/navbar.tsx` |
-| `popover` | the Filter Positions dropdown in `components/navbar.tsx` |
+| `popover` | Filter dropdown, date picker, both comboboxes |
+| `command` | `nationality-combo-box.tsx`, `industry-combo-box.tsx` |
+| `calendar` | `date-picker.tsx` |
 | `form` | `components/ui/form.tsx`, used by `ApplicationFormField` |
 | `button`, `carousel` | as shipped |
 
@@ -180,10 +182,8 @@ A dropdown, menu or panel anchored to a trigger is a `Popover` — never an
 outside clicks, Escape, focus return, portalling and flipping when it would run
 off-screen.
 
-Still hand-rolled, and worth migrating when you next touch them:
-`nationality-combo-box` and `industry-combo-box` (→ `popover` + `command`),
-`date-picker` (→ `popover` + `calendar`), `consent-declarations` (→ `checkbox`),
-`dropzone`, `stepper`, `application-note`, `submitting-overlay`.
+Still hand-rolled, and worth migrating when you next touch them: `dropzone`,
+`stepper`, `application-note`, `submitting-overlay`.
 
 How to migrate one:
 
