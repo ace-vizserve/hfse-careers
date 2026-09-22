@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { type UseSupabaseUploadReturn } from "@/hooks/use-supabase-upload";
 import { cn } from "@/lib/utils";
-import { CheckCircle2Icon, File, Loader2, Upload, X } from "lucide-react";
+import { CheckCircle2Icon, File, FileTextIcon, Loader2, X } from "lucide-react";
 import { createContext, type PropsWithChildren, useCallback, useContext } from "react";
 
 const formatBytes = (
@@ -47,7 +47,7 @@ const Dropzone = ({
       <div
         {...getRootProps({
           className: cn(
-            "border-2 border-gray-300 rounded-lg p-6 text-center bg-card transition-colors duration-300 text-foreground",
+            "rounded-[9px] border border-[#B9C2D9] bg-[#F7F8FC] px-[18px] py-4 text-center transition-colors duration-300 text-[#10162B]",
             className,
             isSuccess ? "border-solid" : "border-dashed",
             isActive && "border-primary bg-primary/10",
@@ -77,16 +77,16 @@ const DropzoneContent = ({ className }: { className?: string }) => {
     return (
       <div
         className={cn(
-          "flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3",
+          "flex items-center gap-3 rounded-[9px] border border-[#A9E4CC] bg-[#E7F6EF] px-4 py-3",
           className,
         )}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100">
-          <CheckCircle2Icon size={18} className="text-emerald-600" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#CDEFE1]">
+          <CheckCircle2Icon size={18} className="text-[#0B7A4F]" />
         </div>
 
         <div className="text-start min-w-0 shrink grow">
-          <p className="text-sm font-semibold text-emerald-700">Upload complete</p>
-          <p className="text-xs text-emerald-600">
+          <p className="text-[13px] font-semibold text-[#0B7A4F]">Upload complete</p>
+          <p className="text-[11px] text-[#0B7A4F]">
             {files.length} file{files.length > 1 ? "s" : ""} uploaded successfully
           </p>
         </div>
@@ -94,7 +94,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
         <Button
           type="button"
           variant="link"
-          className="shrink-0 text-emerald-700 hover:text-emerald-900"
+          className="shrink-0 text-[#0B7A4F] hover:text-[#075C3B]"
           onClick={() => files.forEach((file) => handleRemoveFile(file.name))}>
           Replace
         </Button>
@@ -190,27 +190,31 @@ const DropzoneEmptyState = ({ className }: { className?: string }) => {
   }
 
   return (
-    <div className={cn("flex flex-col items-center gap-y-2", className)}>
-      <Upload size={20} className="text-muted-foreground" />
-      <p className="text-sm">
-        Upload{!!maxFiles && maxFiles > 1 ? ` ${maxFiles}` : ""} file
-        {!maxFiles || maxFiles > 1 ? "s" : ""}
-      </p>
-      <div className="flex flex-col items-center gap-y-1">
-        <p className="text-xs text-muted-foreground">
-          Drag and drop or{" "}
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="underline cursor-pointer transition hover:text-foreground">
-            select {maxFiles === 1 ? `file` : "files"}
-          </button>{" "}
-          to upload
-        </p>
-        {maxFileSize !== Number.POSITIVE_INFINITY && (
-          <p className="text-xs text-muted-foreground">Maximum file size: {formatBytes(maxFileSize, 2)}</p>
-        )}
+    <div
+      className={cn(
+        "flex flex-col items-start gap-3 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-3.5",
+        className,
+      )}>
+      <div className="flex items-center gap-3">
+        <span className="flex size-9 flex-shrink-0 items-center justify-center rounded-lg border border-[#DDE2EE] bg-white">
+          <FileTextIcon size={16} className="text-[#1E2FA8]" />
+        </span>
+        <div>
+          <p className="text-[13px] font-medium text-[#10162B]">
+            Drop your {maxFiles === 1 ? "resume" : "files"} here, or browse
+          </p>
+          {maxFileSize !== Number.POSITIVE_INFINITY && (
+            <p className="mt-0.5 text-[11px] text-[#6C7591]">PDF only, up to {formatBytes(maxFileSize, 0)}</p>
+          )}
+        </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="min-h-[34px] flex-shrink-0 cursor-pointer rounded-md border border-[#D5DAE8] bg-white px-[15px] py-2 text-[12px] font-semibold text-[#10162B] shadow-[0_1px_2px_rgba(16,22,43,0.05)] transition-colors hover:bg-[#F7F8FC]">
+        Browse files
+      </button>
     </div>
   );
 };

@@ -3,6 +3,10 @@ import React from "react";
 import Image from "next/image";
 import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram, ChevronRight } from "lucide-react";
 
+import { PDPA_STATEMENT_URL } from "@/components/ui/pdpa-notice";
+
+const TERMS_URL = "https://hfse.edu.sg/terms-and-conditions/";
+
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -142,22 +146,20 @@ const Footer = () => {
             </p>
             <div className="flex items-center space-x-6 text-sm">
               <a
-                href="#"
+                href={PDPA_STATEMENT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white/70 hover:text-cyan-400 transition-colors duration-300"
               >
                 Privacy Policy
               </a>
               <a
-                href="#"
+                href={TERMS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-white/70 hover:text-cyan-400 transition-colors duration-300"
               >
                 Terms of Service
-              </a>
-              <a
-                href="#"
-                className="text-white/70 hover:text-cyan-400 transition-colors duration-300"
-              >
-                Cookie Policy
               </a>
             </div>
           </div>

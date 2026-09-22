@@ -1,44 +1,34 @@
 import { entity_list } from "@/app/constants";
+import Navbar from "@/components/navbar";
+import { getJob, getPublishedJobs } from "@/lib/jobs.server";
 import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
-import { ArrowLeft, Briefcase, Building2, CheckCircle2, Clock, MapPin, Send } from "lucide-react";
+import { ArrowRight, Briefcase, CheckCircle2, ChevronLeft, Clock, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ShareRoleButton } from "./share-button";
+
 type Params = {
   params: Promise<{ id: string }>;
 };
 
-interface JobDetail {
-  id: number;
-  position_name: string;
-  location: string;
-  employment_type: string;
-  contract_details?: string;
-  description: string;
-  salary_min?: number;
-  salary_max?: number;
-  currency?: string;
-  frequency?: string;
-  company?: { name: string };
-  organization?: number;
-  date_posted?: string;
-  valid_through?: string;
-  updated_at?: string;
-}
-
 const SITE_URL = "https://careers.hfse.edu.sg";
 
-async function getJob(id: string): Promise<JobDetail | null> {
-  const res = await fetch(`${SITE_URL}/api/jobs/${id}`, {
-    next: { revalidate: 300 },
-  });
+/**
+ * Job pages are prerendered at build and refreshed in the background, so a
+ * visitor is served static HTML and never waits on Manatal. Roles published
+ * after the last build still resolve on first request, then cache like the
+ * rest (`dynamicParams`).
+ */
+export const revalidate = 300;
+export const dynamicParams = true;
 
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error("Failed to load job");
+export async function generateStaticParams() {
+  const jobs = await getPublishedJobs();
 
-  return res.json();
+  return jobs.filter((job) => job.id).map((job) => ({ id: String(job.id) }));
 }
 
 function stripHtml(html: string) {
@@ -68,42 +58,57 @@ function salaryUnit(freq?: string) {
   return "MONTH";
 }
 
-function formatSalary(min?: number, max?: number, currency?: string, frequency?: string) {
+/** The sidebar prints the amount on its own line, so the cadence is separate. */
+function formatSalaryAmount(min?: number, max?: number, currency?: string) {
   if (!min && !max) return null;
 
-  const currencyCode = currency || "SGD";
   const formatter = new Intl.NumberFormat("en-SG", {
     style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    currency: currency || "SGD",
+    maximumFractionDigits: 0,
   });
 
-  const freqText =
-    frequency === "hour"
-      ? " / hour"
-      : frequency === "day"
-        ? " / day"
-        : frequency === "week"
-          ? " / week"
-          : frequency === "year"
-            ? " / year"
-            : " / month";
-
-  if (min && max) {
-    return `${formatter.format(min)} - ${formatter.format(max)}${freqText}`;
+  if (min && max && min !== max) {
+    return `${formatter.format(min)} – ${formatter.format(max)}`;
   }
 
-  return `${formatter.format(min || max!)}${freqText}`;
+  return formatter.format((min || max)!);
+}
+
+function salaryCadence(frequency?: string) {
+  if (frequency === "hour") return "an hour";
+  if (frequency === "day") return "a day";
+  if (frequency === "week") return "a week";
+  if (frequency === "year") return "a year";
+  return "a month";
+}
+
+function formatDatePosted(value?: string) {
+  if (!value) return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-SG", { day: "numeric", month: "short", year: "numeric" }).format(date);
+}
+
+function websiteLabel(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
 }
 
 function renderJobDescription(description: string) {
   return parseJobDescription(description).map((section, sectionIdx) => {
+    const spacing = sectionIdx === 0 ? "" : "mt-5";
+
     if (section.type === "header") {
       return (
-        <section key={sectionIdx} className="mb-6">
-          <h2 className="font-bold mb-2 text-gray-900">{section.header}</h2>
-          <ul className="list-disc list-inside space-y-1 ml-4">
+        <section key={sectionIdx} className={spacing}>
+          <p className="text-[13px] font-bold text-[#10162B]">{section.header}</p>
+          <ul className="mt-[9px] list-disc pl-[19px] text-[14px] leading-[1.85] text-[#414A66]">
             {section.items.map((item, idx) => (
               <li key={idx}>{item}</li>
             ))}
@@ -113,7 +118,7 @@ function renderJobDescription(description: string) {
     }
 
     return (
-      <p key={sectionIdx} className="text-gray-700 mb-3 leading-7">
+      <p key={sectionIdx} className={`text-[14px] leading-[1.85] text-[#414A66] ${spacing}`}>
         {section.text}
       </p>
     );
@@ -189,6 +194,12 @@ export default async function JobDetailPage({ params }: Params) {
 
   const organization = entity_list.find((org) => org.id === job.organization);
   const orgLogo = organization?.logo;
+  const orgName = organization?.name || job.company?.name || "HFSE Global Education Group";
+  const orgWebsite = organization?.website || "https://hfse.edu.sg/";
+
+  const employmentType = formatEmploymentType(job.contract_details, job.employment_type, "Full-Time");
+  const salary = formatSalaryAmount(job.salary_min, job.salary_max, job.currency);
+  const datePosted = formatDatePosted(job.date_posted || job.updated_at);
 
   const jobPostingJsonLd = {
     "@context": "https://schema.org",
@@ -242,131 +253,198 @@ export default async function JobDetailPage({ params }: Params) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }} />
 
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="bg-gradient-to-r from-indigo-700 to-indigo-900 py-16 md:py-20 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-10 right-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-            <div className="absolute bottom-10 left-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-          </div>
+      <div className="flex min-h-dvh flex-col bg-[#EFF1F6]">
+        {/* Same navy chrome as the listings page; the artboard drops its search row. */}
+        <Navbar showSearch={false} />
 
-          <div className="max-w-6xl mx-auto px-6 relative z-10">
-            <Link
-              href="/"
-              className="text-white/80 hover:text-white mb-8 inline-flex items-center gap-2 text-base font-medium transition-colors group">
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Back to all jobs
-            </Link>
-
-            <div className="flex flex-col md:gap-6 mb-8">
-              {orgLogo ? (
-                <div className="w-max flex-shrink-0 rounded-xl border border-slate-100 bg-white p-2.5 flex items-center justify-center shadow-sm">
-                  <Image src={orgLogo} alt={organization?.name} width={140} height={64} className="object-cover" />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20">
-                  <Building2 className="w-10 h-10 text-white" />
-                </div>
-              )}
-
-              <h1 className="mt-4 md:mt-0 text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
-                {job.position_name}
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap gap-4 md:gap-6">
-              {job.location && (
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-                  <MapPin className="w-5 h-5" />
-                  <span className="font-medium">{job.location}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-                <Briefcase className="w-5 h-5" />
-                <span className="font-medium">
-                  {formatEmploymentType(job.contract_details, job.employment_type, "Full-time")}
-                </span>
-              </div>
-
-              {organization && (
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2.5 rounded-lg text-white border border-white/20">
-                  <span className="font-medium">{organization?.name}</span>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="mx-auto w-full max-w-[1680px] px-4 pt-5 sm:px-6 lg:px-10 lg:pt-[30px]">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-[7px] text-[16px] font-medium text-[#4A5273] transition-colors hover:text-[#10162B]">
+            <ChevronLeft className="size-4" />
+            See all jobs
+          </Link>
         </div>
 
-        <main className="flex-1 py-12 md:py-16">
-          <div className="max-w-5xl mx-auto px-6">
-            <article className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-10 mb-8">
-              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-200">
-                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                  <Briefcase className="w-5 h-5 text-indigo-700" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">Job Description</h2>
-              </div>
+        <div className="mx-auto w-full max-w-[1680px] px-4 pb-10 pt-3 sm:px-6 lg:px-10 lg:pb-14 lg:pt-4">
+          <div className="flex flex-col items-start gap-5 lg:flex-row">
+            <main className="flex w-full min-w-0 flex-1 flex-col gap-4">
+              {/* Title card */}
+              <section className="rounded-xl bg-white px-5 py-5 sm:px-7 sm:py-[26px] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">
+                <div className="flex gap-4">
+                  {orgLogo ? (
+                    <div className="flex size-[60px] flex-shrink-0 items-center justify-center rounded-xl border border-[#E3E6F0] bg-white shadow-[0_1px_3px_rgba(16,22,43,0.08)]">
+                      <Image src={orgLogo} alt={orgName} width={44} height={44} className="h-auto w-11 object-contain" />
+                    </div>
+                  ) : (
+                    <div className="flex size-[60px] flex-shrink-0 items-center justify-center rounded-xl border border-[#E3E6F0] bg-[#F2F4FA]">
+                      <Briefcase className="size-6 text-[#6C7591]" />
+                    </div>
+                  )}
 
-              <div className="text-gray-700">{renderJobDescription(job.description || "")}</div>
-            </article>
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-[22px] font-bold leading-[1.2] tracking-[-0.035em] text-[#10162B] sm:text-[28px] sm:leading-[1.15]">
+                      {job.position_name}
+                    </h1>
 
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 text-indigo-700" />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-gray-900 mb-1">Application Process</h2>
-                    <p className="text-gray-600 text-sm">
-                      We review applications on a rolling basis and will contact qualified candidates within 5-7
-                      business days.
-                    </p>
+                    <a
+                      href={orgWebsite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[14px] font-medium text-[#4A5273] transition-colors hover:text-[#10162B]">
+                      {orgName}
+                    </a>
+
+                    <div className="mt-[14px] flex flex-wrap gap-[7px]">
+                      {job.location && (
+                        <span className="inline-flex items-center gap-[5px] rounded-md border border-[#E3E6F0] bg-[#F2F4FA] px-2.5 py-[5px] text-[12px] font-medium text-[#414A66]">
+                          <MapPin className="size-3 text-[#6C7591]" />
+                          {job.location}
+                        </span>
+                      )}
+                      <span className="rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-[5px] text-[12px] font-medium text-[#1B2A8F]">
+                        {employmentType}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </section>
 
-              <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <CheckCircle2 className="w-6 h-6 text-indigo-700" />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-gray-900 mb-1">What to Expect</h2>
-                    <p className="text-gray-600 text-sm">
-                      Our hiring process includes an initial screening, technical interview, and final conversation with
-                      the team.
-                    </p>
-                  </div>
-                </div>
-              </section>
-            </div>
+              {/* Job description */}
+              <section className="rounded-xl bg-white px-5 py-5 sm:px-7 sm:py-[26px] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">
+                <h2 className="mb-4 border-b border-[#ECEFF7] pb-[14px] text-[17px] font-semibold tracking-[-0.02em] text-[#10162B]">
+                  Job Description
+                </h2>
 
-            <section className="text-center bg-gradient-to-br from-indigo-700 to-indigo-900 rounded-2xl shadow-lg p-10 md:p-12 text-white relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
-                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
+                {renderJobDescription(job.description || "")}
+              </section>
+
+              {/* Process cards */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <section className="rounded-xl bg-white p-[22px] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_6px_18px_rgba(16,22,43,0.06)]">
+                  <div className="flex items-start gap-[14px]">
+                    <span className="flex size-11 flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7EAFB]">
+                      <Clock className="size-5 text-[#1E2FA8]" />
+                    </span>
+                    <div>
+                      <h2 className="mb-1 text-[15px] font-semibold text-[#10162B]">Application Process</h2>
+                      <p className="text-[13px] leading-[1.65] text-[#4A5273]">
+                        We review applications on a rolling basis and will contact qualified candidates within 5-7
+                        business days.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl bg-white p-[22px] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_6px_18px_rgba(16,22,43,0.06)]">
+                  <div className="flex items-start gap-[14px]">
+                    <span className="flex size-11 flex-shrink-0 items-center justify-center rounded-[10px] bg-[#E7EAFB]">
+                      <CheckCircle2 className="size-5 text-[#1E2FA8]" />
+                    </span>
+                    <div>
+                      <h2 className="mb-1 text-[15px] font-semibold text-[#10162B]">What to Expect</h2>
+                      <p className="text-[13px] leading-[1.65] text-[#4A5273]">
+                        Our hiring process includes an initial screening, technical interview, and final conversation
+                        with the team.
+                      </p>
+                    </div>
+                  </div>
+                </section>
               </div>
 
-              <div className="relative z-10">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Send className="w-8 h-8 text-white" />
-                </div>
+              {/* Closing CTA */}
+              {/* Phones already get the sidebar's Apply Now just below this. */}
+              <section className="relative hidden overflow-hidden rounded-[14px] px-6 py-10 text-center sm:block sm:px-10 sm:py-[52px] shadow-[0_2px_6px_rgba(22,33,122,0.2),0_16px_40px_rgba(22,33,122,0.28)]">
+                <Image
+                  src="/assets/career-opportunities.jpg"
+                  alt=""
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 780px"
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(22,33,122,0.93)_0%,rgba(30,47,168,0.82)_55%,rgba(38,56,182,0.7)_100%)]" />
 
-                <h2 className="text-2xl md:text-3xl font-bold mb-3">Ready to Apply?</h2>
-                <p className="text-white/90 mb-8 text-lg max-w-2xl mx-auto">
-                  Take the next step in your career. We&apos;re excited to learn more about you!
-                </p>
+                <div className="relative">
+                  <h2 className="text-[22px] font-bold tracking-[-0.03em] text-white sm:text-[28px]">Ready to Apply?</h2>
+                  <p className="mx-auto mt-[10px] max-w-[440px] text-[14px] leading-[1.65] text-white/80">
+                    Take the next step in your career with {orgName}.
+                  </p>
+
+                  <Link
+                    href={`/jobs/${job.id}/apply`}
+                    className="mt-6 inline-flex items-center gap-[9px] rounded-lg bg-white px-8 py-[14px] text-[15px] font-semibold text-[#16217A] shadow-[0_2px_4px_rgba(0,0,0,0.18),0_12px_30px_rgba(0,0,0,0.28)] transition-transform hover:-translate-y-0.5">
+                    Apply Now
+                    <ArrowRight className="size-4" strokeWidth={2.4} />
+                  </Link>
+                </div>
+              </section>
+            </main>
+
+            <aside className="flex w-full flex-shrink-0 flex-col gap-4 lg:w-[420px]">
+              <section className="rounded-xl bg-white p-6 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">
+                {salary && (
+                  <div className="mb-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">Salary</p>
+                    <p className="mt-[7px] text-[24px] font-bold tracking-[-0.03em] text-[#10162B]">{salary}</p>
+                    <p className="mt-0.5 text-[13px] text-[#6C7591]">{salaryCadence(job.frequency)}</p>
+                  </div>
+                )}
 
                 <Link
                   href={`/jobs/${job.id}/apply`}
-                  className="inline-flex items-center gap-2 px-10 py-4 bg-white text-indigo-700 font-semibold text-lg rounded-xl hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl hover:scale-105">
-                  Apply for this position
-                  <ArrowLeft className="w-5 h-5 rotate-180" />
+                  className="flex min-h-[42px] w-full items-center justify-center rounded-lg bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-4 py-3 text-[14px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_4px_12px_rgba(30,47,168,0.3)] transition-all hover:brightness-110">
+                  Apply Now
                 </Link>
-              </div>
-            </section>
+
+                <ShareRoleButton jobId={job.id} />
+
+                <div className="my-5 h-px bg-[#ECEFF7]" />
+
+                <div className="flex justify-between py-1.5 text-[13px]">
+                  <span className="text-[#6C7591]">Employment type</span>
+                  <span className="font-semibold text-[#10162B]">{employmentType}</span>
+                </div>
+
+                {job.location && (
+                  <div className="flex justify-between py-1.5 text-[13px]">
+                    <span className="text-[#6C7591]">Location</span>
+                    <span className="font-semibold text-[#10162B]">{job.location}</span>
+                  </div>
+                )}
+
+                {datePosted && (
+                  <div className="flex justify-between py-1.5 text-[13px]">
+                    <span className="text-[#6C7591]">Date posted</span>
+                    <span className="font-semibold text-[#10162B]">{datePosted}</span>
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-xl bg-white p-[22px] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_6px_18px_rgba(16,22,43,0.06)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-11 flex-shrink-0 items-center justify-center rounded-[10px] border border-[#E3E6F0] bg-white">
+                    {orgLogo ? (
+                      <Image src={orgLogo} alt="" width={32} height={32} className="h-auto w-8 object-contain" />
+                    ) : (
+                      <Briefcase className="size-4 text-[#6C7591]" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-semibold text-[#10162B]">{orgName}</p>
+                    <a
+                      href={orgWebsite}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[12px] text-[#1E2FA8] hover:underline">
+                      {websiteLabel(orgWebsite)}
+                    </a>
+                  </div>
+                </div>
+              </section>
+            </aside>
           </div>
-        </main>
+        </div>
       </div>
     </>
   );

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { Toaster } from "sileo";
+
+import { PdpaNotice } from "@/components/ui/pdpa-notice";
 import "./globals.css";
 
 // Poppins is the brand face; it already ships in the hero widget.
@@ -85,6 +87,7 @@ export default function RootLayout({
       <body className={`${poppins.variable} antialiased`} style={{ fontFamily: "var(--font-poppins)" }}>
         <Toaster position="top-right" theme="light" />
         {children}
+        <PdpaNotice />
       </body>
     </html>
   );

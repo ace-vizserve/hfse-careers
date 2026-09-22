@@ -10,12 +10,10 @@ import {
   Linkedin,
   Mail,
   MapPin,
-  Menu,
   Phone,
   Search,
   Building2,
   Clock,
-  X,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -27,6 +25,8 @@ import React, { useState } from "react";
 
 interface NavbarProps {
   showBackButton?: boolean;
+  /** The search + filter row only has something to drive on the listings page. */
+  showSearch?: boolean;
   onBack?: () => void;
   onSearch?: (query: string) => void;
   onFilterChange?: (filters: FilterOptions) => void;
@@ -44,8 +44,7 @@ interface FilterOptions {
 /** Radix Select rejects an empty item value, so this stands in for "no filter". */
 const ALL_VALUE = "__all__";
 
-const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearch, onFilterChange, employers = [] }) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, showSearch = true, onBack, onSearch, onFilterChange, employers = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({ employmentType: "", isRemote: null, employer: "", frequency: "", urgentOnly: false });
@@ -198,14 +197,14 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
       <div className="bg-[#1B2A8F] text-white sticky top-0 left-0 right-0 z-50">
         {/* ── Top info bar (Bigger text & Height) ────────────────────────── */}
         <div className="w-full">
-          <div className="mx-auto w-full max-w-[1680px] px-10 flex items-center h-[104px] gap-10">
+          <div className="mx-auto flex w-full max-w-[1680px] items-center gap-4 px-4 sm:px-6 lg:gap-10 lg:px-10 h-[76px] sm:h-[104px]">
             <a href="/" className="flex-shrink-0 transition-transform hover:scale-[1.03] active:scale-95">
               <Image
                 src="/assets/geg-logo-transparent.png"
                 alt="HFSE International School"
                 width={220}
                 height={110}
-                className="h-[58px] w-auto object-contain"
+                className="h-[40px] w-auto object-contain sm:h-[58px]"
                 priority
               />
             </a>
@@ -253,91 +252,60 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
         </div>
 
         {/* ── Main nav bar (Increased Height to h-24) ────────────────────── */}
-        <nav className="bg-[#EFF1F6]">
-          <div className="mx-auto w-full max-w-[1680px] px-10">
-            <div className="relative flex items-center justify-center h-[92px] w-full gap-4">
-              {showBackButton && onBack && (
-                <button
-                  onClick={onBack}
-                  className="md:hidden absolute left-4 p-2 rounded-lg hover:bg-white transition-colors text-[#4A5273]">
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-              )}
+        {showSearch && (
+          <nav className="bg-[#EFF1F6]">
+            <div className="mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-10">
+              {/* One row at every width: search takes the space, filter opens a
+                  popover. The old burger pushed the page down to show them. */}
+              <div className="flex h-[68px] w-full items-center justify-center gap-2 sm:h-[92px] sm:gap-4">
+                {showBackButton && onBack && (
+                  <button
+                    onClick={onBack}
+                    aria-label="Back"
+                    className="flex-shrink-0 rounded-lg p-2 text-[#4A5273] transition-colors hover:bg-white md:hidden">
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                )}
 
-              {/* Desktop: search + filter ─────────────────────────────── */}
-              <div className="hidden md:flex items-center gap-4">
-                {/* Search input (Bigger Text & Width) */}
-                <div className="flex items-center gap-2.5 w-[520px] rounded-[7px] border border-[#D5DAE8] bg-[#F5F6FA] px-4 shadow-[inset_0_1px_2px_rgba(16,22,43,0.05)]">
-                  <Search className="w-[18px] h-[18px] flex-shrink-0 text-[#6C7591]" />
-                  <input
-                    type="text"
-                    placeholder="Search positions…"
-                    value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="h-[46px] w-full bg-transparent border-0 text-[15px] text-[#10162B] placeholder-[#8A92AB] focus:outline-none"
-                  />
+                <div className="flex w-full items-center gap-2 md:w-auto md:gap-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[7px] border border-[#D5DAE8] bg-[#F5F6FA] px-3 shadow-[inset_0_1px_2px_rgba(16,22,43,0.05)] sm:px-4 md:w-[520px] md:flex-none">
+                    <Search className="h-[18px] w-[18px] flex-shrink-0 text-[#6C7591]" />
+                    <input
+                      type="text"
+                      placeholder="Search positions…"
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      className="h-[42px] w-full border-0 bg-transparent text-[14px] text-[#10162B] placeholder-[#8A92AB] focus:outline-none sm:h-[46px] sm:text-[15px]"
+                    />
+                  </div>
+
+                  <Popover open={showFilters} onOpenChange={setShowFilters}>
+                    <PopoverTrigger asChild>
+                      <button
+                        aria-label="Filter positions"
+                        className="relative flex min-h-[42px] flex-shrink-0 items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-3.5 py-3 text-[15px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110 sm:min-h-[46px] md:px-7">
+                        <Filter className="h-[18px] w-[18px]" />
+                        <span className="hidden md:inline">Filter Positions</span>
+                        {activeFilterCount > 0 && (
+                          <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-md border border-white bg-[#1E2FA8] text-[11px] font-semibold text-white shadow-[0_1px_3px_rgba(30,47,168,0.3)] sm:-right-2.5 sm:-top-2.5 sm:h-7 sm:w-7">
+                            {activeFilterCount}
+                          </span>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+
+                    <PopoverContent
+                      align="end"
+                      sideOffset={12}
+                      className="max-h-[min(70dvh,560px)] w-[min(384px,calc(100vw-2rem))] overflow-y-auto rounded-xl border-[#E1E5F0] bg-white p-5 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] sm:p-6">
+                      <FilterPanel namePrefix="nav" />
+                    </PopoverContent>
+                  </Popover>
                 </div>
-
-                {/* Filter button */}
-                <Popover open={showFilters} onOpenChange={setShowFilters}>
-                  <PopoverTrigger asChild>
-                    <button className="relative flex items-center gap-2 min-h-[46px] px-7 py-3 rounded-[7px] text-[15px] font-semibold text-white bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110">
-                      <Filter className="w-[18px] h-[18px]" />
-                      Filter Positions
-                      {activeFilterCount > 0 && (
-                        <span className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-[#1E2FA8] text-white text-[11px] rounded-md flex items-center justify-center font-semibold shadow-[0_1px_3px_rgba(30,47,168,0.3)] border border-white">
-                          {activeFilterCount}
-                        </span>
-                      )}
-                    </button>
-                  </PopoverTrigger>
-
-                  <PopoverContent
-                    align="end"
-                    sideOffset={12}
-                    className="w-96 rounded-xl border-[#E1E5F0] bg-white p-6 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">
-                    <FilterPanel namePrefix="desktop" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Mobile menu toggle */}
-              <div className="md:hidden">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileOpen(!mobileOpen);
-                  }}
-                  className="p-3 rounded-2xl bg-[#F2F4FA] text-[#414A66] border border-[#E3E6F0]"
-                  aria-label="Toggle menu">
-                  {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
               </div>
             </div>
-          </div>
-
-          {/* Mobile expanded panel */}
-          <div
-            className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-              mobileOpen ? "max-h-[700px] opacity-100" : "max-h-0 opacity-0"
-            }`}>
-            <div className="px-5 pb-8 pt-4 bg-[#EFF1F6] border-t border-[#E1E5F0] space-y-6">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6C7591] pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Search positions…"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full pl-12 pr-6 py-4 bg-white border border-[#D5DAE8] rounded-[7px] text-[13px] text-[#10162B] shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8] transition-all duration-200"
-                />
-              </div>
-
-              <div className="border-t border-[#D5DAE8]" />
-              <FilterPanel namePrefix="mobile" />
-            </div>
-          </div>
-        </nav>
+          </nav>
+        )}
       </div>
     </>
   );

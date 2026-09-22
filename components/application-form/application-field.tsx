@@ -11,9 +11,9 @@ import type { ReactNode } from "react";
 import { useFormContext } from "react-hook-form";
 
 export const inputBase =
-  "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 " +
-  "focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all duration-200 " +
-  "hover:border-slate-300 text-sm";
+  "w-full min-h-[40px] px-3 py-2.5 bg-white border border-[#D5DAE8] rounded-[7px] text-[13px] text-[#10162B] placeholder-[#8A92AB] " +
+  "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] transition-colors duration-200 hover:border-[#C8CEE0] " +
+  "focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8]";
 
 type ControlProps = {
   field: ApplicationField;
@@ -79,7 +79,32 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
         />
       );
 
-    case "salary":
+    case "salary": {
+      // The artboard draws the currency as an attached prefix, so the border and
+      // the inset shadow belong to the shell, not to the input.
+      return (
+        <div className="flex items-stretch overflow-hidden rounded-[7px] border border-[#D5DAE8] shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] focus-within:border-[#1E2FA8] focus-within:ring-2 focus-within:ring-[#1E2FA8]/40">
+          <span className="flex items-center border-r border-[#D5DAE8] bg-[#F2F4FA] px-[11px] text-[12px] font-semibold text-[#4A5273]">
+            SGD
+          </span>
+          <input
+            {...a11y}
+            type="text"
+            inputMode="numeric"
+            value={text}
+            onChange={(event) => {
+              const digits = event.target.value.replace(/\D/g, "");
+              onChange(field.maxLength ? digits.slice(0, field.maxLength) : digits);
+            }}
+            onBlur={onBlur}
+            placeholder={field.placeholder}
+            maxLength={field.maxLength}
+            className="min-h-[40px] w-full border-0 bg-white px-3 py-2.5 text-[13px] text-[#10162B] placeholder-[#8A92AB] focus:outline-none"
+          />
+        </div>
+      );
+    }
+
     case "digits":
     case "postalcode": {
       // Sanitising on change rather than filtering keydown: e.key for Backspace,
@@ -132,7 +157,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
           onBlur={onBlur}
           placeholder={field.placeholder}
           maxLength={9}
-          className={cn(inputBase, "uppercase tracking-widest font-mono")}
+          className={cn(inputBase, "uppercase tracking-[0.08em]")}
         />
       );
 

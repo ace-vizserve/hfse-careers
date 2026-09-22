@@ -42,11 +42,12 @@ export const IndustryCombobox = ({ value = [], onChange, id }: IndustryComboboxP
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "flex w-full min-h-[40px] items-center justify-between gap-2 rounded-[7px] border border-[#D5DAE8] bg-white px-3 py-2 text-left text-[13px]",
+            "flex w-full min-h-[40px] max-h-[88px] items-start justify-between gap-2 rounded-[7px] border border-[#D5DAE8] bg-white px-3 py-2 text-left text-[13px]",
             "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] transition-colors hover:border-[#C8CEE0]",
             "focus-visible:border-[#1E2FA8] focus-visible:ring-2 focus-visible:ring-[#1E2FA8]/40 focus-visible:outline-none",
           )}>
-          <span className="flex flex-1 flex-wrap items-center gap-1.5 py-0.5">
+          {/* Chips wrap, but the field stops growing after ~3 rows and scrolls. */}
+          <span className="flex max-h-[72px] flex-1 flex-wrap items-center gap-1.5 overflow-y-auto py-0.5">
             {selected.length === 0 && <span className="text-[#8A92AB]">Select industries…</span>}
 
             {selected.map((ind) => (
@@ -68,7 +69,7 @@ export const IndustryCombobox = ({ value = [], onChange, id }: IndustryComboboxP
             ))}
           </span>
 
-          <ChevronDown className="size-4 shrink-0 text-[#6C7591]" />
+          <ChevronDown className="mt-1 size-4 shrink-0 text-[#6C7591]" />
         </button>
       </PopoverTrigger>
 

@@ -60,7 +60,7 @@ function Stepper({
                 aria-hidden="true"
                 className={cn(
                   "absolute left-5 top-12 h-[calc(100%-1.5rem)] w-px",
-                  isCompleted ? "bg-emerald-200" : "bg-slate-200",
+                  isCompleted ? "bg-[#A9E4CC]" : "bg-[#E1E5F0]",
                 )}
               />
             )}
@@ -71,27 +71,27 @@ function Stepper({
               aria-current={isActive ? "step" : undefined}
               aria-label={`Step ${index + 1}: ${step.title}`}
               className={cn(
-                "group flex items-center gap-4 rounded-xl text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 focus-visible:ring-offset-2",
+                "group flex items-center gap-[14px] rounded-[10px] text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E2FA8]/40 focus-visible:ring-offset-2",
                 isVertical && "w-full px-3 py-3",
-                isVertical && isActive && "bg-blue-50",
-                isVertical && !isActive && isNavigable && "hover:bg-slate-50",
+                isVertical && isActive && "bg-[#E7EAFB]",
+                isVertical && !isActive && isNavigable && "hover:bg-[#F5F6FA]",
                 isNavigable ? "cursor-pointer" : "cursor-not-allowed opacity-60",
               )}>
               <span
                 className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-sm transition-all duration-300",
+                  "flex size-10 shrink-0 items-center justify-center rounded-full text-[14px] font-bold transition-all duration-300",
                   isInvalid
-                    ? "bg-rose-500 text-white shadow-rose-200"
+                    ? "bg-[#C2410C] text-white shadow-[0_2px_6px_rgba(194,65,12,0.3)]"
                     : isActive
-                      ? "bg-blue-600 text-white shadow-blue-200"
+                      ? "bg-[#1E2FA8] text-white shadow-[0_2px_6px_rgba(30,47,168,0.32)]"
                       : isCompleted
-                        ? "bg-emerald-500 text-white shadow-emerald-200"
-                        : "bg-slate-100 text-slate-400 shadow-none group-hover:bg-slate-200",
+                        ? "bg-[#10A56B] text-white shadow-[0_2px_6px_rgba(16,165,107,0.3)]"
+                        : "bg-[#EDEFF6] text-[#8A92AB] group-hover:bg-[#E3E6F0]",
                 )}>
                 {isInvalid ? (
                   <AlertCircle className="size-5" strokeWidth={2.5} />
                 ) : isCompleted ? (
-                  <Check className="size-5" strokeWidth={3} />
+                  <Check className="size-[18px]" strokeWidth={3} />
                 ) : (
                   index + 1
                 )}
@@ -101,19 +101,21 @@ function Stepper({
                 <span
                   className={cn(
                     "text-[15px] font-semibold transition-colors",
-                    isInvalid ? "text-rose-600" : isActive ? "text-slate-900" : "text-slate-600",
+                    isInvalid ? "text-[#C2410C]" : isActive ? "text-[#10162B]" : "text-[#5B6480]",
                   )}>
                   {step.title}
                 </span>
                 {step.description && (
-                  <span className="mt-0.5 text-sm text-slate-500">{step.description}</span>
+                  <span className={cn("mt-px text-[13px]", isActive ? "text-[#6C7591]" : "text-[#8A92AB]")}>
+                    {step.description}
+                  </span>
                 )}
               </span>
             </button>
 
             {!isVertical && index < steps.length - 1 && (
               <span className="mx-auto hidden sm:block" aria-hidden="true">
-                <ChevronRight className="size-4 text-slate-300" />
+                <ChevronRight className="size-4 text-[#C3C9DC]" />
               </span>
             )}
           </li>

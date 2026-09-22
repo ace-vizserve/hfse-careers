@@ -18,8 +18,8 @@ const CheckItem = ({
 }) => (
   <label
     htmlFor={id}
-    className={`flex cursor-pointer select-none items-start gap-4 rounded-[10px] border p-5 transition-all ${
-      checked ? "border-[#1E2FA8] bg-[#F7F9FF]" : "border-[#E4E7F1] bg-white hover:border-[#C8CEE0]"
+    className={`flex cursor-pointer select-none items-start gap-[13px] rounded-[9px] border p-4 transition-colors ${
+      checked ? "border-[#C3CBE8] bg-[#F7F9FF]" : "border-[#E4E7F1] bg-[#FBFCFE] hover:border-[#C8CEE0]"
     }`}>
     <Checkbox
       id={id}
@@ -43,10 +43,10 @@ export const ConsentDeclarations = ({
   setDeclareConsent: (v: boolean) => void;
 }) => {
   return (
-    <div className="bg-white border border-[#ECEFF7] rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-[26px]">
-      <div className="flex items-start gap-4 mb-7">
-        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#1E2FA8] flex items-center justify-center shadow-sm shadow-blue-200">
-          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <div className="rounded-xl bg-white px-[26px] py-6 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]">
+      <div className="mb-[18px] flex items-center gap-[13px] border-b border-[#ECEFF7] pb-4">
+        <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#1E2FA8]">
+          <svg className="size-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -55,12 +55,14 @@ export const ConsentDeclarations = ({
           </svg>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-[#10162B] leading-tight tracking-[-0.02em]">Consent &amp; Acknowledgement</h3>
-          <p className="text-xs text-[#6C7591] mt-0.5">Please read and confirm both statements before submitting</p>
+          <h3 className="text-[17px] font-semibold leading-tight tracking-[-0.02em] text-[#10162B]">
+            Consent &amp; Acknowledgement
+          </h3>
+          <p className="mt-px text-[12px] text-[#6C7591]">Please read and confirm both statements before submitting</p>
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <CheckItem id="declare-truth" checked={declareTruth} onChange={setDeclareTruth}>
           I hereby declare that all the particulars given herein are true and correct, and I have not willfully
           suppressed any material fact.

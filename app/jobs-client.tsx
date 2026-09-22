@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/navbar";
 import PopupModal from "@/components/ui/popup-modal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
 import type { Job } from "@/lib/types/job";
 
@@ -18,8 +19,22 @@ interface FilterOptions {
   urgentOnly: boolean;
 }
 
-// Navy header (104) + the search/filter row (92). Keep in step with navbar.tsx.
+// Navy header (104) + the search/filter row (92) at desktop sizes. Keep in step with navbar.tsx.
 const NAVBAR_HEIGHT = 196;
+
+// Phone chrome: the navy bar (76) + the search row (68).
+const MOBILE_NAVBAR_HEIGHT = 144;
+
+// Radix paints the thumb with a token colour; steer it onto the palette. The
+// viewport also wraps its children in a `display: table` div, which ignores the
+// pane's width — cards then overflow sideways and `truncate` stops working — so
+// that wrapper is forced back to a block.
+const SCROLLBAR = [
+  "w-full min-w-0",
+  "[&>[data-slot=scroll-area-viewport]>div]:!block [&>[data-slot=scroll-area-viewport]>div]:!min-w-0",
+  "[&_[data-slot=scroll-area-thumb]]:bg-[#C8CEE0]",
+  "[&_[data-slot=scroll-area-scrollbar]]:w-2 [&_[data-slot=scroll-area-scrollbar]]:p-0",
+].join(" ");
 
 export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const router = useRouter();
@@ -181,11 +196,17 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       <div className="min-h-dvh bg-[#EFF1F6]">
         <Navbar onSearch={setSearchQuery} onFilterChange={setFilters} employers={employers} />
 
+        {/* Both panes fill the screen under the chrome and scroll inside themselves. */}
         <div
-          className="max-w-[1680px] mx-auto md:flex px-10 pt-6 pb-8 gap-6"
-          style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
+          className="mx-auto flex h-[var(--mobile-split-height)] max-w-[1680px] flex-col gap-6 px-4 pb-4 pt-4 sm:px-6 md:h-[var(--split-height)] md:flex-row md:px-10 md:pb-8 md:pt-6"
+          style={
+            {
+              "--split-height": `calc(100vh - ${NAVBAR_HEIGHT}px)`,
+              "--mobile-split-height": `calc(100dvh - ${MOBILE_NAVBAR_HEIGHT}px)`,
+            } as React.CSSProperties
+          }>
           <div
-            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[41%] bg-white rounded-xl overflow-hidden mb-6`}>
+            className={`${showDetails ? "hidden md:flex" : "flex"} min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl bg-white md:mb-6 md:w-[41%] md:flex-none`}>
             <div className="flex-shrink-0 px-6 py-[18px] border-b border-[#ECEFF7] bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">
@@ -197,7 +218,8 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
+            <ScrollArea className={`min-h-0 flex-1 ${SCROLLBAR}`}>
+              <div className="space-y-3 p-4">
               {filteredJobs.length === 0 && (
                 <div className="text-center py-24">
                   <div className="w-14 h-14 rounded-lg bg-[#EDEFF6] flex items-center justify-center mx-auto mb-4">
@@ -275,12 +297,13 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                   </div>
                 );
               })}
-            </div>
+              </div>
+            </ScrollArea>
           </div>
 
           <div
-            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 overflow-hidden mb-6 bg-white rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]`}>
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
+            className={`${showDetails ? "flex" : "hidden md:flex"} min-h-0 flex-col flex-1 overflow-hidden md:mb-6 bg-white rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]`}>
+            <ScrollArea className={`min-h-0 flex-1 ${SCROLLBAR}`}>
               <div className="space-y-6 p-1">
                 {selectedJob ? (
                   <div className="space-y-6">
@@ -290,7 +313,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                       Back to listings
                     </button>
 
-                    <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 sm:p-8">
+                    <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-5 sm:p-8">
                       <div className="flex items-start gap-5 mb-6">
                         {selectedJob.org_logo ? (
                           <div className="flex-shrink-0 w-16 h-16 rounded-lg border border-[#ECEFF7] bg-white p-2 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.04)]">
@@ -309,7 +332,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <h1 className="text-2xl sm:text-3xl font-bold text-[#10162B] leading-tight tracking-tight mb-1">
+                          <h1 className="mb-1 text-[22px] font-bold leading-tight tracking-tight text-[#10162B] sm:text-[28px]">
                             {selectedJob.position_name || selectedJob.title}
                           </h1>
 
@@ -490,7 +513,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                   </div>
                 )}
               </div>
-            </div>
+            </ScrollArea>
           </div>
         </div>
       </div>
