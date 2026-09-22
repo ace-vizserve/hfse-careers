@@ -1,7 +1,9 @@
+import { Checkbox } from "@/components/ui/checkbox";
+
 /**
- * Hoisted out of ConsentDeclarations on purpose. Declared inline, it was a new
- * component type on every render, so React unmounted and remounted the checkbox
- * each time state changed - which made a click on the label fail to register.
+ * A shadcn Checkbox with the statement as its label. The hand-rolled version was
+ * a label wrapping an `sr-only` input, and a click on the sentence did not
+ * register — which left Submit permanently disabled.
  */
 const CheckItem = ({
   checked,
@@ -16,33 +18,16 @@ const CheckItem = ({
 }) => (
   <label
     htmlFor={id}
-    className={`flex items-start gap-4 p-5 rounded-xl border-2 cursor-pointer transition-all select-none ${
-      checked ? "border-blue-400 bg-blue-50/50" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+    className={`flex cursor-pointer select-none items-start gap-4 rounded-[10px] border p-5 transition-all ${
+      checked ? "border-[#1E2FA8] bg-[#F7F9FF]" : "border-[#E4E7F1] bg-white hover:border-[#C8CEE0]"
     }`}>
-    <div className="flex-shrink-0 mt-0.5">
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="sr-only"
-      />
-      <div
-        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-          checked ? "bg-blue-600 border-blue-600" : "border-slate-300 bg-white"
-        }`}>
-        {checked && (
-          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-            />
-          </svg>
-        )}
-      </div>
-    </div>
-    <span className={`text-sm leading-relaxed ${checked ? "text-slate-800" : "text-slate-600"}`}>{children}</span>
+    <Checkbox
+      id={id}
+      checked={checked}
+      onCheckedChange={(next) => onChange(next === true)}
+      className="mt-0.5 size-5 flex-shrink-0 rounded-[5px] border-[#B9C2D9] data-[state=checked]:border-[#1E2FA8] data-[state=checked]:bg-[#1E2FA8]"
+    />
+    <span className="text-[13px] leading-[1.65] text-[#22283F]">{children}</span>
   </label>
 );
 
@@ -58,9 +43,9 @@ export const ConsentDeclarations = ({
   setDeclareConsent: (v: boolean) => void;
 }) => {
   return (
-    <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-8">
+    <div className="bg-white border border-[#ECEFF7] rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-[26px]">
       <div className="flex items-start gap-4 mb-7">
-        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-[#1E2FA8] flex items-center justify-center shadow-sm shadow-blue-200">
           <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path
               strokeLinecap="round"
@@ -70,8 +55,8 @@ export const ConsentDeclarations = ({
           </svg>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-800 leading-tight">Consent &amp; Acknowledgement</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Please read and confirm both statements before submitting</p>
+          <h3 className="text-lg font-semibold text-[#10162B] leading-tight tracking-[-0.02em]">Consent &amp; Acknowledgement</h3>
+          <p className="text-xs text-[#6C7591] mt-0.5">Please read and confirm both statements before submitting</p>
         </div>
       </div>
 
@@ -88,7 +73,7 @@ export const ConsentDeclarations = ({
       </div>
 
       {(!declareTruth || !declareConsent) && (
-        <p className="mt-4 text-xs text-rose-500 font-medium flex items-center gap-1.5">
+        <p className="mt-4 text-xs text-[#C2410C] font-medium flex items-center gap-1.5">
           <svg
             className="w-3.5 h-3.5 flex-shrink-0"
             fill="none"
