@@ -1,15 +1,15 @@
 "use client";
 
+import Navbar from "@/components/navbar";
+import PopupModal from "@/components/ui/popup-modal";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Job } from "@/lib/types/job";
+import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
 import { ArrowUpRight, Briefcase, CheckCircle, Mail, MapPin, Share2, Zap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import Navbar from "@/components/navbar";
-import PopupModal from "@/components/ui/popup-modal";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
-import type { Job } from "@/lib/types/job";
 
 interface FilterOptions {
   employmentType: string;
@@ -54,10 +54,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   });
 
   // Only offer employers that actually have a posting.
-  const employers = useMemo(
-    () => Array.from(new Set(jobs.map((job) => job.org_name).filter(Boolean))).sort(),
-    [jobs],
-  );
+  const employers = useMemo(() => Array.from(new Set(jobs.map((job) => job.org_name).filter(Boolean))).sort(), [jobs]);
 
   const formatLocation = (job: Job) => (job.is_remote ? "Remote" : job.country || "On-site");
 
@@ -220,83 +217,83 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
 
             <ScrollArea className={`min-h-0 flex-1 ${SCROLLBAR}`}>
               <div className="space-y-3 p-4">
-              {filteredJobs.length === 0 && (
-                <div className="text-center py-24">
-                  <div className="w-14 h-14 rounded-lg bg-[#EDEFF6] flex items-center justify-center mx-auto mb-4">
-                    <Briefcase className="w-6 h-6 text-[#6C7591]" />
+                {filteredJobs.length === 0 && (
+                  <div className="text-center py-24">
+                    <div className="w-14 h-14 rounded-lg bg-[#EDEFF6] flex items-center justify-center mx-auto mb-4">
+                      <Briefcase className="w-6 h-6 text-[#6C7591]" />
+                    </div>
+                    <p className="text-[#4A5273] font-semibold mb-1">No positions found</p>
+                    <p className="text-[#6C7591] text-sm">Try adjusting your search or filters</p>
                   </div>
-                  <p className="text-[#4A5273] font-semibold mb-1">No positions found</p>
-                  <p className="text-[#6C7591] text-sm">Try adjusting your search or filters</p>
-                </div>
-              )}
+                )}
 
-              {filteredJobs.map((job) => {
-                const isActive = selectedJob?.id === job.id;
+                {filteredJobs.map((job) => {
+                  const isActive = selectedJob?.id === job.id;
 
-                return (
-                  <div
-                    key={job.id}
-                    onClick={() => handleJobClick(job)}
-                    className={`relative rounded-[10px] px-5 py-[18px] cursor-pointer transition-all duration-200 border ${
-                      isActive
-                        ? "bg-white border-[#1E2FA8] shadow-[0_2px_4px_rgba(30,47,168,0.10),0_8px_18px_rgba(30,47,168,0.14)]"
-                        : "bg-white border-[#E4E7F1] hover:border-[#C8CEE0] hover:shadow-[0_2px_8px_rgba(16,22,43,0.06)]"
-                    }`}>
-                    <div className="flex items-start gap-4 mb-4">
-                      {job.org_logo ? (
-                        <div className="flex-shrink-0 w-12 h-12 rounded-lg border border-[#E3E6F0] bg-white p-1.5 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.07)]">
-                          <Image
-                            src={job.org_logo}
-                            alt={job.org_name}
-                            width={40}
-                            height={40}
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex-shrink-0 w-12 h-12 rounded-lg border border-[#E3E6F0] bg-[#F2F4FA] flex items-center justify-center">
-                          <Briefcase className="w-5 h-5 text-[#6C7591]" />
-                        </div>
-                      )}
-
-                      <div className="flex-1 min-w-0">
-                        {job.urgently_hiring && (
-                          <div className="mb-1.5">
-                            <UrgentBadge />
+                  return (
+                    <div
+                      key={job.id}
+                      onClick={() => handleJobClick(job)}
+                      className={`relative rounded-[10px] px-5 py-[18px] cursor-pointer transition-all duration-200 border ${
+                        isActive
+                          ? "bg-white border-[#1E2FA8] shadow-[0_2px_4px_rgba(30,47,168,0.10),0_8px_18px_rgba(30,47,168,0.14)]"
+                          : "bg-white border-[#E4E7F1] hover:border-[#C8CEE0] hover:shadow-[0_2px_8px_rgba(16,22,43,0.06)]"
+                      }`}>
+                      <div className="flex items-start gap-4 mb-4">
+                        {job.org_logo ? (
+                          <div className="flex-shrink-0 w-12 h-12 rounded-lg border border-[#E3E6F0] bg-white p-1.5 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.07)]">
+                            <Image
+                              src={job.org_logo}
+                              alt={job.org_name}
+                              width={40}
+                              height={40}
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex-shrink-0 w-12 h-12 rounded-lg border border-[#E3E6F0] bg-[#F2F4FA] flex items-center justify-center">
+                            <Briefcase className="w-5 h-5 text-[#6C7591]" />
                           </div>
                         )}
 
-                        <h3 className="text-[17px] font-semibold tracking-[-0.015em] leading-[1.3] text-[#10162B] truncate">
-                          <Highlight text={job.position_name || job.title || "Position Title"} />
-                        </h3>
+                        <div className="flex-1 min-w-0">
+                          {job.urgently_hiring && (
+                            <div className="mb-1.5">
+                              <UrgentBadge />
+                            </div>
+                          )}
 
-                        {job.org_name && (
-                          <a
-                            target="_blank"
-                            href={job.org_website}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-bold text-[#1E2FA8] hover:text-[#1E2FA8] hover:underline mt-0.5 inline-block truncate max-w-full">
-                            <Highlight text={job.org_name} />
-                          </a>
-                        )}
+                          <h3 className="text-[17px] font-semibold tracking-[-0.015em] leading-[1.3] text-[#10162B] truncate">
+                            <Highlight text={job.position_name || job.title || "Position Title"} />
+                          </h3>
+
+                          {job.org_name && (
+                            <a
+                              target="_blank"
+                              href={job.org_website}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs font-bold text-[#1E2FA8] hover:text-[#1E2FA8] hover:underline mt-0.5 inline-block truncate max-w-full">
+                              <Highlight text={job.org_name} />
+                            </a>
+                          )}
+                        </div>
+
+                        <LocationBadge label={formatLocation(job)} />
                       </div>
 
-                      <LocationBadge label={formatLocation(job)} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <TypeBadge label={formatEmploymentType(job.contract_details, job.employment_type)} />
+                        {job.is_remote && <RemoteBadge />}
+                        {job.easily_apply && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F2F4FA] border border-[#E3E6F0] text-[#6C7591] text-xs font-semibold">
+                            <Mail className="w-3 h-3" />
+                            Easy Apply
+                          </span>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <TypeBadge label={formatEmploymentType(job.contract_details, job.employment_type)} />
-                      {job.is_remote && <RemoteBadge />}
-                      {job.easily_apply && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F2F4FA] border border-[#E3E6F0] text-[#6C7591] text-xs font-semibold">
-                          <Mail className="w-3 h-3" />
-                          Easy Apply
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
@@ -306,10 +303,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
             <ScrollArea className={`min-h-0 flex-1 ${SCROLLBAR}`}>
               <div className="space-y-6 p-1">
                 {selectedJob ? (
-                  <div className="space-y-6">
+                  <div className="space-y-6 p-2">
                     <button
                       onClick={handleBack}
-                      className="flex md:hidden items-center gap-2 text-sm font-medium text-[#6C7591] hover:text-[#414A66] transition-colors py-2 px-3 rounded-[7px] hover:bg-white border border-transparent hover:border-[#E3E6F0] -mx-1 mb-1">
+                      className="flex md:hidden items-center gap-2 text-sm font-medium text-[#6C7591] hover:text-[#414A66] transition-colors py-2 px-3 rounded-[7px] hover:bg-white border border-transparent hover:border-[#E3E6F0] -mx-1 mb-4">
                       Back to listings
                     </button>
 
