@@ -16,7 +16,8 @@ interface FilterOptions {
   isRemote: boolean | null;
 }
 
-const NAVBAR_HEIGHT = 136;
+// Navy header (104) + the search/filter row (92). Keep in step with navbar.tsx.
+const NAVBAR_HEIGHT = 196;
 
 export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   const router = useRouter();
@@ -107,28 +108,56 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
     setShareModalOpen(true);
   };
 
+  /**
+   * Marks the part of a label that matched what is typed in the search box, so
+   * a candidate can see why a result is in the list. Rebuilt on every keystroke
+   * because searchQuery updates per character.
+   */
+  const Highlight = ({ text }: { text: string }) => {
+    const term = searchQuery.trim();
+    if (!term) return <>{text}</>;
+
+    // The query is user input, so escape it before it becomes a pattern.
+    const pattern = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
+    const parts = text.split(pattern);
+
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === term.toLowerCase() ? (
+            <mark key={i} className="rounded-[3px] bg-[#E7EAFB] px-0.5 text-[#1B2A8F]">
+              {part}
+            </mark>
+          ) : (
+            part
+          ),
+        )}
+      </>
+    );
+  };
+
   const TypeBadge = ({ label }: { label: string }) => (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-1 text-[11px] font-medium text-[#1B2A8F]">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-3 py-1.5 text-[12px] font-medium text-[#1B2A8F]">
       <CheckCircle className="w-3 h-3" />
       {label}
     </span>
   );
 
   const RemoteBadge = () => (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-1 text-[11px] font-medium text-[#1B2A8F]">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-3 py-1.5 text-[12px] font-medium text-[#1B2A8F]">
       Remote
     </span>
   );
 
   const LocationBadge = ({ label }: { label: string }) => (
-    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E3E6F0] bg-[#F2F4FA] px-2.5 py-1 text-[11px] font-medium text-[#414A66]">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E3E6F0] bg-[#F2F4FA] px-3 py-1.5 text-[12px] font-medium text-[#414A66]">
       <MapPin className="w-3 h-3" />
       {label}
     </span>
   );
 
   const UrgentBadge = () => (
-    <span className="inline-flex items-center gap-1 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-1 text-[11px] font-medium text-[#1B2A8F]">
+    <span className="inline-flex items-center gap-1 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-3 py-1.5 text-[12px] font-medium text-[#1B2A8F]">
       <Zap className="w-3 h-3" />
       Urgently Hiring
     </span>
@@ -147,22 +176,22 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
         <Navbar onSearch={setSearchQuery} onFilterChange={setFilters} />
 
         <div
-          className="max-w-[1440px] mx-auto md:flex px-[30px] pt-[18px] pb-6 gap-[18px]"
+          className="max-w-[1680px] mx-auto md:flex px-10 pt-6 pb-8 gap-6"
           style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
           <div
-            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[39%] bg-white rounded-xl overflow-hidden mb-6`}>
-            <div className="flex-shrink-0 px-[18px] py-[13px] border-b border-[#ECEFF7] bg-white sticky top-0 z-10">
+            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[41%] bg-white rounded-xl overflow-hidden mb-6`}>
+            <div className="flex-shrink-0 px-6 py-[18px] border-b border-[#ECEFF7] bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">
+                <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">
                   {filteredJobs.length === 1 ? "Role available" : "Roles available"}
                 </p>
-                <span className="rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-0.5 text-xs font-semibold text-[#1B2A8F]">
+                <span className="rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-3 py-1 text-sm font-semibold text-[#1B2A8F]">
                   {filteredJobs.length}
                 </span>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-hide p-3 space-y-[9px]">
+            <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
               {filteredJobs.length === 0 && (
                 <div className="text-center py-24">
                   <div className="w-14 h-14 rounded-lg bg-[#EDEFF6] flex items-center justify-center mx-auto mb-4">
@@ -180,14 +209,14 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                   <div
                     key={job.id}
                     onClick={() => handleJobClick(job)}
-                    className={`relative rounded-[10px] px-[15px] py-[14px] cursor-pointer transition-all duration-200 border ${
+                    className={`relative rounded-[10px] px-5 py-[18px] cursor-pointer transition-all duration-200 border ${
                       isActive
                         ? "bg-white border-[#1E2FA8] shadow-[0_2px_4px_rgba(30,47,168,0.10),0_8px_18px_rgba(30,47,168,0.14)]"
                         : "bg-white border-[#E4E7F1] hover:border-[#C8CEE0] hover:shadow-[0_2px_8px_rgba(16,22,43,0.06)]"
                     }`}>
-                    <div className="flex items-start gap-3 mb-[11px]">
+                    <div className="flex items-start gap-4 mb-4">
                       {job.org_logo ? (
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg border border-[#E3E6F0] bg-white p-1 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.07)]">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-lg border border-[#E3E6F0] bg-white p-1.5 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.07)]">
                           <Image
                             src={job.org_logo}
                             alt={job.org_name}
@@ -197,7 +226,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                           />
                         </div>
                       ) : (
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg border border-[#E3E6F0] bg-[#F2F4FA] flex items-center justify-center">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-lg border border-[#E3E6F0] bg-[#F2F4FA] flex items-center justify-center">
                           <Briefcase className="w-5 h-5 text-[#6C7591]" />
                         </div>
                       )}
@@ -209,8 +238,8 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                           </div>
                         )}
 
-                        <h3 className="text-[15px] font-semibold tracking-[-0.015em] leading-[1.3] text-[#10162B] truncate">
-                          {job.position_name || job.title || "Position Title"}
+                        <h3 className="text-[17px] font-semibold tracking-[-0.015em] leading-[1.3] text-[#10162B] truncate">
+                          <Highlight text={job.position_name || job.title || "Position Title"} />
                         </h3>
 
                         {job.org_name && (
@@ -219,7 +248,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             href={job.org_website}
                             onClick={(e) => e.stopPropagation()}
                             className="text-xs font-bold text-[#1E2FA8] hover:text-[#1E2FA8] hover:underline mt-0.5 inline-block truncate max-w-full">
-                            {job.org_name}
+                            <Highlight text={job.org_name} />
                           </a>
                         )}
                       </div>

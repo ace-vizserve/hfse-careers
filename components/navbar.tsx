@@ -195,18 +195,18 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
       <div className="bg-[#1B2A8F] text-white sticky top-0 left-0 right-0 z-50">
         {/* ── Top info bar (Bigger text & Height) ────────────────────────── */}
         <div className="w-full">
-          <div className="mx-auto w-full max-w-[1440px] px-[30px] flex items-center h-[89px] gap-8">
+          <div className="mx-auto w-full max-w-[1680px] px-10 flex items-center h-[104px] gap-10">
             <a href="/" className="flex-shrink-0 transition-transform hover:scale-[1.03] active:scale-95">
               <Image
                 src="/assets/geg-logo-transparent.png"
                 alt="HFSE International School"
                 width={220}
                 height={110}
-                className="h-[50px] w-auto object-contain"
+                className="h-[58px] w-auto object-contain"
                 priority
               />
             </a>
-            <div className="hidden md:flex items-center gap-5 text-xs font-medium text-[#C3C9DC]">
+            <div className="hidden md:flex items-center gap-5 text-[13px] font-medium text-[#C3C9DC]">
               <a
                 href="mailto:teamwork@hfse.edu.sg"
                 className="flex items-center gap-2 hover:text-white transition-colors">
@@ -251,8 +251,8 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
         {/* ── Main nav bar (Increased Height to h-24) ────────────────────── */}
         <nav className="bg-[#EFF1F6]">
-          <div className="mx-auto w-full max-w-[1440px] px-[30px]">
-            <div className="relative flex items-center justify-center h-[77px] w-full gap-3">
+          <div className="mx-auto w-full max-w-[1680px] px-10">
+            <div className="relative flex items-center justify-center h-[92px] w-full gap-4">
               {showBackButton && onBack && (
                 <button
                   onClick={onBack}
@@ -264,14 +264,14 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
               {/* Desktop: search + filter ─────────────────────────────── */}
               <div className="hidden md:flex items-center gap-4">
                 {/* Search input (Bigger Text & Width) */}
-                <div className="flex items-center gap-2 w-[420px] rounded-[7px] border border-[#D5DAE8] bg-[#F5F6FA] px-[11px] shadow-[inset_0_1px_2px_rgba(16,22,43,0.05)]">
-                  <Search className="w-3.5 h-3.5 flex-shrink-0 text-[#6C7591]" />
+                <div className="flex items-center gap-2.5 w-[520px] rounded-[7px] border border-[#D5DAE8] bg-[#F5F6FA] px-4 shadow-[inset_0_1px_2px_rgba(16,22,43,0.05)]">
+                  <Search className="w-[18px] h-[18px] flex-shrink-0 text-[#6C7591]" />
                   <input
                     type="text"
                     placeholder="Search positions…"
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="h-[34px] w-full bg-transparent border-0 text-[13px] text-[#10162B] placeholder-[#8A92AB] focus:outline-none"
+                    className="h-[46px] w-full bg-transparent border-0 text-[15px] text-[#10162B] placeholder-[#8A92AB] focus:outline-none"
                   />
                 </div>
 
@@ -279,8 +279,8 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                 <div className="relative" ref={filterRef}>
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="relative flex items-center gap-2 min-h-[36px] px-6 py-[9px] rounded-[7px] text-[13px] font-semibold text-white bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110">
-                    <Filter className="w-4 h-4" />
+                    className="relative flex items-center gap-2 min-h-[46px] px-7 py-3 rounded-[7px] text-[15px] font-semibold text-white bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110">
+                    <Filter className="w-[18px] h-[18px]" />
                     Filter Positions
                     {activeFilterCount > 0 && (
                       <span className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-[#1E2FA8] text-white text-[11px] rounded-md flex items-center justify-center font-semibold shadow-[0_1px_3px_rgba(30,47,168,0.3)] border border-white">
