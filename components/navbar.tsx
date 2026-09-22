@@ -77,8 +77,8 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
   // ── Shared input class (Bigger text & padding) ──────────────────────────
   const inputCls =
-    "w-full px-5 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-800 text-base placeholder-slate-400 " +
-    "focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all duration-200 hover:border-slate-300 shadow-sm";
+    "w-full min-h-[40px] px-3 py-2.5 bg-white border border-[#D5DAE8] rounded-[7px] text-[#10162B] text-[13px] placeholder-[#8A92AB] " +
+    "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8] transition-all duration-200";
 
   // ── Radio pill (Bigger text & padding) ──────────────────────────────────
   const RadioPill = ({
@@ -93,11 +93,11 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
     name: string;
   }) => (
     <label
-      className={`flex items-center gap-2 px-6 py-3 rounded-xl border-2 cursor-pointer text-xs font-bold transition-all select-none
+      className={`flex items-center gap-2 min-h-[40px] px-4 py-2.5 rounded-[7px] border cursor-pointer text-[12px] font-semibold transition-all select-none
         ${
           checked
-            ? "border-blue-500 bg-blue-50 text-blue-700"
-            : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700"
+            ? "border-[#1E2FA8] bg-[#1E2FA8] text-white"
+            : "border-[#D5DAE8] bg-white text-[#4A5273] hover:border-[#C8CEE0]"
         }`}>
       <input type="radio" name={name} checked={checked} onChange={onChange} className="sr-only" />
       {checked && (
@@ -117,11 +117,11 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Filter Positions</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">Filter Positions</p>
         {activeFilterCount > 0 && (
           <button
             onClick={clearFilters}
-            className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50 underline underline-offset-4">
+            className="text-sm font-bold text-[#1E2FA8] hover:text-[#16217A] transition-colors px-2 py-1 rounded-md hover:bg-[#E7EAFB]">
             Clear all
           </button>
         )}
@@ -129,7 +129,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
       {/* Location */}
       <div>
-        <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-3">
           <MapPin className="w-4 h-4" />
           Location
         </label>
@@ -144,7 +144,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
       {/* Employment Type */}
       <div>
-        <label className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-3">
           <Briefcase className="w-4 h-4" />
           Employment Type
         </label>
@@ -165,7 +165,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
       {/* Work Setting */}
       <div>
-        <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">Work Setting</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591] mb-3">Work Setting</p>
         <div className="flex flex-wrap gap-3">
           <RadioPill
             name={`${namePrefix}-remote`}
@@ -192,16 +192,21 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
-        nav, nav * { font-family: 'DM Sans', sans-serif; }
-      `}</style>
-
-      <div className="bg-[#1B2A8F] text-white sticky top-0 left-0 right-0 z-50 py-1">
+      <div className="bg-[#1B2A8F] text-white sticky top-0 left-0 right-0 z-50">
         {/* ── Top info bar (Bigger text & Height) ────────────────────────── */}
         <div className="w-full">
-          <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center h-9">
-            <div className="flex items-center gap-5 text-xs font-medium text-[#C3C9DC]">
+          <div className="w-full px-[30px] flex items-center h-[89px] gap-8">
+            <a href="/" className="flex-shrink-0 transition-transform hover:scale-[1.03] active:scale-95">
+              <Image
+                src="/assets/geg-logo-transparent.png"
+                alt="HFSE International School"
+                width={220}
+                height={110}
+                className="h-[50px] w-auto object-contain"
+                priority
+              />
+            </a>
+            <div className="hidden md:flex items-center gap-5 text-xs font-medium text-[#C3C9DC]">
               <a
                 href="mailto:teamwork@hfse.edu.sg"
                 className="flex items-center gap-2 hover:text-white transition-colors">
@@ -245,43 +250,28 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
         </div>
 
         {/* ── Main nav bar (Increased Height to h-24) ────────────────────── */}
-        <nav className="bg-[#1B2A8F]">
+        <nav className="bg-[#EFF1F6]">
           <div className="w-full px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center h-[76px] w-full gap-8">
-              {/* Left: back button + logo */}
-              <div className="flex items-center gap-4 flex-shrink-0">
-                {showBackButton && onBack && (
-                  <button
-                    onClick={onBack}
-                    className="md:hidden p-3 rounded-xl hover:bg-slate-100 transition-colors text-slate-600">
-                    <ChevronLeft className="w-6 h-6" />
-                  </button>
-                )}
-                <a href="/" className="transition-transform hover:scale-105 active:scale-95">
-                  <Image
-                    src="/assets/geg-logo-transparent.png"
-                    alt="Logo"
-                    width={220}
-                    height={110}
-                    className="h-11 w-auto object-contain"
-                    priority
-                  />
-                </a>
-              </div>
-
-              <div className="flex-1" />
+            <div className="flex items-center justify-center h-[77px] w-full gap-3">
+              {showBackButton && onBack && (
+                <button
+                  onClick={onBack}
+                  className="md:hidden absolute left-4 p-2 rounded-lg hover:bg-white transition-colors text-[#4A5273]">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              )}
 
               {/* Desktop: search + filter ─────────────────────────────── */}
               <div className="hidden md:flex items-center gap-4">
                 {/* Search input (Bigger Text & Width) */}
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A6B0D8] pointer-events-none" />
+                <div className="flex items-center gap-2 w-[420px] rounded-[7px] border border-[#D5DAE8] bg-[#F5F6FA] px-[11px] shadow-[inset_0_1px_2px_rgba(16,22,43,0.05)]">
+                  <Search className="w-3.5 h-3.5 flex-shrink-0 text-[#6C7591]" />
                   <input
                     type="text"
                     placeholder="Search positions…"
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-72 bg-white/10 border border-white/20 rounded-lg text-[13px] text-white placeholder-[#A6B0D8] focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 transition-all duration-200"
+                    className="h-[34px] w-full bg-transparent border-0 text-[13px] text-[#10162B] placeholder-[#8A92AB] focus:outline-none"
                   />
                 </div>
 
@@ -289,16 +279,11 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                 <div className="relative" ref={filterRef}>
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border text-[13px] font-medium transition-all duration-200
-                      ${
-                        showFilters || activeFilterCount > 0
-                          ? "border-white/40 bg-white/15 text-white"
-                          : "border-white/20 bg-white/10 text-white hover:bg-white/20"
-                      }`}>
+                    className="relative flex items-center gap-2 min-h-[36px] px-6 py-[9px] rounded-[7px] text-[13px] font-semibold text-white bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110">
                     <Filter className="w-4 h-4" />
-                    Filters
+                    Filter Positions
                     {activeFilterCount > 0 && (
-                      <span className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-black shadow-lg border-2 border-white">
+                      <span className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-[#1E2FA8] text-white text-[11px] rounded-md flex items-center justify-center font-semibold shadow-[0_1px_3px_rgba(30,47,168,0.3)] border border-white">
                         {activeFilterCount}
                       </span>
                     )}
@@ -306,8 +291,8 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
                   {/* Desktop filter dropdown */}
                   {showFilters && (
-                    <div className="absolute right-0 top-[calc(100%+14px)] w-96 bg-white border border-slate-200 rounded-xl shadow-2xl shadow-slate-200/80 p-7 z-50">
-                      <div className="absolute -top-2 right-8 w-5 h-5 bg-white border-l border-t border-slate-200 rotate-45" />
+                    <div className="absolute right-0 top-[calc(100%+12px)] w-96 bg-white border border-[#E1E5F0] rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 z-50">
+                      <div className="absolute -top-2 right-8 w-4 h-4 bg-white border-l border-t border-[#E1E5F0] rotate-45" />
                       <FilterPanel namePrefix="desktop" />
                     </div>
                   )}
@@ -321,7 +306,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                     e.stopPropagation();
                     setMobileOpen(!mobileOpen);
                   }}
-                  className="p-3 rounded-2xl bg-slate-50 text-slate-600 border border-slate-200"
+                  className="p-3 rounded-2xl bg-[#F2F4FA] text-[#414A66] border border-[#E3E6F0]"
                   aria-label="Toggle menu">
                   {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
@@ -334,19 +319,19 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
             className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
               mobileOpen ? "max-h-[700px] opacity-100" : "max-h-0 opacity-0"
             }`}>
-            <div className="px-5 pb-8 pt-4 bg-slate-50 border-t border-slate-100 space-y-6 shadow-inner">
+            <div className="px-5 pb-8 pt-4 bg-[#EFF1F6] border-t border-[#E1E5F0] space-y-6">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6C7591] pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search positions…"
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-base text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 transition-all duration-200"
+                  className="w-full pl-12 pr-6 py-4 bg-white border border-[#D5DAE8] rounded-[7px] text-[13px] text-[#10162B] shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8] transition-all duration-200"
                 />
               </div>
 
-              <div className="border-t border-slate-200" />
+              <div className="border-t border-[#D5DAE8]" />
               <FilterPanel namePrefix="mobile" />
             </div>
           </div>

@@ -108,27 +108,27 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   };
 
   const TypeBadge = ({ label }: { label: string }) => (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-1 text-[11px] font-medium text-[#1B2A8F]">
       <CheckCircle className="w-3 h-3" />
       {label}
     </span>
   );
 
   const RemoteBadge = () => (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-1 text-[11px] font-medium text-[#1B2A8F]">
       Remote
     </span>
   );
 
   const LocationBadge = ({ label }: { label: string }) => (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold">
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E3E6F0] bg-[#F2F4FA] px-2.5 py-1 text-[11px] font-medium text-[#414A66]">
       <MapPin className="w-3 h-3" />
       {label}
     </span>
   );
 
   const UrgentBadge = () => (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold">
+    <span className="inline-flex items-center gap-1 rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-1 text-[11px] font-medium text-[#1B2A8F]">
       <Zap className="w-3 h-3" />
       Urgently Hiring
     </span>
@@ -137,15 +137,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
-        * { font-family: 'DM Sans', sans-serif; }
-        body{
-          background-color: #F8FAFC;
-        }
+        body { background-color: #EFF1F6; }
         html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        .job-card-active { box-shadow: 0 0 0 2px #7c3aed; }
       `}</style>
 
       <div className="min-h-dvh bg-[#EFF1F6]">
@@ -155,7 +150,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           className="max-w-[1800px] mx-auto md:flex p-5 sm:p-7 space-x-5"
           style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
           <div
-            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[42%] bg-white border-r border-slate-100 rounded-2xl overflow-hidden pb-0.5 mb-8`}>
+            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[42%] bg-white border-r border-[#ECEFF7] rounded-xl overflow-hidden pb-0.5 mb-8`}>
             <div className="flex-shrink-0 px-[18px] py-[13px] border-b border-[#ECEFF7] bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">
@@ -170,11 +165,11 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
               {filteredJobs.length === 0 && (
                 <div className="text-center py-24">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                    <Briefcase className="w-6 h-6 text-slate-400" />
+                  <div className="w-14 h-14 rounded-xl bg-[#EDEFF6] flex items-center justify-center mx-auto mb-4">
+                    <Briefcase className="w-6 h-6 text-[#6C7591]" />
                   </div>
-                  <p className="text-slate-600 font-semibold mb-1">No positions found</p>
-                  <p className="text-slate-400 text-sm">Try adjusting your search or filters</p>
+                  <p className="text-[#4A5273] font-semibold mb-1">No positions found</p>
+                  <p className="text-[#6C7591] text-sm">Try adjusting your search or filters</p>
                 </div>
               )}
 
@@ -187,7 +182,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                     onClick={() => handleJobClick(job)}
                     className={`relative rounded-[10px] p-[15px] cursor-pointer transition-all duration-200 border ${
                       isActive
-                        ? "bg-white border-[#1E2FA8] shadow-[0_2px_4px_rgba(30,47,168,0.10),0_8px_18px_rgba(30,47,168,0.14)] job-card-active"
+                        ? "bg-white border-[#1E2FA8] shadow-[0_2px_4px_rgba(30,47,168,0.10),0_8px_18px_rgba(30,47,168,0.14)]"
                         : "bg-white border-[#E4E7F1] hover:border-[#C8CEE0] hover:shadow-[0_2px_8px_rgba(16,22,43,0.06)]"
                     }`}>
                     <div className="flex items-start gap-4 mb-3.5">
@@ -202,8 +197,8 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                           />
                         </div>
                       ) : (
-                        <div className="flex-shrink-0 w-12 h-12 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center">
-                          <Briefcase className="w-5 h-5 text-slate-300" />
+                        <div className="flex-shrink-0 w-12 h-12 rounded-xl border border-[#ECEFF7] bg-[#F2F4FA] flex items-center justify-center">
+                          <Briefcase className="w-5 h-5 text-[#6C7591]" />
                         </div>
                       )}
 
@@ -214,7 +209,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                           </div>
                         )}
 
-                        <h3 className="font-semibold text-slate-900 text-base leading-snug truncate">
+                        <h3 className="text-[15px] font-semibold tracking-[-0.015em] leading-[1.3] text-[#10162B] truncate">
                           {job.position_name || job.title || "Position Title"}
                         </h3>
 
@@ -223,7 +218,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             target="_blank"
                             href={job.org_website}
                             onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline mt-0.5 inline-block truncate max-w-full">
+                            className="text-xs font-bold text-[#1E2FA8] hover:text-[#1E2FA8] hover:underline mt-0.5 inline-block truncate max-w-full">
                             {job.org_name}
                           </a>
                         )}
@@ -236,7 +231,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                       <TypeBadge label={formatEmploymentType(job.contract_details, job.employment_type)} />
                       {job.is_remote && <RemoteBadge />}
                       {job.easily_apply && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F2F4FA] border border-[#E3E6F0] text-[#6C7591] text-xs font-semibold">
                           <Mail className="w-3 h-3" />
                           Easy Apply
                         </span>
@@ -249,21 +244,21 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           </div>
 
           <div
-            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 overflow-hidden pb-0.5 mb-7`}>
+            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 overflow-hidden pb-0.5 mb-7 bg-white rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]`}>
             <div className="flex-1 overflow-y-auto scrollbar-hide">
               <div className="space-y-6 p-1">
                 {selectedJob ? (
                   <div className="space-y-6">
                     <button
                       onClick={handleBack}
-                      className="flex md:hidden items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors py-2 px-3 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 -mx-1 mb-1">
+                      className="flex md:hidden items-center gap-2 text-sm font-medium text-[#6C7591] hover:text-[#414A66] transition-colors py-2 px-3 rounded-xl hover:bg-white border border-transparent hover:border-[#E3E6F0] -mx-1 mb-1">
                       Back to listings
                     </button>
 
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8">
+                    <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 sm:p-8">
                       <div className="flex items-start gap-5 mb-6">
                         {selectedJob.org_logo ? (
-                          <div className="flex-shrink-0 w-16 h-16 rounded-2xl border border-slate-100 bg-white p-2 flex items-center justify-center shadow-sm">
+                          <div className="flex-shrink-0 w-16 h-16 rounded-xl border border-[#ECEFF7] bg-white p-2 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.04)]">
                             <Image
                               src={selectedJob.org_logo}
                               alt={selectedJob.org_name}
@@ -273,13 +268,13 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             />
                           </div>
                         ) : (
-                          <div className="flex-shrink-0 w-16 h-16 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-center">
-                            <Briefcase className="w-7 h-7 text-slate-300" />
+                          <div className="flex-shrink-0 w-16 h-16 rounded-xl border border-[#ECEFF7] bg-[#F2F4FA] flex items-center justify-center">
+                            <Briefcase className="w-7 h-7 text-[#6C7591]" />
                           </div>
                         )}
 
                         <div className="flex-1 min-w-0">
-                          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight tracking-tight mb-1">
+                          <h1 className="text-2xl sm:text-3xl font-bold text-[#10162B] leading-tight tracking-tight mb-1">
                             {selectedJob.position_name || selectedJob.title}
                           </h1>
 
@@ -287,7 +282,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             <a
                               target="_blank"
                               href={selectedJob.org_website}
-                              className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                              className="text-sm font-bold text-[#1E2FA8] hover:text-[#1E2FA8] hover:underline">
                               {selectedJob.org_name}
                             </a>
                           )}
@@ -306,14 +301,14 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                       <div className="flex items-center gap-3">
                         <Link
                           href={`/jobs/${selectedJob.id}/apply`}
-                          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
+                          className="flex items-center gap-2 px-6 py-3 bg-[#1E2FA8] text-white text-sm font-semibold rounded-xl hover:bg-[#16217A] transition-all shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
                           Apply Now
                           <ArrowUpRight className="size-4" />
                         </Link>
 
                         <button
                           onClick={handleShare}
-                          className="p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-500 hover:text-slate-700"
+                          className="p-3 rounded-xl border border-[#E3E6F0] bg-white hover:bg-[#F2F4FA] hover:border-[#D5DAE8] transition-all text-[#6C7591] hover:text-[#414A66]"
                           aria-label="Share">
                           <Share2 className="w-4 h-4" />
                         </button>
@@ -327,20 +322,20 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7">
+                    <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 sm:p-7">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+                        <div className="w-8 h-8 rounded-xl bg-[#1E2FA8] flex items-center justify-center shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
                           <Briefcase className="w-4 h-4 text-white" />
                         </div>
-                        <h2 className="text-base font-semibold text-slate-800">Job Details</h2>
+                        <h2 className="text-base font-semibold text-[#414A66]">Job Details</h2>
                       </div>
 
-                      <div className="text-slate-700 text-sm leading-relaxed">
+                      <div className="text-[#414A66] text-sm leading-relaxed">
                         {selectedJob.description ? (
-                          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-7">
+                          <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 sm:p-7">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-                              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                              <div className="p-4 rounded-xl bg-[#F2F4FA] border border-[#ECEFF7]">
+                                <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-2">
                                   Job Type
                                 </p>
                                 <TypeBadge
@@ -350,8 +345,8 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                                   )}
                                 />
                               </div>
-                              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                              <div className="p-4 rounded-xl bg-[#F2F4FA] border border-[#ECEFF7]">
+                                <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-2">
                                   Location
                                 </p>
                                 <LocationBadge label={formatLocation(selectedJob)} />
@@ -359,24 +354,24 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             </div>
 
                             {/* Full description */}
-                            <div className="border-t border-slate-100 pt-7">
-                              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                            <div className="border-t border-[#ECEFF7] pt-7">
+                              <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-4">
                                 Full Description
                               </p>
-                              <div className="text-slate-700 text-sm leading-relaxed space-y-4">
+                              <div className="text-[#414A66] text-sm leading-relaxed space-y-4">
                                 {selectedJob.description ? (
                                   (() => {
                                     return parseJobDescription(selectedJob.description).map((section, sectionIdx) => {
                                       if (section.type === "header") {
                                         return (
                                           <div key={sectionIdx}>
-                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                                            <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-3">
                                               {section.header.replace(":", "")}
                                             </p>
                                             <ul className="space-y-2">
                                               {section.items.map((item, idx) => (
-                                                <li key={idx} className="flex items-start gap-2.5 text-slate-600">
-                                                  <span className="flex-shrink-0 w-1 h-1 rounded-full bg-blue-400 mt-2" />
+                                                <li key={idx} className="flex items-start gap-2.5 text-[#4A5273]">
+                                                  <span className="flex-shrink-0 w-1 h-1 rounded-[1px] bg-[#1E2FA8] mt-2" />
                                                   {item}
                                                 </li>
                                               ))}
@@ -385,28 +380,28 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                                         );
                                       }
                                       return (
-                                        <p key={sectionIdx} className="text-slate-600">
+                                        <p key={sectionIdx} className="text-[#4A5273]">
                                           {section.text}
                                         </p>
                                       );
                                     });
                                   })()
                                 ) : (
-                                  <p className="text-slate-400 italic text-sm">No description available.</p>
+                                  <p className="text-[#6C7591] italic text-sm">No description available.</p>
                                 )}
                               </div>
                             </div>
 
                             {/* Requirements */}
                             {selectedJob.requirements && selectedJob.requirements.length > 0 && (
-                              <div className="border-t border-slate-100 pt-7 mt-7">
-                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                              <div className="border-t border-[#ECEFF7] pt-7 mt-7">
+                                <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-4">
                                   Requirements
                                 </p>
                                 <ul className="space-y-2.5">
                                   {selectedJob.requirements.map((req, idx) => (
-                                    <li key={idx} className="flex items-start gap-2.5 text-sm text-slate-600">
-                                      <span className="flex-shrink-0 w-1 h-1 rounded-full bg-blue-400 mt-2" />
+                                    <li key={idx} className="flex items-start gap-2.5 text-sm text-[#4A5273]">
+                                      <span className="flex-shrink-0 w-1 h-1 rounded-[1px] bg-[#1E2FA8] mt-2" />
                                       {req}
                                     </li>
                                   ))}
@@ -416,15 +411,15 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
 
                             {/* Benefits */}
                             {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                              <div className="border-t border-slate-100 pt-7 mt-7">
-                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                              <div className="border-t border-[#ECEFF7] pt-7 mt-7">
+                                <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-4">
                                   Benefits
                                 </p>
                                 <div className="flex flex-wrap gap-2">
                                   {selectedJob.benefits.map((benefit, idx) => (
                                     <span
                                       key={idx}
-                                      className="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-xs font-medium">
+                                      className="px-3 py-1.5 bg-[#EDEFF6] border border-[#E3E6F0] text-[#4A5273] rounded-xl text-xs font-medium">
                                       {benefit}
                                     </span>
                                   ))}
@@ -433,29 +428,29 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             )}
 
                             {/* Bottom apply CTA */}
-                            <div className="border-t border-slate-100 pt-7 mt-7 flex items-center gap-3">
+                            <div className="border-t border-[#ECEFF7] pt-7 mt-7 flex items-center gap-3">
                               <button
                                 onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
-                                className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
+                                className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-[#1E2FA8] text-white text-sm font-semibold rounded-xl hover:bg-[#16217A] transition-all shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
                                 Apply Now
                                 <ArrowUpRight className="size-4" />
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-slate-400 italic text-sm">No description available.</p>
+                          <p className="text-[#6C7591] italic text-sm">No description available.</p>
                         )}
                       </div>
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
-                    <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center">
-                      <Briefcase className="w-7 h-7 text-slate-300" />
+                    <div className="w-16 h-16 rounded-xl bg-white border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.07)] flex items-center justify-center">
+                      <Briefcase className="w-7 h-7 text-[#6C7591]" />
                     </div>
                     <div>
-                      <p className="text-slate-600 font-semibold text-sm mb-1">Select a position</p>
-                      <p className="text-slate-400 text-xs">Choose a listing on the left to see details</p>
+                      <p className="text-[#4A5273] font-semibold text-sm mb-1">Select a position</p>
+                      <p className="text-[#6C7591] text-xs">Choose a listing on the left to see details</p>
                     </div>
                   </div>
                 )}
