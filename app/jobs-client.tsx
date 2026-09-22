@@ -147,10 +147,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
         <Navbar onSearch={setSearchQuery} onFilterChange={setFilters} />
 
         <div
-          className="max-w-[1800px] mx-auto md:flex p-5 sm:p-7 space-x-5"
+          className="max-w-[1440px] mx-auto md:flex px-[30px] pt-[18px] pb-6 gap-[18px]"
           style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
           <div
-            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[42%] bg-white border-r border-[#ECEFF7] rounded-xl overflow-hidden pb-0.5 mb-8`}>
+            className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[39%] bg-white rounded-xl overflow-hidden mb-6`}>
             <div className="flex-shrink-0 px-[18px] py-[13px] border-b border-[#ECEFF7] bg-white sticky top-0 z-10">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">
@@ -162,10 +162,10 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto scrollbar-hide p-3 space-y-[9px]">
               {filteredJobs.length === 0 && (
                 <div className="text-center py-24">
-                  <div className="w-14 h-14 rounded-xl bg-[#EDEFF6] flex items-center justify-center mx-auto mb-4">
+                  <div className="w-14 h-14 rounded-lg bg-[#EDEFF6] flex items-center justify-center mx-auto mb-4">
                     <Briefcase className="w-6 h-6 text-[#6C7591]" />
                   </div>
                   <p className="text-[#4A5273] font-semibold mb-1">No positions found</p>
@@ -180,12 +180,12 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                   <div
                     key={job.id}
                     onClick={() => handleJobClick(job)}
-                    className={`relative rounded-[10px] p-[15px] cursor-pointer transition-all duration-200 border ${
+                    className={`relative rounded-[10px] px-[15px] py-[14px] cursor-pointer transition-all duration-200 border ${
                       isActive
                         ? "bg-white border-[#1E2FA8] shadow-[0_2px_4px_rgba(30,47,168,0.10),0_8px_18px_rgba(30,47,168,0.14)]"
                         : "bg-white border-[#E4E7F1] hover:border-[#C8CEE0] hover:shadow-[0_2px_8px_rgba(16,22,43,0.06)]"
                     }`}>
-                    <div className="flex items-start gap-4 mb-3.5">
+                    <div className="flex items-start gap-3 mb-[11px]">
                       {job.org_logo ? (
                         <div className="flex-shrink-0 w-10 h-10 rounded-lg border border-[#E3E6F0] bg-white p-1 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.07)]">
                           <Image
@@ -197,7 +197,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                           />
                         </div>
                       ) : (
-                        <div className="flex-shrink-0 w-12 h-12 rounded-xl border border-[#ECEFF7] bg-[#F2F4FA] flex items-center justify-center">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg border border-[#E3E6F0] bg-[#F2F4FA] flex items-center justify-center">
                           <Briefcase className="w-5 h-5 text-[#6C7591]" />
                         </div>
                       )}
@@ -244,21 +244,21 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           </div>
 
           <div
-            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 overflow-hidden pb-0.5 mb-7 bg-white rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]`}>
+            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 overflow-hidden mb-6 bg-white rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]`}>
             <div className="flex-1 overflow-y-auto scrollbar-hide">
               <div className="space-y-6 p-1">
                 {selectedJob ? (
                   <div className="space-y-6">
                     <button
                       onClick={handleBack}
-                      className="flex md:hidden items-center gap-2 text-sm font-medium text-[#6C7591] hover:text-[#414A66] transition-colors py-2 px-3 rounded-xl hover:bg-white border border-transparent hover:border-[#E3E6F0] -mx-1 mb-1">
+                      className="flex md:hidden items-center gap-2 text-sm font-medium text-[#6C7591] hover:text-[#414A66] transition-colors py-2 px-3 rounded-[7px] hover:bg-white border border-transparent hover:border-[#E3E6F0] -mx-1 mb-1">
                       Back to listings
                     </button>
 
                     <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 sm:p-8">
                       <div className="flex items-start gap-5 mb-6">
                         {selectedJob.org_logo ? (
-                          <div className="flex-shrink-0 w-16 h-16 rounded-xl border border-[#ECEFF7] bg-white p-2 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.04)]">
+                          <div className="flex-shrink-0 w-16 h-16 rounded-lg border border-[#ECEFF7] bg-white p-2 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.04)]">
                             <Image
                               src={selectedJob.org_logo}
                               alt={selectedJob.org_name}
@@ -268,7 +268,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             />
                           </div>
                         ) : (
-                          <div className="flex-shrink-0 w-16 h-16 rounded-xl border border-[#ECEFF7] bg-[#F2F4FA] flex items-center justify-center">
+                          <div className="flex-shrink-0 w-16 h-16 rounded-lg border border-[#ECEFF7] bg-[#F2F4FA] flex items-center justify-center">
                             <Briefcase className="w-7 h-7 text-[#6C7591]" />
                           </div>
                         )}
@@ -301,14 +301,14 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                       <div className="flex items-center gap-3">
                         <Link
                           href={`/jobs/${selectedJob.id}/apply`}
-                          className="flex items-center gap-2 px-6 py-3 bg-[#1E2FA8] text-white text-sm font-semibold rounded-xl hover:bg-[#16217A] transition-all shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
+                          className="flex items-center gap-2 px-6 py-3 bg-[#1E2FA8] text-white text-sm font-semibold rounded-[7px] hover:bg-[#16217A] transition-all shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
                           Apply Now
                           <ArrowUpRight className="size-4" />
                         </Link>
 
                         <button
                           onClick={handleShare}
-                          className="p-3 rounded-xl border border-[#E3E6F0] bg-white hover:bg-[#F2F4FA] hover:border-[#D5DAE8] transition-all text-[#6C7591] hover:text-[#414A66]"
+                          className="p-3 rounded-[7px] border border-[#E3E6F0] bg-white hover:bg-[#F2F4FA] hover:border-[#D5DAE8] transition-all text-[#6C7591] hover:text-[#414A66]"
                           aria-label="Share">
                           <Share2 className="w-4 h-4" />
                         </button>
@@ -324,7 +324,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
 
                     <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 sm:p-7">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-xl bg-[#1E2FA8] flex items-center justify-center shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
+                        <div className="w-8 h-8 rounded-lg bg-[#1E2FA8] flex items-center justify-center shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
                           <Briefcase className="w-4 h-4 text-white" />
                         </div>
                         <h2 className="text-base font-semibold text-[#414A66]">Job Details</h2>
@@ -334,7 +334,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                         {selectedJob.description ? (
                           <div className="bg-white rounded-xl border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] p-6 sm:p-7">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
-                              <div className="p-4 rounded-xl bg-[#F2F4FA] border border-[#ECEFF7]">
+                              <div className="p-4 rounded-lg bg-[#F2F4FA] border border-[#ECEFF7]">
                                 <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-2">
                                   Job Type
                                 </p>
@@ -345,7 +345,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                                   )}
                                 />
                               </div>
-                              <div className="p-4 rounded-xl bg-[#F2F4FA] border border-[#ECEFF7]">
+                              <div className="p-4 rounded-lg bg-[#F2F4FA] border border-[#ECEFF7]">
                                 <p className="text-xs font-semibold text-[#6C7591] uppercase tracking-wider mb-2">
                                   Location
                                 </p>
@@ -419,7 +419,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                                   {selectedJob.benefits.map((benefit, idx) => (
                                     <span
                                       key={idx}
-                                      className="px-3 py-1.5 bg-[#EDEFF6] border border-[#E3E6F0] text-[#4A5273] rounded-xl text-xs font-medium">
+                                      className="px-3 py-1.5 bg-[#EDEFF6] border border-[#E3E6F0] text-[#4A5273] rounded-md text-xs font-medium">
                                       {benefit}
                                     </span>
                                   ))}
@@ -431,7 +431,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                             <div className="border-t border-[#ECEFF7] pt-7 mt-7 flex items-center gap-3">
                               <button
                                 onClick={() => router.push(`/jobs/${selectedJob.id}/apply`)}
-                                className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-[#1E2FA8] text-white text-sm font-semibold rounded-xl hover:bg-[#16217A] transition-all shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
+                                className="cursor-pointer flex items-center gap-2 px-6 py-3 bg-[#1E2FA8] text-white text-sm font-semibold rounded-[7px] hover:bg-[#16217A] transition-all shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)]">
                                 Apply Now
                                 <ArrowUpRight className="size-4" />
                               </button>
@@ -445,7 +445,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
-                    <div className="w-16 h-16 rounded-xl bg-white border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.07)] flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-lg bg-white border border-[#ECEFF7] shadow-[0_1px_2px_rgba(16,22,43,0.07)] flex items-center justify-center">
                       <Briefcase className="w-7 h-7 text-[#6C7591]" />
                     </div>
                     <div>

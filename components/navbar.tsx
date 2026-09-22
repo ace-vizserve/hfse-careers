@@ -195,7 +195,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
       <div className="bg-[#1B2A8F] text-white sticky top-0 left-0 right-0 z-50">
         {/* ── Top info bar (Bigger text & Height) ────────────────────────── */}
         <div className="w-full">
-          <div className="w-full px-[30px] flex items-center h-[89px] gap-8">
+          <div className="mx-auto w-full max-w-[1440px] px-[30px] flex items-center h-[89px] gap-8">
             <a href="/" className="flex-shrink-0 transition-transform hover:scale-[1.03] active:scale-95">
               <Image
                 src="/assets/geg-logo-transparent.png"
@@ -251,8 +251,8 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
 
         {/* ── Main nav bar (Increased Height to h-24) ────────────────────── */}
         <nav className="bg-[#EFF1F6]">
-          <div className="w-full px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-center h-[77px] w-full gap-3">
+          <div className="mx-auto w-full max-w-[1440px] px-[30px]">
+            <div className="relative flex items-center justify-center h-[77px] w-full gap-3">
               {showBackButton && onBack && (
                 <button
                   onClick={onBack}
