@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { applicant } from "./support/fixtures";
-import { fillValidApplication, gotoApplyPage, submitButton } from "./support/application-form";
+import { fillText, fillValidApplication, gotoApplyPage, submitButton } from "./support/application-form";
 import { installApiMocks } from "./support/mock-api";
 
 test.describe("job application submission", () => {
@@ -25,6 +25,24 @@ test.describe("job application submission", () => {
     expect(api.submissions[0]).toContain(applicant.fullName);
     expect(api.submissions[0]).toContain(applicant.email);
     expect(api.submissions[0]).toContain(applicant.nric);
+  });
+
+  test("a failed step sends the candidate to the field that needs fixing", async ({ page }) => {
+    await installApiMocks(page);
+    await gotoApplyPage(page);
+
+    // Fill everything on step 1 except one field in the middle of the step, so
+    // a scroll to the top of the form would clearly be the wrong answer.
+    await fillText(page, "expected_salary", "6500");
+    await fillText(page, "full_name", "Alex Tan");
+
+    await page.getByRole("button", { name: "Continue" }).click();
+
+    const firstInvalid = page.locator("#field-industries");
+    await expect(firstInvalid).toBeVisible();
+
+    // The control must carry its id at all, and be what the page focused.
+    await expect(firstInvalid).toBeFocused();
   });
 
   test("an incomplete application names what is missing instead of silently doing nothing", async ({ page }) => {

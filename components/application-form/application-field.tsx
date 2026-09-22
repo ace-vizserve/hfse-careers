@@ -20,6 +20,14 @@ type ControlProps = {
   value: unknown;
   onChange: (value: unknown) => void;
   onBlur: () => void;
+  /**
+   * FormControl hands these down through Radix Slot. They have to land on the
+   * real element: the id is what the error focus, the label's htmlFor and the
+   * end-to-end selectors all look for.
+   */
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
 };
 
 /**
@@ -27,13 +35,14 @@ type ControlProps = {
  * if-chain inside the page, deciding what to draw by fuzzy-matching Manatal
  * metadata; the widget is now declared up front, so this is a plain switch.
  */
-function FieldControl({ field, value, onChange, onBlur }: ControlProps) {
+function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps) {
   const text = String(value ?? "");
 
   switch (field.widget) {
     case "longtext":
       return (
         <textarea
+          {...a11y}
           rows={5}
           value={text}
           onChange={(event) => onChange(event.target.value)}
@@ -44,11 +53,12 @@ function FieldControl({ field, value, onChange, onBlur }: ControlProps) {
       );
 
     case "date":
-      return <DatePicker value={text} onChange={onChange} onBlur={onBlur} placeholder={field.placeholder} />;
+      return <DatePicker id={a11y.id} value={text} onChange={onChange} onBlur={onBlur} placeholder={field.placeholder} />;
 
     case "select":
       return (
         <StyledSelect
+          id={a11y.id}
           value={text}
           onChange={onChange}
           onBlur={onBlur}
@@ -58,11 +68,12 @@ function FieldControl({ field, value, onChange, onBlur }: ControlProps) {
       );
 
     case "nationality":
-      return <NationalityCombobox value={text} onChange={onChange} onBlur={onBlur} />;
+      return <NationalityCombobox id={a11y.id} value={text} onChange={onChange} onBlur={onBlur} />;
 
     case "industries":
       return (
         <IndustryCombobox
+          id={a11y.id}
           value={Array.isArray(value) ? value : value ? [String(value)] : []}
           onChange={onChange}
         />
@@ -78,6 +89,7 @@ function FieldControl({ field, value, onChange, onBlur }: ControlProps) {
 
       return (
         <input
+          {...a11y}
           type="text"
           inputMode="numeric"
           value={text}
@@ -96,6 +108,7 @@ function FieldControl({ field, value, onChange, onBlur }: ControlProps) {
     case "phone":
       return (
         <input
+          {...a11y}
           type="tel"
           inputMode="tel"
           value={text}
@@ -109,6 +122,7 @@ function FieldControl({ field, value, onChange, onBlur }: ControlProps) {
     case "nricfin":
       return (
         <input
+          {...a11y}
           type="text"
           value={text.toUpperCase()}
           onChange={(event) => {
@@ -128,6 +142,7 @@ function FieldControl({ field, value, onChange, onBlur }: ControlProps) {
     default:
       return (
         <input
+          {...a11y}
           type={field.widget === "email" ? "email" : field.widget === "url" ? "url" : "text"}
           value={text}
           onChange={(event) => onChange(event.target.value)}
