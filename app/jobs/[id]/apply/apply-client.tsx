@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { IndustryCombobox } from "@/components/ui/industry-combo-box";
 import { NationalityCombobox } from "@/components/ui/nationality-combo-box";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Spinner } from "@/components/ui/spinner";
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
 import { StyledSelect } from "@/components/ui/styled-select";
 import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
@@ -2291,7 +2292,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                   className="inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-[30px] py-2.5 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#8D97C9] disabled:bg-none disabled:shadow-none">
                   {submitting ? (
                     <>
-                      <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      <Spinner className="size-4" />
                       Submitting...
                     </>
                   ) : (

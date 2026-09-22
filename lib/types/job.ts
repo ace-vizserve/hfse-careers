@@ -30,7 +30,11 @@ export interface Job {
 export interface JobDetail {
   id: number;
   position_name: string;
-  location: string;
+  /** Manatal leaves this null in practice; read city/country instead. */
+  location?: string;
+  city?: string;
+  country?: string;
+  is_remote?: boolean | null;
   employment_type: string;
   contract_details?: string;
   description: string;

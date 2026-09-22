@@ -1,7 +1,8 @@
 import JobsWidget from "@/components/jobs-widget";
 
 export const metadata = {
-  title: "Latest Job Openings | VizServe",
+  // Absolute: this renders inside someone else's page, not ours.
+  title: { absolute: "Latest Job Openings | VizServe" },
   description: "Recent career opportunities at HFSE and associated entities.",
 };
 

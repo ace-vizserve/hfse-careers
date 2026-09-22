@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/carousel";
 import { cn, formatEmploymentType } from "@/lib/utils";
 import { useIframeResize } from "@/hooks/use-iframe-resize";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpRight, Briefcase, ChevronLeft, ChevronRight, Clock, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -99,12 +100,27 @@ export default function JobsWidget() {
 
   if (loading) {
     return (
-      <div className="flex gap-6 p-6 overflow-hidden">
+      <div className="flex gap-6 overflow-hidden p-6">
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="min-w-[320px] md:min-w-[400px] h-[450px] bg-white/60 backdrop-blur-sm border border-stone-200/40 rounded-[2.5rem] animate-pulse relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+            className="h-[450px] min-w-[320px] rounded-[2.5rem] border border-stone-200/40 bg-white/60 p-8 backdrop-blur-sm md:min-w-[400px]">
+            <Skeleton className="size-14 rounded-2xl bg-[#E3E6F0]" />
+            <Skeleton className="mt-6 h-6 w-3/4 bg-[#E3E6F0]" />
+            <Skeleton className="mt-3 h-4 w-1/2 bg-[#E3E6F0]" />
+
+            <div className="mt-8 space-y-3">
+              <Skeleton className="h-3.5 w-full bg-[#E3E6F0]" />
+              <Skeleton className="h-3.5 w-11/12 bg-[#E3E6F0]" />
+              <Skeleton className="h-3.5 w-4/5 bg-[#E3E6F0]" />
+            </div>
+
+            <div className="mt-8 flex gap-2">
+              <Skeleton className="h-8 w-[104px] rounded-md bg-[#E3E6F0]" />
+              <Skeleton className="h-8 w-[84px] rounded-md bg-[#E3E6F0]" />
+            </div>
+
+            <Skeleton className="mt-8 h-11 w-[140px] rounded-xl bg-[#E3E6F0]" />
           </div>
         ))}
       </div>

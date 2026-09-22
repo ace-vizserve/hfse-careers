@@ -1,6 +1,8 @@
 import { entity_list } from "@/app/constants";
 import Navbar from "@/components/navbar";
 import { getJob, getPublishedJobs } from "@/lib/jobs.server";
+import type { JobDetail } from "@/lib/types/job";
+import { absoluteUrl, jsonLdScript, OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
 import { ArrowRight, Briefcase, CheckCircle2, ChevronLeft, Clock, MapPin } from "lucide-react";
 import type { Metadata } from "next";
@@ -13,8 +15,6 @@ import { ShareRoleButton } from "./share-button";
 type Params = {
   params: Promise<{ id: string }>;
 };
-
-const SITE_URL = "https://careers.hfse.edu.sg";
 
 /**
  * Job pages are prerendered at build and refreshed in the background, so a
@@ -29,6 +29,55 @@ export async function generateStaticParams() {
   const jobs = await getPublishedJobs();
 
   return jobs.filter((job) => job.id).map((job) => ({ id: String(job.id) }));
+}
+
+/**
+ * Where the role is. Manatal returns `city` and `country` and leaves
+ * `location` null on every posting we have, so reading `location` alone left
+ * both the page and its JobPosting with no location at all -- and a JobPosting
+ * without one is not eligible for Google's job results.
+ */
+function jobLocation(job: JobDetail) {
+  if (job.is_remote) return "Remote";
+
+  const parts = [job.city, job.country].filter(Boolean);
+  const unique = [...new Set(parts)];
+
+  return unique.join(", ") || job.location || "";
+}
+
+/** Google prefers an ISO country code to a name. */
+const COUNTRY_CODES: Record<string, string> = {
+  Singapore: "SG",
+  Malaysia: "MY",
+  Philippines: "PH",
+  Indonesia: "ID",
+};
+
+const POSTING_WINDOW_DAYS = 90;
+const MINIMUM_REMAINING_DAYS = 30;
+
+/**
+ * Google wants a closing date and quietly drops a posting that has none -- but
+ * it drops one with a *past* date immediately, so the fallback must never look
+ * backwards. Every role here is still published and active in Manatal, which is
+ * the only claim this makes: open now, and for a while yet. The page revalidates
+ * every few minutes, so the date rolls forward while the role stays up and stops
+ * the moment it comes down.
+ */
+function validThrough(posted: string, explicit?: string) {
+  if (explicit) return explicit;
+
+  const closes = new Date(posted);
+
+  if (Number.isNaN(closes.getTime())) return undefined;
+
+  closes.setDate(closes.getDate() + POSTING_WINDOW_DAYS);
+
+  const floor = new Date();
+  floor.setDate(floor.getDate() + MINIMUM_REMAINING_DAYS);
+
+  return (closes > floor ? closes : floor).toISOString().split("T")[0];
 }
 
 function stripHtml(html: string) {
@@ -131,7 +180,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
   if (!job) {
     return {
-      title: "Job Not Found | HFSE Careers",
+      title: "Job not found",
       description: "This job posting is no longer available.",
       robots: {
         index: false,
@@ -140,12 +189,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     };
   }
 
-  const title = `${job.position_name} | HFSE Careers`;
   const description = stripHtml(job.description).slice(0, 155);
   const canonicalPath = `/jobs/${job.id}`;
 
+  // The layout's template appends "| HFSE Careers"; Open Graph has no template
+  // of its own, so it spells the whole thing out.
+  const socialTitle = `${job.position_name} | HFSE Careers`;
+
   return {
-    title,
+    title: job.position_name,
     description,
     alternates: {
       canonical: canonicalPath,
@@ -162,15 +214,15 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       },
     },
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       url: canonicalPath,
-      siteName: "HFSE Global Education Group",
-      locale: "en_US",
-      type: "website",
+      siteName: SITE_NAME,
+      locale: "en_SG",
+      type: "article",
       images: [
         {
-          url: "/assets/career-opportunities.jpg",
+          url: OG_IMAGE,
           width: 1200,
           height: 630,
           alt: `${job.position_name} - HFSE Careers`,
@@ -179,9 +231,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: socialTitle,
       description,
-      images: ["/assets/career-opportunities.jpg"],
+      images: [OG_IMAGE],
     },
   };
 }
@@ -197,9 +249,13 @@ export default async function JobDetailPage({ params }: Params) {
   const orgName = organization?.name || job.company?.name || "HFSE Global Education Group";
   const orgWebsite = organization?.website || "https://hfse.edu.sg/";
 
+  const location = jobLocation(job);
   const employmentType = formatEmploymentType(job.contract_details, job.employment_type, "Full-Time");
   const salary = formatSalaryAmount(job.salary_min, job.salary_max, job.currency);
   const datePosted = formatDatePosted(job.date_posted || job.updated_at);
+
+  const datePostedIso = job.date_posted || job.updated_at || new Date().toISOString().split("T")[0];
+  const closingDate = validThrough(datePostedIso, job.valid_through);
 
   const jobPostingJsonLd = {
     "@context": "https://schema.org",
@@ -211,25 +267,33 @@ export default async function JobDetailPage({ params }: Params) {
       name: job.company?.name || "HFSE Global Education Group",
       value: String(job.id),
     },
-    datePosted: job.date_posted || job.updated_at || new Date().toISOString().split("T")[0],
-    ...(job.valid_through ? { validThrough: job.valid_through } : {}),
+    datePosted: datePostedIso,
+    ...(closingDate ? { validThrough: closingDate } : {}),
     employmentType: mapEmploymentType(job.contract_details || job.employment_type),
     hiringOrganization: {
       "@type": "Organization",
-      name: organization?.name || "HFSE Global Education Group",
-      sameAs: organization?.website || "https://hfse.edu.sg/",
-      logo: orgLogo || `${SITE_URL}/assets/geg-favicon.png`,
+      name: orgName,
+      sameAs: orgWebsite,
+      logo: orgLogo || absoluteUrl("/assets/geg-favicon.png"),
     },
-    ...(job.location
+    ...(location
       ? {
           jobLocation: {
             "@type": "Place",
             address: {
               "@type": "PostalAddress",
-              addressLocality: job.location,
-              addressCountry: "SG",
+              ...(job.city ? { addressLocality: job.city } : {}),
+              ...(job.country ? { addressCountry: COUNTRY_CODES[job.country] ?? job.country } : {}),
             },
           },
+        }
+      : {}),
+    ...(job.is_remote
+      ? {
+          jobLocationType: "TELECOMMUTE",
+          ...(job.country
+            ? { applicantLocationRequirements: { "@type": "Country", name: job.country } }
+            : {}),
         }
       : {}),
     ...(job.salary_min || job.salary_max
@@ -247,11 +311,22 @@ export default async function JobDetailPage({ params }: Params) {
         }
       : {}),
     directApply: true,
+    url: absoluteUrl(`/jobs/${job.id}`),
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Jobs", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: job.position_name, item: absoluteUrl(`/jobs/${job.id}`) },
+    ],
   };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(jobPostingJsonLd)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(breadcrumbJsonLd)} />
 
       <div className="flex min-h-dvh flex-col bg-[#EFF1F6]">
         {/* Same navy chrome as the listings page; the artboard drops its search row. */}
@@ -296,10 +371,10 @@ export default async function JobDetailPage({ params }: Params) {
                     </a>
 
                     <div className="mt-[14px] flex flex-wrap gap-[7px]">
-                      {job.location && (
+                      {location && (
                         <span className="inline-flex items-center gap-[5px] rounded-md border border-[#E3E6F0] bg-[#F2F4FA] px-2.5 py-[5px] text-[12px] font-medium text-[#414A66]">
                           <MapPin className="size-3 text-[#6C7591]" />
-                          {job.location}
+                          {location}
                         </span>
                       )}
                       <span className="rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-[5px] text-[12px] font-medium text-[#1B2A8F]">
@@ -405,10 +480,10 @@ export default async function JobDetailPage({ params }: Params) {
                   <span className="font-semibold text-[#10162B]">{employmentType}</span>
                 </div>
 
-                {job.location && (
+                {location && (
                   <div className="flex justify-between py-1.5 text-[13px]">
                     <span className="text-[#6C7591]">Location</span>
-                    <span className="font-semibold text-[#10162B]">{job.location}</span>
+                    <span className="font-semibold text-[#10162B]">{location}</span>
                   </div>
                 )}
 

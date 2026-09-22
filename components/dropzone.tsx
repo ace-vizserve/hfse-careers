@@ -3,7 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { type UseSupabaseUploadReturn } from "@/hooks/use-supabase-upload";
 import { cn } from "@/lib/utils";
-import { CheckCircle2Icon, File, FileTextIcon, Loader2, X } from "lucide-react";
+import { CheckCircle2Icon, File, FileTextIcon, X } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import { createContext, type PropsWithChildren, useCallback, useContext } from "react";
 
 const formatBytes = (
@@ -44,18 +46,29 @@ const Dropzone = ({
 
   return (
     <DropzoneContext.Provider value={{ ...restProps }}>
-      <div
-        {...getRootProps({
-          className: cn(
-            "rounded-[9px] border border-[#B9C2D9] bg-[#F7F8FC] px-[18px] py-4 text-center transition-colors duration-300 text-[#10162B]",
-            className,
-            isSuccess ? "border-solid" : "border-dashed",
-            isActive && "border-primary bg-primary/10",
-            isInvalid && "border-destructive bg-destructive/10",
-          ),
-        })}>
-        <input {...getInputProps()} />
-        {children}
+      <div className="relative">
+        <div
+          {...getRootProps({
+            className: cn(
+              "rounded-[9px] border border-[#B9C2D9] bg-[#F7F8FC] px-[18px] py-4 text-center transition-colors duration-300 text-[#10162B]",
+              className,
+              isSuccess ? "border-solid" : "border-dashed",
+              isActive && "border-primary bg-primary/10",
+              isInvalid && "border-destructive bg-destructive/10",
+            ),
+          })}>
+          <input {...getInputProps()} />
+          {children}
+        </div>
+
+        {/* While the file is in flight the drop target is inert, so it blurs
+            behind a single spinner rather than showing a per-row one. */}
+        {restProps.loading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[9px] bg-white/80 backdrop-blur-xs">
+            <Spinner className="size-5 text-[#1E2FA8] opacity-70" />
+            <p className="text-[12px] font-medium text-[#4A5273]">Uploading…</p>
+          </div>
+        )}
       </div>
     </DropzoneContext.Provider>
   );
@@ -169,7 +182,7 @@ const DropzoneContent = ({ className }: { className?: string }) => {
           <Button type="button" variant="outline" onClick={() => onUpload()} disabled={loading}>
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Spinner className="mr-2 size-4" />
                 Uploading...
               </>
             ) : (

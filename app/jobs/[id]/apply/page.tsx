@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const job = await getJob(id);
 
   return {
-    title: job ? `Apply: ${job.position_name} | HFSE Careers` : "Apply | HFSE Careers",
+    title: job ? `Apply: ${job.position_name}` : "Apply",
     // An application form has nothing to offer search; the job page is the
     // indexable one and it links here.
     robots: { index: false, follow: true },
