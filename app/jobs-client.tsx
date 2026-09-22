@@ -125,7 +125,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       <>
         {parts.map((part, i) =>
           part.toLowerCase() === term.toLowerCase() ? (
-            <mark key={i} className="rounded-[3px] bg-[#E7EAFB] px-0.5 text-[#1B2A8F]">
+            <mark key={i} className="rounded-[3px] bg-[#FFE68A] px-0.5 text-[#10162B]">
               {part}
             </mark>
           ) : (
