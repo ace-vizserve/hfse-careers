@@ -5,11 +5,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev          # Start dev server (Next.js + Turbopack)
-npm run build        # Production build
-npm run start        # Start production server
-tsc --noEmit         # Type-check without emitting (no lint/test scripts configured)
+npm run dev             # Start dev server (Next.js + Turbopack)
+npm run build           # Production build
+npm run start           # Start production server
+tsc --noEmit            # Type-check without emitting (no lint script configured)
+
+npm run test:e2e        # Playwright, all five browser targets
+npm run test:e2e:safari # WebKit + mobile Safari only
+npm run test:e2e:ui     # Playwright UI mode, for stepping through
+npm run browser:safari  # Open a headed browser to click around yourself
 ```
+
+Tests live in `e2e/` and run against a stubbed Manatal and Supabase on port
+5000, so a run never creates a candidate or uploads a file. `e2e/README.md`
+covers what each spec guards and what WebKit does and does not tell you about
+real Safari.
 
 ## Architecture
 
