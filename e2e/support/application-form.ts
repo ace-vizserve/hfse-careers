@@ -62,9 +62,11 @@ export async function fillText(page: Page, path: string, value: string) {
     return;
   }
 
-  // A fill landing while the form is mid-render is dropped without a word, and
-  // only surfaces much later as a step that will not advance -- roughly one run
-  // in five on a phone viewport under load. Retry until it takes.
+  // These inputs are controlled (Controller + value/onChange), so a fill is a
+  // DOM write plus an input event that React has to process. A re-render
+  // landing in between writes the old value back and the fill is gone without
+  // a word -- surfacing much later as a step that will not advance. Seen once
+  // in ~47 full-form fills. Retry until it takes.
   //
   // Several of these fields normalise what they are handed (digits only, upper
   // case), so this asks whether the value stuck at all, not whether it came
