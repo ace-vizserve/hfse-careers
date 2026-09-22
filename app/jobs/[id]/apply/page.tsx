@@ -30,7 +30,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Controller, FieldErrors, FormProvider, useFieldArray, useForm } from "react-hook-form";
+import { Controller, FieldErrors, FormProvider, useFieldArray, useForm, useFormContext } from "react-hook-form";
 import { sileo } from "sileo";
 
 interface JobDetail {
@@ -255,6 +255,85 @@ const buildDefaultValues = (): FormValues => ({
   bcrequestissued: false,
 });
 
+/**
+ * These render on every section of a very long form, so they live at module
+ * scope. Declared inside the page component they would be a new component type
+ * on every render, and React would tear down and rebuild each one rather than
+ * update it -- which drops focus and loses clicks aimed at the buttons.
+ */
+const getNestedError = (errors: FieldErrors<any>, path: string) =>
+  path.split(".").reduce<any>((acc, part) => {
+    if (!acc) return undefined;
+    return /^\d+$/.test(part) ? acc[Number(part)] : acc[part];
+  }, errors);
+
+const ErrorText = ({ path }: { path: string }) => {
+  const {
+    formState: { errors },
+  } = useFormContext();
+
+  const fieldError = getNestedError(errors, path);
+  if (!fieldError?.message) return null;
+  return <p className="mt-1.5 text-xs text-rose-500 font-medium">{String(fieldError.message)}</p>;
+};
+
+const SectionHeader = ({ number, title, subtitle }: { number: string; title: string; subtitle?: string }) => (
+  <div className="flex items-start gap-4 mb-7">
+    <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
+      <span className="text-white text-xs font-bold tracking-wider">{number}</span>
+    </div>
+    <div>
+      <h3 className="text-lg font-semibold text-slate-800 leading-tight">{title}</h3>
+      {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+const Label = ({ children, required }: { children: ReactNode; required?: boolean }) => (
+  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+    {children}
+    {required && <span className="text-rose-400 ml-1">*</span>}
+  </label>
+);
+
+const AddButton = ({ onClick, label }: { onClick: () => void; label: string }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors py-2 px-3 rounded-lg hover:bg-blue-50">
+    <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-base leading-none">
+      +
+    </span>
+    {label}
+  </button>
+);
+
+const RemoveButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-rose-500 transition-colors py-1.5 px-2 rounded-lg hover:bg-rose-50">
+    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+      />
+    </svg>
+    Remove
+  </button>
+);
+
+/**
+ * react-hook-form focuses the first input of an appended row by default. On a
+ * form this long that scrolls the viewport to the new row, and the next click
+ * on the same "Add" button then blurs that empty required input: validation
+ * paints an error under it, the button slides out from under the pointer
+ * between mousedown and mouseup, and the click is swallowed. Adding a row
+ * leaves focus where it is instead.
+ */
+const NO_FOCUS = { shouldFocus: false } as const;
+
 export default function JobApplicationPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -380,19 +459,21 @@ export default function JobApplicationPage() {
   }, [outstanding, loading]);
 
 
-  const {
-    activeStep,
-    maxVisitedStep,
-    completedSteps,
-    values: draftValues,
-    hydrated,
-    setActiveStep,
-    markStepCompleted,
-    markStepIncomplete,
-    saveValues,
-    startJob,
-    clear: clearDraft,
-  } = useApplicationFormStore();
+  // Selected field by field rather than as a whole store object. Subscribing to
+  // the store wholesale re-rendered the page every time the draft was written,
+  // and the draft is written by this page -- so each save triggered the render
+  // that scheduled the next one. The saved `values` are deliberately not
+  // subscribed to at all; they are read once, on restore.
+  const activeStep = useApplicationFormStore((state) => state.activeStep);
+  const maxVisitedStep = useApplicationFormStore((state) => state.maxVisitedStep);
+  const completedSteps = useApplicationFormStore((state) => state.completedSteps);
+  const hydrated = useApplicationFormStore((state) => state.hydrated);
+  const setActiveStep = useApplicationFormStore((state) => state.setActiveStep);
+  const markStepCompleted = useApplicationFormStore((state) => state.markStepCompleted);
+  const markStepIncomplete = useApplicationFormStore((state) => state.markStepIncomplete);
+  const saveValues = useApplicationFormStore((state) => state.saveValues);
+  const startJob = useApplicationFormStore((state) => state.startJob);
+  const clearDraft = useApplicationFormStore((state) => state.clear);
 
   const isLastStep = activeStep === STEPS.length - 1;
 
@@ -618,68 +699,6 @@ export default function JobApplicationPage() {
   }, [jobId, reset]);
 
 
-  const getNestedError = (path: string) => {
-    return path.split(".").reduce<any>((acc, part) => {
-      if (!acc) return undefined;
-      return /^\d+$/.test(part) ? acc[Number(part)] : acc[part];
-    }, errors);
-  };
-
-  const ErrorText = ({ path }: { path: string }) => {
-    const fieldError = getNestedError(path);
-    if (!fieldError?.message) return null;
-    return <p className="mt-1.5 text-xs text-rose-500 font-medium">{String(fieldError.message)}</p>;
-  };
-
-  const SectionHeader = ({ number, title, subtitle }: { number: string; title: string; subtitle?: string }) => (
-    <div className="flex items-start gap-4 mb-7">
-      <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200">
-        <span className="text-white text-xs font-bold tracking-wider">{number}</span>
-      </div>
-      <div>
-        <h3 className="text-lg font-semibold text-slate-800 leading-tight">{title}</h3>
-        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
-      </div>
-    </div>
-  );
-
-  const Label = ({ children, required }: { children: ReactNode; required?: boolean }) => (
-    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-      {children}
-      {required && <span className="text-rose-400 ml-1">*</span>}
-    </label>
-  );
-
-  const AddButton = ({ onClick, label }: { onClick: () => void; label: string }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors py-2 px-3 rounded-lg hover:bg-blue-50">
-      <span className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-base leading-none">
-        +
-      </span>
-      {label}
-    </button>
-  );
-
-  const RemoveButton = ({ onClick }: { onClick: () => void }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-rose-500 transition-colors py-1.5 px-2 rounded-lg hover:bg-rose-50">
-      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-        />
-      </svg>
-      Remove
-    </button>
-  );
-
-
-
   const referenceCompletedCount = useMemo(() => {
     return (watchedReferences || []).filter(
       (r) => r?.name?.trim() && r?.email?.trim() && r?.contact_no?.trim() && r?.relationship?.trim(),
@@ -726,16 +745,31 @@ export default function JobApplicationPage() {
     if (!hydrated || restoredRef.current || loading) return;
 
     restoredRef.current = true;
+    const draftValues = useApplicationFormStore.getState().values;
     if (draftValues) reset({ ...buildDefaultValues(), ...draftValues } as FormValues);
-  }, [hydrated, draftValues, loading, reset]);
+  }, [hydrated, loading, reset]);
 
   // Persist as they go. Debounced so typing does not write on every keystroke.
+  // Driven by the form's own subscription rather than by a `watch()` snapshot:
+  // a snapshot is a fresh object on every render, so the effect re-armed itself
+  // each time it ran and an untouched form kept saving itself forever.
   useEffect(() => {
     if (!hydrated || !restoredRef.current) return;
 
-    const timer = setTimeout(() => saveValues(watchedValues as never), 500);
-    return () => clearTimeout(timer);
-  }, [watchedValues, hydrated, saveValues]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const subscription = watch((values) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => saveValues(values as never), 500);
+    });
+
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
+    // `loading` is here because `restoredRef` is set by the effect above on the
+    // render that clears it; without it this would never see the restore.
+  }, [watch, hydrated, loading, saveValues]);
 
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
@@ -1490,14 +1524,17 @@ export default function JobApplicationPage() {
                   <div className="mt-4">
                     <AddButton
                       onClick={() =>
-                        appendFamily({
-                          name: "",
-                          relationship: "",
-                          nationality: "",
-                          age: "",
-                          occupation: "",
-                          company: "",
-                        })
+                        appendFamily(
+                          {
+                            name: "",
+                            relationship: "",
+                            nationality: "",
+                            age: "",
+                            occupation: "",
+                            company: "",
+                          },
+                          NO_FOCUS,
+                        )
                       }
                       label="Add Family Member"
                     />
@@ -1635,15 +1672,18 @@ export default function JobApplicationPage() {
                   <div className="mt-4">
                     <AddButton
                       onClick={() =>
-                        appendEducation({
-                          school: "",
-                          degree_name: "",
-                          specialization: "",
-                          started_at: "",
-                          ended_at: null,
-                          location: "",
-                          description: "",
-                        })
+                        appendEducation(
+                          {
+                            school: "",
+                            degree_name: "",
+                            specialization: "",
+                            started_at: "",
+                            ended_at: null,
+                            location: "",
+                            description: "",
+                          },
+                          NO_FOCUS,
+                        )
                       }
                       label="Add Education"
                     />
@@ -1838,15 +1878,18 @@ export default function JobApplicationPage() {
                   <div className="mt-4">
                     <AddButton
                       onClick={() =>
-                        appendExperience({
-                          title: "",
-                          employer: "",
-                          salary: "",
-                          started_at: "",
-                          ended_at: null,
-                          is_current_employer: false,
-                          description: "",
-                        })
+                        appendExperience(
+                          {
+                            title: "",
+                            employer: "",
+                            salary: "",
+                            started_at: "",
+                            ended_at: null,
+                            is_current_employer: false,
+                            description: "",
+                          },
+                          NO_FOCUS,
+                        )
                       }
                       label="Add Experience"
                     />
@@ -2137,16 +2180,19 @@ export default function JobApplicationPage() {
                   <div className="mt-4 flex items-center gap-3">
                     <AddButton
                       onClick={() =>
-                        appendReference({
-                          name: "",
-                          email: "",
-                          contact_no: "",
-                          company_occupation: "",
-                          relationship: "",
-                          is_work_related: "No",
-                          years_known: "",
-                          consent_to_contact: "I agree",
-                        })
+                        appendReference(
+                          {
+                            name: "",
+                            email: "",
+                            contact_no: "",
+                            company_occupation: "",
+                            relationship: "",
+                            is_work_related: "No",
+                            years_known: "",
+                            consent_to_contact: "I agree",
+                          },
+                          NO_FOCUS,
+                        )
                       }
                       label="Add Reference"
                     />

@@ -122,14 +122,13 @@ export async function fillValidApplication(page: Page) {
 
   await continueToNextStep(page, "Declaration");
 
-  // 08 - References: the schema demands three. Click until the rows exist, since
-  // a click that lands mid-render is dropped.
+  // 08 - References: the schema demands three and the form starts with one.
   const referenceRows = page.locator('[id^="field-references-"][id$="-name"]');
-  for (let attempt = 0; attempt < 6 && (await referenceRows.count()) < 3; attempt++) {
+  await expect(referenceRows).toHaveCount(1);
+  for (let expected = 2; expected <= 3; expected++) {
     await page.getByRole("button", { name: /Add Reference/i }).click();
-    await page.waitForTimeout(150);
+    await expect(referenceRows).toHaveCount(expected);
   }
-  await expect(referenceRows).toHaveCount(3);
 
   for (let i = 0; i < 3; i++) {
     await fillText(page, `references.${i}.name`, `Referee ${i + 1}`);
