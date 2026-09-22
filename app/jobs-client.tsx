@@ -148,9 +148,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
         .job-card-active { box-shadow: 0 0 0 2px #7c3aed; }
       `}</style>
 
-      <div className="min-h-dvh">
-        <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gradient-to-r from-blue-500 via-blue-500 to-blue-500" />
-
+      <div className="min-h-dvh bg-[#EFF1F6]">
         <Navbar onSearch={setSearchQuery} onFilterChange={setFilters} />
 
         <div
@@ -158,17 +156,14 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           style={{ height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}>
           <div
             className={`${showDetails ? "hidden md:flex" : "flex"} flex-col w-full md:w-[42%] bg-white border-r border-slate-100 rounded-2xl overflow-hidden pb-0.5 mb-8`}>
-            <div className="flex-shrink-0 px-6 py-4 border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  <p className="text-lg font-semibold text-slate-900">
-                    {filteredJobs.length}
-                    <span className="ml-1 font-medium text-slate-500">
-                      {filteredJobs.length === 1 ? "role available" : "roles available"}
-                    </span>
-                  </p>
-                </div>
+            <div className="flex-shrink-0 px-[18px] py-[13px] border-b border-[#ECEFF7] bg-white sticky top-0 z-10">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">
+                  {filteredJobs.length === 1 ? "Role available" : "Roles available"}
+                </p>
+                <span className="rounded-md border border-[#D3D9F7] bg-[#E7EAFB] px-2.5 py-0.5 text-xs font-semibold text-[#1B2A8F]">
+                  {filteredJobs.length}
+                </span>
               </div>
             </div>
 
@@ -190,14 +185,14 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
                   <div
                     key={job.id}
                     onClick={() => handleJobClick(job)}
-                    className={`relative rounded-2xl p-5 cursor-pointer transition-all duration-200 border ${
+                    className={`relative rounded-[10px] p-[15px] cursor-pointer transition-all duration-200 border ${
                       isActive
-                        ? "bg-white border-blue-300 shadow-md shadow-blue-100/60 job-card-active"
-                        : "bg-white border-slate-100 hover:border-slate-200 hover:shadow-sm"
+                        ? "bg-white border-[#1E2FA8] shadow-[0_2px_4px_rgba(30,47,168,0.10),0_8px_18px_rgba(30,47,168,0.14)] job-card-active"
+                        : "bg-white border-[#E4E7F1] hover:border-[#C8CEE0] hover:shadow-[0_2px_8px_rgba(16,22,43,0.06)]"
                     }`}>
                     <div className="flex items-start gap-4 mb-3.5">
                       {job.org_logo ? (
-                        <div className="flex-shrink-0 w-12 h-12 rounded-xl border border-slate-100 bg-white p-1.5 flex items-center justify-center shadow-sm">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg border border-[#E3E6F0] bg-white p-1 flex items-center justify-center shadow-[0_1px_2px_rgba(16,22,43,0.07)]">
                           <Image
                             src={job.org_logo}
                             alt={job.org_name}
@@ -254,7 +249,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
           </div>
 
           <div
-            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 bg-slate-50 overflow-hidden pb-0.5 mb-7`}>
+            className={`${showDetails ? "flex" : "hidden md:flex"} flex-col flex-1 overflow-hidden pb-0.5 mb-7`}>
             <div className="flex-1 overflow-y-auto scrollbar-hide">
               <div className="space-y-6 p-1">
                 {selectedJob ? (

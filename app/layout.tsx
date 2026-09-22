@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { Toaster } from "sileo";
 import "./globals.css";
 
-// Load Roboto font
-const roboto = Roboto({
+// Poppins is the brand face; it already ships in the hero widget.
+const poppins = Poppins({
   subsets: ["latin"],
-  variable: "--font-roboto",
-  weight: ["300", "400", "500", "700"],
+  variable: "--font-poppins",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -82,7 +82,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${roboto.variable} antialiased`} style={{ fontFamily: "var(--font-roboto)" }}>
+      <body className={`${poppins.variable} antialiased`} style={{ fontFamily: "var(--font-poppins)" }}>
         <Toaster position="top-right" theme="light" />
         {children}
       </body>

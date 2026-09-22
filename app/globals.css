@@ -18,9 +18,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Apply Roboto globally */
+/* Apply Poppins globally */
 body {
-  font-family: var(--font-roboto), system-ui, sans-serif;
+  font-family: var(--font-poppins), system-ui, sans-serif;
 }
 
 @theme inline {

@@ -197,19 +197,19 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
         nav, nav * { font-family: 'DM Sans', sans-serif; }
       `}</style>
 
-      <div className="bg-blue-800 text-white sticky top-0 left-0 right-0 z-50 py-4">
+      <div className="bg-[#1B2A8F] text-white sticky top-0 left-0 right-0 z-50 py-1">
         {/* ── Top info bar (Bigger text & Height) ────────────────────────── */}
         <div className="w-full">
-          <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center h-12">
-            <div className="flex items-center gap-6 text-[13px] font-semibold tracking-wide">
+          <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center h-9">
+            <div className="flex items-center gap-5 text-xs font-medium text-[#C3C9DC]">
               <a
                 href="mailto:teamwork@hfse.edu.sg"
                 className="flex items-center gap-2 hover:text-white transition-colors">
-                <Mail className="w-4 h-4 text-blue-300" />
+                <Mail className="w-3.5 h-3.5 text-[#C3C9DC]" />
                 <span className="hidden sm:inline">teamwork@hfse.edu.sg</span>
               </a>
               <a href="tel:+12345678900" className="flex items-center gap-2 hover:text-white transition-colors">
-                <Phone className="w-4 h-4 text-blue-300" />
+                <Phone className="w-3.5 h-3.5 text-[#C3C9DC]" />
                 <span className="hidden sm:inline">+65 6451 0080</span>
               </a>
               <a
@@ -217,7 +217,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 hover:text-white transition-colors border-l border-white/20 pl-6 ml-1">
-                <Globe className="w-4 h-4 text-blue-300" />
+                <Globe className="w-3.5 h-3.5 text-[#C3C9DC]" />
                 <span className="hidden sm:inline">Visit Website</span>
               </a>
             </div>
@@ -245,9 +245,9 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
         </div>
 
         {/* ── Main nav bar (Increased Height to h-24) ────────────────────── */}
-        <nav>
+        <nav className="bg-[#1B2A8F]">
           <div className="w-full px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center h-24 w-full gap-8">
+            <div className="flex items-center h-[76px] w-full gap-8">
               {/* Left: back button + logo */}
               <div className="flex items-center gap-4 flex-shrink-0">
                 {showBackButton && onBack && (
@@ -263,7 +263,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                     alt="Logo"
                     width={220}
                     height={110}
-                    className="h-20 w-auto object-cover"
+                    className="h-11 w-auto object-contain"
                     priority
                   />
                 </a>
@@ -275,13 +275,13 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
               <div className="hidden md:flex items-center gap-4">
                 {/* Search input (Bigger Text & Width) */}
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A6B0D8] pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Search positions…"
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-12 pr-6 py-3.5 w-80 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/60 focus:border-blue-400 focus:bg-white transition-all duration-200 hover:border-slate-300 shadow-sm"
+                    className="pl-10 pr-4 py-2 w-72 bg-white/10 border border-white/20 rounded-lg text-[13px] text-white placeholder-[#A6B0D8] focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 transition-all duration-200"
                   />
                 </div>
 
@@ -289,13 +289,13 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
                 <div className="relative" ref={filterRef}>
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`relative flex items-center gap-3 px-6 py-3.5 rounded-xl border-2 text-sm font-bold transition-all duration-200
+                    className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border text-[13px] font-medium transition-all duration-200
                       ${
                         showFilters || activeFilterCount > 0
-                          ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:text-slate-900"
+                          ? "border-white/40 bg-white/15 text-white"
+                          : "border-white/20 bg-white/10 text-white hover:bg-white/20"
                       }`}>
-                    <Filter className="w-5 h-5" />
+                    <Filter className="w-4 h-4" />
                     Filters
                     {activeFilterCount > 0 && (
                       <span className="absolute -top-2.5 -right-2.5 w-7 h-7 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-black shadow-lg border-2 border-white">

@@ -1006,13 +1006,7 @@ export default function JobApplicationPage() {
         label="Scroll to submit"
       />
 
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
-        * { font-family: 'DM Sans', sans-serif; }
-        .font-mono { font-family: 'DM Mono', monospace; }
-      `}</style>
-
-      <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <div className="min-h-screen bg-[#EFF1F6]">
         <div className="h-1 bg-gradient-to-r from-blue-500 via-blue-500 to-indigo-500" />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
