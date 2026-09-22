@@ -13,6 +13,8 @@ import {
   Menu,
   Phone,
   Search,
+  Building2,
+  Clock,
   X,
 } from "lucide-react";
 import Image from "next/image";
@@ -23,23 +25,22 @@ interface NavbarProps {
   onBack?: () => void;
   onSearch?: (query: string) => void;
   onFilterChange?: (filters: FilterOptions) => void;
+  employers?: string[];
 }
 
 interface FilterOptions {
-  location: string;
   employmentType: string;
   isRemote: boolean | null;
+  employer: string;
+  frequency: string;
+  urgentOnly: boolean;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearch, onFilterChange }) => {
+const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearch, onFilterChange, employers = [] }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({
-    location: "",
-    employmentType: "",
-    isRemote: null,
-  });
+  const [filters, setFilters] = useState<FilterOptions>({ employmentType: "", isRemote: null, employer: "", frequency: "", urgentOnly: false });
 
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -66,12 +67,18 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
   };
 
   const clearFilters = () => {
-    const cleared: FilterOptions = { location: "", employmentType: "", isRemote: null };
+    const cleared: FilterOptions = { employmentType: "", isRemote: null, employer: "", frequency: "", urgentOnly: false };
     setFilters(cleared);
     onFilterChange?.(cleared);
   };
 
-  const activeFilterCount = [filters.location, filters.employmentType, filters.isRemote !== null].filter(
+  const activeFilterCount = [
+    filters.employmentType,
+    filters.isRemote !== null,
+    filters.employer,
+    filters.frequency,
+    filters.urgentOnly,
+  ].filter(
     Boolean,
   ).length;
 
@@ -127,19 +134,26 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
         )}
       </div>
 
-      {/* Location */}
+      {/* Employer — the board mixes HFSE International School and HAPI HAUS */}
       <div>
         <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-3">
-          <MapPin className="w-4 h-4" />
-          Location
+          <Building2 className="w-4 h-4" />
+          Employer
         </label>
-        <input
-          type="text"
-          placeholder="e.g. Manila, Singapore…"
-          value={filters.location}
-          onChange={(e) => handleFilterUpdate("location", e.target.value)}
-          className={inputCls + "text-sm"}
-        />
+        <select
+          value={filters.employer}
+          onChange={(e) => handleFilterUpdate("employer", e.target.value)}
+          className={
+            inputCls +
+            " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236C7591' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center] text-[13px]"
+          }>
+          <option value="">All employers</option>
+          {employers.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Employment Type */}
@@ -153,7 +167,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
           onChange={(e) => handleFilterUpdate("employmentType", e.target.value)}
           className={
             inputCls +
-            " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_18px_center] text-sm"
+            " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236C7591' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center] text-[13px]"
           }>
           <option value="">All Types</option>
           <option value="Full-Time">Full-Time</option>
@@ -162,6 +176,55 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
           <option value="Internship">Internship</option>
         </select>
       </div>
+
+      {/* Salary basis — the tuition roles pay hourly, the rest monthly */}
+      <div>
+        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-3">
+          <Clock className="w-4 h-4" />
+          Pay Basis
+        </label>
+        <div className="flex flex-wrap gap-3">
+          <RadioPill
+            name={`${namePrefix}-frequency`}
+            label="Any"
+            checked={filters.frequency === ""}
+            onChange={() => handleFilterUpdate("frequency", "")}
+          />
+          <RadioPill
+            name={`${namePrefix}-frequency`}
+            label="Monthly"
+            checked={filters.frequency === "month"}
+            onChange={() => handleFilterUpdate("frequency", "month")}
+          />
+          <RadioPill
+            name={`${namePrefix}-frequency`}
+            label="Hourly"
+            checked={filters.frequency === "hour"}
+            onChange={() => handleFilterUpdate("frequency", "hour")}
+          />
+        </div>
+      </div>
+
+      {/* Urgently hiring */}
+      <label className="flex cursor-pointer items-center gap-3 rounded-[7px] border border-[#D5DAE8] bg-white px-4 py-3 transition-colors hover:border-[#C8CEE0]">
+        <input
+          type="checkbox"
+          checked={filters.urgentOnly}
+          onChange={(e) => handleFilterUpdate("urgentOnly", e.target.checked)}
+          className="sr-only"
+        />
+        <span
+          className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[4px] border transition-colors ${
+            filters.urgentOnly ? "border-[#1E2FA8] bg-[#1E2FA8]" : "border-[#B9C2D9] bg-white"
+          }`}>
+          {filters.urgentOnly && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </span>
+        <span className="text-[13px] font-medium text-[#10162B]">Urgently hiring only</span>
+      </label>
 
       {/* Work Setting */}
       <div>

@@ -11,9 +11,11 @@ import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
 import type { Job } from "@/lib/types/job";
 
 interface FilterOptions {
-  location: string;
   employmentType: string;
   isRemote: boolean | null;
+  employer: string;
+  frequency: string;
+  urgentOnly: boolean;
 }
 
 // Navy header (104) + the search/filter row (92). Keep in step with navbar.tsx.
@@ -29,10 +31,18 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterOptions>({
-    location: "",
     employmentType: "",
     isRemote: null,
+    employer: "",
+    frequency: "",
+    urgentOnly: false,
   });
+
+  // Only offer employers that actually have a posting.
+  const employers = useMemo(
+    () => Array.from(new Set(jobs.map((job) => job.org_name).filter(Boolean))).sort(),
+    [jobs],
+  );
 
   const formatLocation = (job: Job) => (job.is_remote ? "Remote" : job.country || "On-site");
 
@@ -53,20 +63,16 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       });
     }
 
-    if (filters.location.trim()) {
-      const locationQuery = filters.location.toLowerCase();
-      filtered = filtered.filter((job) => {
-        const country = (job.country || "").toLowerCase();
-        const city = (job.city || "").toLowerCase();
-        const state = (job.state || "").toLowerCase();
+    if (filters.employer) {
+      filtered = filtered.filter((job) => job.org_name === filters.employer);
+    }
 
-        return (
-          country.includes(locationQuery) ||
-          city.includes(locationQuery) ||
-          state.includes(locationQuery) ||
-          (job.is_remote === true && locationQuery.includes("remote"))
-        );
-      });
+    if (filters.frequency) {
+      filtered = filtered.filter((job) => job.frequency === filters.frequency);
+    }
+
+    if (filters.urgentOnly) {
+      filtered = filtered.filter((job) => job.urgently_hiring === true);
     }
 
     if (filters.employmentType) {
@@ -173,7 +179,7 @@ export default function JobsClient({ initialJobs }: { initialJobs: Job[] }) {
       `}</style>
 
       <div className="min-h-dvh bg-[#EFF1F6]">
-        <Navbar onSearch={setSearchQuery} onFilterChange={setFilters} />
+        <Navbar onSearch={setSearchQuery} onFilterChange={setFilters} employers={employers} />
 
         <div
           className="max-w-[1680px] mx-auto md:flex px-10 pt-6 pb-8 gap-6"
