@@ -21,6 +21,7 @@ import Image from "next/image";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { StyledSelect } from "@/components/ui/styled-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import React, { useState } from "react";
 
@@ -39,6 +40,9 @@ interface FilterOptions {
   frequency: string;
   urgentOnly: boolean;
 }
+
+/** Radix Select rejects an empty item value, so this stands in for "no filter". */
+const ALL_VALUE = "__all__";
 
 const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearch, onFilterChange, employers = [] }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -76,10 +80,6 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
     Boolean,
   ).length;
 
-  // ── Shared input class (Bigger text & padding) ──────────────────────────
-  const inputCls =
-    "w-full min-h-[40px] px-3 py-2.5 bg-white border border-[#D5DAE8] rounded-[7px] text-[#10162B] text-[13px] placeholder-[#8A92AB] " +
-    "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8] transition-all duration-200";
 
   // ── Radio pill (Bigger text & padding) ──────────────────────────────────
   /**
@@ -118,20 +118,15 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
           <Building2 className="w-4 h-4" />
           Employer
         </label>
-        <select
-          value={filters.employer}
-          onChange={(e) => handleFilterUpdate("employer", e.target.value)}
-          className={
-            inputCls +
-            " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236C7591' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center] text-[13px]"
-          }>
-          <option value="">All employers</option>
-          {employers.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <StyledSelect
+          value={filters.employer || ALL_VALUE}
+          onChange={(v) => handleFilterUpdate("employer", v === ALL_VALUE ? "" : v)}
+          placeholder="All employers"
+          options={[
+            { value: ALL_VALUE, label: "All employers" },
+            ...employers.map((name) => ({ value: name, label: name })),
+          ]}
+        />
       </div>
 
       {/* Employment Type */}
@@ -140,19 +135,18 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, onBack, onSearc
           <Briefcase className="w-4 h-4" />
           Employment Type
         </label>
-        <select
-          value={filters.employmentType}
-          onChange={(e) => handleFilterUpdate("employmentType", e.target.value)}
-          className={
-            inputCls +
-            " appearance-none bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236C7591' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")] bg-no-repeat bg-[right_14px_center] text-[13px]"
-          }>
-          <option value="">All Types</option>
-          <option value="Full-Time">Full-Time</option>
-          <option value="Part-Time">Part-Time</option>
-          <option value="Freelance">Freelance</option>
-          <option value="Internship">Internship</option>
-        </select>
+        <StyledSelect
+          value={filters.employmentType || ALL_VALUE}
+          onChange={(v) => handleFilterUpdate("employmentType", v === ALL_VALUE ? "" : v)}
+          placeholder="All Types"
+          options={[
+            { value: ALL_VALUE, label: "All Types" },
+            { value: "Full-Time", label: "Full-Time" },
+            { value: "Part-Time", label: "Part-Time" },
+            { value: "Freelance", label: "Freelance" },
+            { value: "Internship", label: "Internship" },
+          ]}
+        />
       </div>
 
       {/* Salary basis — the tuition roles pay hourly, the rest monthly */}
