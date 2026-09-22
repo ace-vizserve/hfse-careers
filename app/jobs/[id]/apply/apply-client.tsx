@@ -1,6 +1,9 @@
 "use client";
 
-import { ApplicationFormField } from "@/components/application-form/application-field";
+import { ApplicationFormField, inputBase } from "@/components/application-form/application-field";
+import { Input } from "@/components/ui/input";
+import { Label as UiLabel } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone";
 import { ApplicationNote } from "@/components/ui/application-note";
 import { ConsentDeclarations } from "@/components/ui/consent-declarations";
@@ -298,11 +301,16 @@ const SectionHeader = ({
   </div>
 );
 
-const Label = ({ children, required }: { children: ReactNode; required?: boolean }) => (
-  <label className="mb-1.5 block text-[12px] font-semibold text-[#10162B]">
+/**
+ * Wraps the shadcn (Radix) Label so clicking the text focuses its control, and
+ * keeps the `required` prop the call sites already pass. `htmlFor` is optional
+ * because several of these sit directly above their input inside a wrapper.
+ */
+const Label = ({ children, required, htmlFor }: { children: ReactNode; required?: boolean; htmlFor?: string }) => (
+  <UiLabel htmlFor={htmlFor} className="mb-1.5 block text-[12px] font-semibold text-[#10162B]">
     {children}
     {required && <span className="ml-0.5 text-[#C2410C]">*</span>}
-  </label>
+  </UiLabel>
 );
 
 const AddButton = ({ onClick, label }: { onClick: () => void; label: string }) => (
@@ -381,11 +389,6 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<{ error: string; details?: string } | null>(null);
 
-
-  const inputBase =
-    "w-full min-h-[40px] px-3 py-2.5 bg-white border border-[#D5DAE8] rounded-[7px] text-[13px] text-[#10162B] placeholder-[#8A92AB] " +
-    "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] transition-colors duration-200 hover:border-[#C8CEE0] " +
-    "focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8]";
 
   const cardBase =
     "bg-white rounded-xl shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]";
@@ -1230,7 +1233,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                         <div className="mt-4 grid grid-cols-1 gap-4 border-t border-[#D3D9F7] pt-4 md:grid-cols-2">
                           <div>
                             <Label required>Referrer Name</Label>
-                            <input
+                            <Input
                               id={pathToFieldId("referrer_details.referrer_name")}
                               type="text"
                               {...register("referrer_details.referrer_name")}
@@ -1242,7 +1245,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label required>Referrer Email</Label>
-                            <input
+                            <Input
                               id={pathToFieldId("referrer_details.referrer_email")}
                               type="email"
                               {...register("referrer_details.referrer_email")}
@@ -1426,7 +1429,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
                           <div>
                             <Label>Name</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`family_members.${i}.name`)}
                               type="text"
                               {...register(`family_members.${i}.name`)}
@@ -1465,7 +1468,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label>Nationality</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`family_members.${i}.nationality`)}
                               type="text"
                               {...register(`family_members.${i}.nationality`)}
@@ -1481,7 +1484,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               control={control}
                               name={`family_members.${i}.age`}
                               render={({ field }) => (
-                                <input
+                                <Input
                                   id={pathToFieldId(`family_members.${i}.age`)}
                                   type="text"
                                   inputMode="numeric"
@@ -1498,7 +1501,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label>Occupation</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`family_members.${i}.occupation`)}
                               type="text"
                               {...register(`family_members.${i}.occupation`)}
@@ -1510,7 +1513,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label>Company</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`family_members.${i}.company`)}
                               type="text"
                               {...register(`family_members.${i}.company`)}
@@ -1563,7 +1566,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
                           <div>
                             <Label required>School / Institution</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`educations.${i}.school`)}
                               type="text"
                               {...register(`educations.${i}.school`)}
@@ -1600,7 +1603,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label>Specialization / Major</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`educations.${i}.specialization`)}
                               type="text"
                               {...register(`educations.${i}.specialization`)}
@@ -1612,7 +1615,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label>Location</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`educations.${i}.location`)}
                               type="text"
                               {...register(`educations.${i}.location`)}
@@ -1658,7 +1661,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div className="md:col-span-2">
                             <Label>Description</Label>
-                            <textarea
+                            <Textarea
                               id={pathToFieldId(`educations.${i}.description`)}
                               {...register(`educations.${i}.description`)}
                               rows={3}
@@ -1770,7 +1773,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                             <div>
                               <Label required>Company and Country</Label>
-                              <input
+                              <Input
                                 id={pathToFieldId(`experiences.${i}.employer`)}
                                 type="text"
                                 {...register(`experiences.${i}.employer`)}
@@ -1782,7 +1785,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                             <div>
                               <Label required>Position</Label>
-                              <input
+                              <Input
                                 id={pathToFieldId(`experiences.${i}.title`)}
                                 type="text"
                                 {...register(`experiences.${i}.title`)}
@@ -1794,7 +1797,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                             <div>
                               <Label>Last Withdrawn Salary</Label>
-                              <input
+                              <Input
                                 id={pathToFieldId(`experiences.${i}.salary`)}
                                 type="text"
                                 {...register(`experiences.${i}.salary`)}
@@ -1806,7 +1809,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                             <div>
                               <Label>Other Allowances</Label>
-                              <input
+                              <Input
                                 id={pathToFieldId(`experiences.${i}.other_allowances`)}
                                 type="text"
                                 {...register(`experiences.${i}.other_allowances` as const)}
@@ -1818,7 +1821,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                             <div className="md:col-span-2">
                               <Label>Reason for Leaving</Label>
-                              <textarea
+                              <Textarea
                                 id={pathToFieldId(`experiences.${i}.reason_for_leaving`)}
                                 {...register(`experiences.${i}.reason_for_leaving` as const)}
                                 rows={3}
@@ -1833,7 +1836,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                                 control={control}
                                 name={`experiences.${i}.is_current_employer`}
                                 render={({ field }) => (
-                                  <label
+                                  <UiLabel
                                     className={`flex w-full cursor-pointer select-none items-center gap-2.5 rounded-lg border px-[14px] py-[11px] text-[13px] font-medium transition-colors ${
                                       field.value
                                         ? "border-[#C3CBE8] bg-[#E7EAFB] text-[#16217A]"
@@ -1873,7 +1876,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                                       )}
                                     </span>
                                     I currently work here
-                                  </label>
+                                  </UiLabel>
                                 )}
                               />
                               <ErrorText path={`experiences.${i}.is_current_employer`} />
@@ -1951,7 +1954,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                             tabIndex={-1}
                             className="flex flex-shrink-0 gap-1.5">
                             {(["Yes", "No"] as const).map((option) => (
-                              <label
+                              <UiLabel
                                 key={option}
                                 className={`flex min-h-[34px] cursor-pointer select-none items-center justify-center rounded-md border px-[18px] text-[12px] font-semibold transition-colors ${
                                   current?.answer === option
@@ -1978,7 +1981,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                                   className="sr-only"
                                 />
                                 {option}
-                              </label>
+                              </UiLabel>
                             ))}
                           </div>
                           </div>
@@ -1987,7 +1990,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                           {needsDetails && (
                             <div className="mt-3">
                               <Label required>Please provide details</Label>
-                              <textarea
+                              <Textarea
                                 id={pathToFieldId(`declarations.${i}.details`)}
                                 rows={2}
                                 {...register(`declarations.${i}.details`)}
@@ -2050,7 +2053,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
                           <div>
                             <Label required>Name</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`references.${i}.name`)}
                               type="text"
                               {...register(`references.${i}.name`)}
@@ -2062,7 +2065,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label required>Email</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`references.${i}.email`)}
                               type="email"
                               {...register(`references.${i}.email`)}
@@ -2075,7 +2078,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                           <div>
                             <Label required>Contact Number</Label>
 
-                            <input
+                            <Input
                               id={pathToFieldId(`references.${i}.contact_no`)}
                               type="tel"
                               {...register(`references.${i}.contact_no`)}
@@ -2087,7 +2090,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div className="lg:col-span-2">
                             <Label required>Company &amp; Occupation</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`references.${i}.company_occupation`)}
                               type="text"
                               {...register(`references.${i}.company_occupation`)}
@@ -2100,7 +2103,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                           <div>
                             <Label required>Relationship to Applicant</Label>
 
-                            <input
+                            <Input
                               id={pathToFieldId(`references.${i}.relationship`)}
                               type="text"
                               {...register(`references.${i}.relationship`)}
@@ -2112,7 +2115,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
                           <div>
                             <Label required>Years Known</Label>
-                            <input
+                            <Input
                               id={pathToFieldId(`references.${i}.years_known`)}
                               type="text"
                               {...register(`references.${i}.years_known`)}
@@ -2139,7 +2142,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                                 const isSelected = String(current) === value;
 
                                 return (
-                                  <label
+                                  <UiLabel
                                     key={value}
                                     className={`flex min-h-[40px] cursor-pointer select-none items-center gap-2 rounded-md border px-[18px] text-[12px] font-semibold transition-colors ${
                                       isSelected
@@ -2164,7 +2167,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                                       </svg>
                                     )}
                                     {label}
-                                  </label>
+                                  </UiLabel>
                                 );
                               })}
                             </div>

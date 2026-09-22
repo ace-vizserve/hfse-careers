@@ -8,12 +8,23 @@ import { StyledSelect } from "@/components/ui/styled-select";
 import { getApplicationField, type ApplicationField, type ApplicationFieldKey } from "@/lib/forms/application-fields";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useFormContext } from "react-hook-form";
 
+/**
+ * The house style for a field, layered over the shadcn Input/Textarea defaults.
+ * `h-auto` and the `md:` size are here because the primitive ships `h-9` and
+ * `md:text-sm`, which would otherwise win at those breakpoints.
+ */
 export const inputBase =
-  "w-full min-h-[40px] px-3 py-2.5 bg-white border border-[#D5DAE8] rounded-[7px] text-[13px] text-[#10162B] placeholder-[#8A92AB] " +
+  // `field-sizing-fixed` keeps the Textarea honouring its `rows`; the primitive
+  // ships `field-sizing-content`, which auto-grows and ignores them.
+  "h-auto min-h-[40px] w-full field-sizing-fixed rounded-[7px] border border-[#D5DAE8] bg-white px-3 py-2.5 text-[13px] md:text-[13px] text-[#10162B] placeholder:text-[#8A92AB] " +
   "shadow-[inset_0_1px_2px_rgba(16,22,43,0.04)] transition-colors duration-200 hover:border-[#C8CEE0] " +
-  "focus:outline-none focus:ring-2 focus:ring-[#1E2FA8]/40 focus:border-[#1E2FA8]";
+  "focus-visible:border-[#1E2FA8] focus-visible:ring-2 focus-visible:ring-[#1E2FA8]/40 " +
+  "aria-invalid:border-[#C2410C] aria-invalid:ring-[#C2410C]/20";
 
 type ControlProps = {
   field: ApplicationField;
@@ -41,7 +52,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
   switch (field.widget) {
     case "longtext":
       return (
-        <textarea
+        <Textarea
           {...a11y}
           rows={5}
           value={text}
@@ -87,7 +98,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
           <span className="flex items-center border-r border-[#D5DAE8] bg-[#F2F4FA] px-[11px] text-[12px] font-semibold text-[#4A5273]">
             SGD
           </span>
-          <input
+          <Input
             {...a11y}
             type="text"
             inputMode="numeric"
@@ -99,7 +110,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
             onBlur={onBlur}
             placeholder={field.placeholder}
             maxLength={field.maxLength}
-            className="min-h-[40px] w-full border-0 bg-white px-3 py-2.5 text-[13px] text-[#10162B] placeholder-[#8A92AB] focus:outline-none"
+            className="h-auto min-h-[40px] w-full rounded-none border-0 bg-white px-3 py-2.5 text-[13px] text-[#10162B] shadow-none placeholder:text-[#8A92AB] focus-visible:ring-0 md:text-[13px]"
           />
         </div>
       );
@@ -113,7 +124,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
       const maxLength = field.widget === "postalcode" ? 6 : field.maxLength;
 
       return (
-        <input
+        <Input
           {...a11y}
           type="text"
           inputMode="numeric"
@@ -132,7 +143,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
 
     case "phone":
       return (
-        <input
+        <Input
           {...a11y}
           type="tel"
           inputMode="tel"
@@ -146,7 +157,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
 
     case "nricfin":
       return (
-        <input
+        <Input
           {...a11y}
           type="text"
           value={text.toUpperCase()}
@@ -166,7 +177,7 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
     case "text":
     default:
       return (
-        <input
+        <Input
           {...a11y}
           type={field.widget === "email" ? "email" : field.widget === "url" ? "url" : "text"}
           value={text}

@@ -8,8 +8,20 @@ import { applicant, JOB_ID, resumePdf } from "./fixtures";
  */
 export async function gotoApplyPage(page: Page) {
   await page.goto(`/jobs/${JOB_ID}/apply`, { waitUntil: "domcontentloaded" });
-  await expect(page.getByText("Loading application...")).toBeHidden({ timeout: 90_000 });
+  await dismissPdpaNotice(page);
   await expect(field(page, "full_name")).toBeVisible();
+}
+
+/**
+ * The PDPA notice opens over every non-embed page on a first visit and its
+ * overlay swallows clicks. None of these tests are about the notice, so they
+ * acknowledge it the way a candidate would and get on with the form.
+ */
+export async function dismissPdpaNotice(page: Page) {
+  const acknowledge = page.getByRole("button", { name: "I understand" });
+
+  await acknowledge.click();
+  await expect(acknowledge).toBeHidden();
 }
 
 /** The page derives every input id from the RHF path: `field-` + path with dots as dashes. */

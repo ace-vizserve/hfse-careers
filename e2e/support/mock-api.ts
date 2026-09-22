@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import { formFieldsFixture, jobFixture, JOB_ID } from "./fixtures";
 
 export type ApiMocks = {
   /** Raw bodies of every POST that reached /api/applications. */
@@ -7,21 +6,15 @@ export type ApiMocks = {
 };
 
 /**
- * Stubs every network call the apply page makes, so a test run never creates a
- * candidate in Manatal, never uploads to Supabase, and never needs API keys.
+ * Stubs every network call the apply page makes from the browser, so a test run
+ * never creates a candidate in Manatal and never uploads to Supabase. The job
+ * and its field list are not here: they are fetched server-side now, and the
+ * dev server is pointed at the stub in `manatal-mock.ts` for those.
  * Routes are registered broad-first because Playwright matches the most
  * recently registered handler first.
  */
 export async function installApiMocks(page: Page): Promise<ApiMocks> {
   const submissions: string[] = [];
-
-  await page.route(/\/api\/jobs\/\d+(\?|$)/, (route) =>
-    route.fulfill({ json: jobFixture }),
-  );
-
-  await page.route(/\/api\/jobs\/\d+\/form-fields/, (route) =>
-    route.fulfill({ json: { fields: formFieldsFixture, jobId: JOB_ID } }),
-  );
 
   // Supabase storage. getPublicUrl() builds its string locally, so only the
   // upload itself needs answering.
