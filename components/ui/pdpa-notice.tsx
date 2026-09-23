@@ -41,12 +41,37 @@ export function PdpaNotice() {
     // site is not ours to show, and the widget collects nothing on its own.
     if (pathname?.startsWith("/embed")) return;
 
-    try {
-      if (readConsentCookie() !== NOTICE_VERSION) setOpen(true);
-    } catch {
-      // Cookies blocked entirely: still show the notice, it just won't stick.
-      setOpen(true);
+    /**
+     * Opened once the browser is next idle, rather than in this effect directly.
+     *
+     * Opening a Radix dialog marks every other child of the body `aria-hidden`.
+     * This effect runs when the notice itself hydrates, which on a page whose
+     * slots hydrate in separate boundaries -- the listing, with its parallel
+     * routes -- is well before the rest of the page has. React then finds
+     * attributes on the listing that the server never sent and reports a
+     * mismatch it will not patch up. Waiting for idle lets the remaining
+     * boundaries finish first; the timeout keeps the notice prompt on a busy
+     * page, and on a first visit it is still there before anything is read.
+     */
+    const show = () => {
+      try {
+        if (readConsentCookie() !== NOTICE_VERSION) setOpen(true);
+      } catch {
+        // Cookies blocked entirely: still show the notice, it just won't stick.
+        setOpen(true);
+      }
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const handle = window.requestIdleCallback(show, { timeout: 1000 });
+      return () => window.cancelIdleCallback(handle);
     }
+
+    // Safari has no requestIdleCallback, and two frames is not enough there --
+    // its boundaries are still hydrating. A short wait stands in; the notice
+    // has to be read before anything is typed, not within the first frame.
+    const timer = setTimeout(show, 300);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   const acknowledge = () => {

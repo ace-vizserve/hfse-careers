@@ -181,11 +181,12 @@ export default function BoardShell({
     <>
       {children}
 
-      <style>{`
-        body { background-color: #EFF1F6; }
-      `}</style>
-
-      <div className="min-h-dvh bg-[#EFF1F6]">
+      {/* `suppressHydrationWarning`, because the PDPA dialog marks every other
+          child of the body `aria-hidden` when it opens, and on Safari this
+          subtree is hydrated as a consequence of that focus change -- so the
+          attribute is always on the element before React gets to it. The
+          warning is about markup this component never rendered. */}
+      <div className="board-root min-h-dvh bg-[#EFF1F6]" suppressHydrationWarning>
         <Navbar
           onSearch={setSearchQuery}
           onFilterChange={setFilters}

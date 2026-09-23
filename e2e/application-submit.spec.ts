@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { applicant, JOB_ID } from "./support/fixtures";
+import { applicant, JOB_ID, JOB_ORGANIZATION_NAME, jobFixture } from "./support/fixtures";
 import { fillText, fillValidApplication, gotoApplyPage, submitButton } from "./support/application-form";
 import { installApiMocks } from "./support/mock-api";
 
@@ -32,6 +32,8 @@ test.describe("job application submission", () => {
 
     expect(fields.jobId).toBe(JOB_ID);
     expect(payload.job_id).toBe(JOB_ID);
+    expect(payload.position_name).toBe(jobFixture.position_name);
+    expect(payload.organization_name).toBe(JOB_ORGANIZATION_NAME);
     expect(Object.keys(payload).length).toBeGreaterThan(15);
 
     // The whole payload, not just its string fields: education and experience

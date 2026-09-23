@@ -7,13 +7,22 @@
 
 export const JOB_ID = "999001";
 
+/**
+ * Manatal returns an organization id; the name, logo and site are attached from
+ * `entity_list` by matching it. An id that matches nothing leaves the job
+ * without an employer, and the submitted payload then carries an empty
+ * `organization_name` -- so this has to be a real one.
+ */
+export const JOB_ORGANIZATION_ID = 3779172;
+export const JOB_ORGANIZATION_NAME = "HFSE International School";
+
 export const jobFixture = {
   id: Number(JOB_ID),
   position_name: "Secondary Mathematics Teacher",
   location: "Singapore",
   employment_type: "Full time",
   description: "<p>Teach secondary mathematics.</p>",
-  organization: 1,
+  organization: JOB_ORGANIZATION_ID,
 };
 
 type FixtureField = {

@@ -150,3 +150,12 @@ body {
   cursor: progress;
   pointer-events: none;
 }
+
+/* The board paints its own background onto the body, so an overscroll past the
+   listing shows the page colour rather than the default. It used to be a
+   <style> tag injected by the client component, which put an element in the
+   body for the consent dialog's aria-hidden to mark and React to then trip
+   over on hydration. */
+body:has(.board-root) {
+  background-color: #EFF1F6;
+}
