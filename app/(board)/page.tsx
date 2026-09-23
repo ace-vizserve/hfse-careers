@@ -3,8 +3,6 @@ import type { Metadata } from "next";
 import { getPublishedJobs } from "@/lib/jobs.server";
 import { absoluteUrl, jsonLdScript, OG_IMAGE, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/seo";
 
-import JobsClient from "./jobs-client";
-
 /**
  * The listing is prerendered and refreshed in the background, so the first
  * paint never waits on Manatal.
@@ -77,7 +75,6 @@ export default async function Page() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(jobListJsonLd)} />
 
-      <JobsClient initialJobs={jobs} />
     </>
   );
 }

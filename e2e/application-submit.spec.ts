@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { applicant } from "./support/fixtures";
+import { applicant, JOB_ID } from "./support/fixtures";
 import { fillText, fillValidApplication, gotoApplyPage, submitButton } from "./support/application-form";
 import { installApiMocks } from "./support/mock-api";
 
@@ -22,9 +22,38 @@ test.describe("job application submission", () => {
     // The browser actually serialized and sent the form, rather than silently
     // cancelling the submit the way Safari did before `noValidate` was added.
     expect(api.submissions).toHaveLength(1);
-    expect(api.submissions[0]).toContain(applicant.fullName);
-    expect(api.submissions[0]).toContain(applicant.email);
-    expect(api.submissions[0]).toContain(applicant.nric);
+
+    // Sent, not processed: this is the body that left the page, unpacked.
+    // Checking a couple of values near the top of it would pass just as well
+    // on a body that arrived half-written, so the assertions below reach the
+    // sections built last -- the HTML blobs at the far end of the payload.
+    const fields = api.submittedFields[0];
+    const payload = api.submittedPayloads[0] as Record<string, unknown>;
+
+    expect(fields.jobId).toBe(JOB_ID);
+    expect(payload.job_id).toBe(JOB_ID);
+    expect(Object.keys(payload).length).toBeGreaterThan(15);
+
+    const sent = Object.values(payload)
+      .filter((value): value is string => typeof value === "string")
+      .join("\n");
+
+    // Personal details, from the first step.
+    expect(sent).toContain(applicant.fullName);
+    expect(sent).toContain(applicant.email);
+    expect(sent).toContain(applicant.nric);
+
+    // Emergency contact and family particulars.
+    expect(sent).toContain("Mei Ling Tan");
+    expect(sent).toContain("Wei Ming Tan");
+
+    // All three references, assembled into HTML on the last step.
+    for (const referee of ["Referee 1", "Referee 2", "Referee 3"]) {
+      expect(sent).toContain(referee);
+    }
+
+    // The resume travels as a URL rather than the file itself.
+    expect(sent).toMatch(/https?:\/\/\S+/);
   });
 
   test("a failed step sends the candidate to the field that needs fixing", async ({ page }) => {

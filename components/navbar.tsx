@@ -18,6 +18,7 @@ import {
 import Image from "next/image";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { BottomSheet, BottomSheetContent, BottomSheetTrigger } from "@/components/ui/bottom-sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StyledSelect } from "@/components/ui/styled-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -31,6 +32,9 @@ interface NavbarProps {
   onSearch?: (query: string) => void;
   onFilterChange?: (filters: FilterOptions) => void;
   employers?: string[];
+  /** Drives the sheet's "Show N roles" button, so a filter's effect is visible
+   *  before it is dismissed. */
+  resultCount?: number;
 }
 
 interface FilterOptions {
@@ -44,9 +48,42 @@ interface FilterOptions {
 /** Radix Select rejects an empty item value, so this stands in for "no filter". */
 const ALL_VALUE = "__all__";
 
-const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, showSearch = true, onBack, onSearch, onFilterChange, employers = [] }) => {
+/**
+ * One button, opened by either the popover or the sheet depending on width.
+ * At module scope on purpose: declared inside Navbar it would be a new
+ * component type on every render, and Radix would rebuild the trigger rather
+ * than update it -- which drops the click that was aimed at it.
+ */
+const FilterTriggerButton = ({ count, ...props }: React.ComponentProps<"button"> & { count: number }) => (
+  <button
+    aria-label="Filter positions"
+    className="relative flex min-h-[42px] flex-shrink-0 items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-3.5 py-3 text-[15px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110 sm:min-h-[46px] md:px-7"
+    {...props}>
+    <Filter className="h-[18px] w-[18px]" />
+    <span className="hidden md:inline">Filter Positions</span>
+    {count > 0 && (
+      <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-md border border-white bg-[#1E2FA8] text-[11px] font-semibold text-white shadow-[0_1px_3px_rgba(30,47,168,0.3)] sm:-right-2.5 sm:-top-2.5 sm:h-7 sm:w-7">
+        {count}
+      </span>
+    )}
+  </button>
+);
+
+const Navbar: React.FC<NavbarProps> = ({
+  showBackButton = false,
+  showSearch = true,
+  onBack,
+  onSearch,
+  onFilterChange,
+  employers = [],
+  resultCount,
+}) => {
   const [searchQuery, setSearchQuery] = useState("");
+  // Two states, not one. Both the popover and the sheet stay mounted at every
+  // width and each renders through a portal, so a shared flag would open the
+  // hidden one as well -- its content escapes the wrapper that hides it.
   const [showFilters, setShowFilters] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({ employmentType: "", isRemote: null, employer: "", frequency: "", urgentOnly: false });
 
 
@@ -97,23 +134,27 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, showSearch = tr
     </div>
   );
 
-  const FilterPanel = ({ namePrefix }: { namePrefix: string }) => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">Filter Positions</p>
-        {activeFilterCount > 0 && (
-          <button
-            onClick={clearFilters}
-            className="text-sm font-bold text-[#1E2FA8] hover:text-[#16217A] transition-colors px-2 py-1 rounded-md hover:bg-[#E7EAFB]">
-            Clear all
-          </button>
-        )}
-      </div>
+  /** `heading` is dropped inside the sheet, which titles itself. */
+  const FilterPanel = ({ namePrefix, heading = true }: { namePrefix: string; heading?: boolean }) => (
+    <div className="space-y-5">
+      {(heading || activeFilterCount > 0) && (
+        <div className={`flex items-center ${heading ? "justify-between" : "justify-end"}`}>
+          {heading && (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">Filter Positions</p>
+          )}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="text-sm font-bold text-[#1E2FA8] hover:text-[#16217A] transition-colors px-2 py-1 rounded-md hover:bg-[#E7EAFB]">
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Employer — the board mixes HFSE International School and HAPI HAUS */}
       <div>
-        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-2">
           <Building2 className="w-4 h-4" />
           Employer
         </label>
@@ -130,7 +171,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, showSearch = tr
 
       {/* Employment Type */}
       <div>
-        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-2">
           <Briefcase className="w-4 h-4" />
           Employment Type
         </label>
@@ -150,7 +191,7 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, showSearch = tr
 
       {/* Salary basis — the tuition roles pay hourly, the rest monthly */}
       <div>
-        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-3">
+        <label className="flex items-center gap-2 text-xs font-bold text-[#6C7591] uppercase tracking-[0.14em] mb-2">
           <Clock className="w-4 h-4" />
           Pay Basis
         </label>
@@ -279,28 +320,49 @@ const Navbar: React.FC<NavbarProps> = ({ showBackButton = false, showSearch = tr
                     />
                   </div>
 
-                  <Popover open={showFilters} onOpenChange={setShowFilters}>
-                    <PopoverTrigger asChild>
-                      <button
-                        aria-label="Filter positions"
-                        className="relative flex min-h-[42px] flex-shrink-0 items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-3.5 py-3 text-[15px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110 sm:min-h-[46px] md:px-7">
-                        <Filter className="h-[18px] w-[18px]" />
-                        <span className="hidden md:inline">Filter Positions</span>
-                        {activeFilterCount > 0 && (
-                          <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-md border border-white bg-[#1E2FA8] text-[11px] font-semibold text-white shadow-[0_1px_3px_rgba(30,47,168,0.3)] sm:-right-2.5 sm:-top-2.5 sm:h-7 sm:w-7">
-                            {activeFilterCount}
-                          </span>
-                        )}
-                      </button>
-                    </PopoverTrigger>
+                  {/* A popover anchored to this button has room at md and up.
+                      Below that it lands two thirds of the way down a 390px
+                      screen, clipped, scrolling inside itself -- so the phone
+                      gets a sheet instead. Both stay mounted; only one is
+                      reachable, which is what keeps their open states apart. */}
+                  <div className="hidden md:block">
+                    <Popover open={showFilters} onOpenChange={setShowFilters}>
+                      <PopoverTrigger asChild>
+                        <FilterTriggerButton count={activeFilterCount} />
+                      </PopoverTrigger>
 
-                    <PopoverContent
-                      align="end"
-                      sideOffset={12}
-                      className="max-h-[min(70dvh,560px)] w-[min(384px,calc(100vw-2rem))] overflow-y-auto rounded-xl border-[#E1E5F0] bg-white p-5 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] sm:p-6">
-                      <FilterPanel namePrefix="nav" />
-                    </PopoverContent>
-                  </Popover>
+                      <PopoverContent
+                        align="end"
+                        sideOffset={12}
+                        className="max-h-[min(70dvh,560px)] w-[min(384px,calc(100vw-2rem))] overflow-y-auto rounded-xl border-[#E1E5F0] bg-white p-5 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] sm:p-6">
+                        <FilterPanel namePrefix="nav" />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="md:hidden">
+                    <BottomSheet open={showFilterSheet} onOpenChange={setShowFilterSheet}>
+                      <BottomSheetTrigger asChild>
+                        <FilterTriggerButton count={activeFilterCount} />
+                      </BottomSheetTrigger>
+
+                      <BottomSheetContent
+                        title="Filter Positions"
+                        description="Narrow the roles by employer, employment type, pay basis and work setting."
+                        footer={
+                          <button
+                            type="button"
+                            onClick={() => setShowFilterSheet(false)}
+                            className="flex min-h-[44px] w-full items-center justify-center rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-5 text-[14px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110">
+                            {resultCount === undefined
+                              ? "Show results"
+                              : `Show ${resultCount} ${resultCount === 1 ? "role" : "roles"}`}
+                          </button>
+                        }>
+                        <FilterPanel namePrefix="sheet" heading={false} />
+                      </BottomSheetContent>
+                    </BottomSheet>
+                  </div>
                 </div>
               </div>
             </div>
