@@ -34,9 +34,9 @@ test.describe("job application submission", () => {
     expect(payload.job_id).toBe(JOB_ID);
     expect(Object.keys(payload).length).toBeGreaterThan(15);
 
-    const sent = Object.values(payload)
-      .filter((value): value is string => typeof value === "string")
-      .join("\n");
+    // The whole payload, not just its string fields: education and experience
+    // are filed as arrays of objects.
+    const sent = JSON.stringify(payload);
 
     // Personal details, from the first step.
     expect(sent).toContain(applicant.fullName);
@@ -46,6 +46,11 @@ test.describe("job application submission", () => {
     // Emergency contact and family particulars.
     expect(sent).toContain("Mei Ling Tan");
     expect(sent).toContain("Wei Ming Tan");
+
+    // Education and experience, which travel as arrays under ids resolved from
+    // Manatal's field list rather than under a key the form knows up front.
+    expect(sent).toContain("National University of Singapore");
+    expect(sent).toContain("Mathematics Teacher");
 
     // All three references, assembled into HTML on the last step.
     for (const referee of ["Referee 1", "Referee 2", "Referee 3"]) {

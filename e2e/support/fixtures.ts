@@ -62,6 +62,13 @@ export const formFieldsFixture: FixtureField[] = [
   { id: 1741705, name: "officetelephonenumber", label: "Emergency Contact Office Telephone Number", type: "tel" },
   { id: 1741706, name: "emailaddress", label: "Emergency Contact Email Address", type: "email", required: true },
 
+  // Section fields rather than inputs: the form renders education and
+  // experience from its own schema, and only reaches into Manatal's field list
+  // to find the ids to file them under. Without these two the submitted
+  // payload silently carries neither.
+  { id: 1741715, name: "educations", label: "Education", type: "section" },
+  { id: 1741716, name: "experiences", label: "Employment History", type: "section" },
+
   { id: 1741710, name: "coursename", label: "Course Name", type: "text" },
   { id: 1741711, name: "coursestartdate", label: "Course Start Date", type: "date" },
   { id: 1741712, name: "expectedyearofcompletion", label: "Expected Year of Completion", type: "integer" },

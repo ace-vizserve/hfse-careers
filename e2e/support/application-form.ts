@@ -73,7 +73,10 @@ export async function fillText(page: Page, path: string, value: string) {
   // back verbatim.
   await expect(async () => {
     await input.fill(value);
-    await expect(input).not.toHaveValue("");
+    // A short budget on purpose. This inherits `expect.timeout` from the config
+    // otherwise, and one attempt then eats the whole retry window -- the loop
+    // below would never get a second go, which is the entire point of it.
+    await expect(input).not.toHaveValue("", { timeout: 1_000 });
   }).toPass({ timeout: 15_000 });
 }
 
