@@ -1380,7 +1380,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                 <button
                   type="button"
                   aria-label={`Step ${activeStep + 1} of ${STEPS.length}: ${STEPS[activeStep]?.title}. Change step`}
-                  className="mx-auto flex w-full max-w-[1060px] items-center gap-3 rounded-[10px] text-left md:hidden">
+                  className="mx-auto flex w-full max-w-[1060px] items-center gap-3 rounded-[10px] text-left lg:hidden">
                   <span className="flex size-9 flex-shrink-0 items-center justify-center rounded-full bg-[#1E2FA8] text-[13px] font-bold text-white shadow-[0_2px_6px_rgba(30,47,168,0.32)]">
                     {activeStep + 1}
                   </span>
@@ -1400,7 +1400,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
               <PopoverContent
                 align="center"
                 sideOffset={10}
-                className="w-[var(--radix-popover-trigger-width)] rounded-[10px] border-[#E1E5F0] bg-white p-2 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] md:hidden">
+                className="w-[var(--radix-popover-trigger-width)] rounded-[10px] border-[#E1E5F0] bg-white p-2 shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)] lg:hidden">
                 <Stepper
                   orientation="vertical"
                   steps={STEPS}
@@ -1417,7 +1417,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
               </PopoverContent>
             </Popover>
 
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               <Stepper
                 steps={STEPS}
                 activeStep={activeStep}
@@ -1474,14 +1474,14 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                     title="Application Information"
                     subtitle="Basic details about this application"
                   />
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <ApplicationFormField name="expected_salary" />
                     <ApplicationFormField name="years_of_experience" />
                     <ApplicationFormField name="linkedin" />
                     <ApplicationFormField name="industries" />
                     <ApplicationFormField
                       name="resume"
-                      className="md:col-span-2"
+                      className="lg:col-span-2"
                       slot={
                         <div id={pathToFieldId("resume")} tabIndex={-1} className="mt-1">
                           <Dropzone {...resumeProps}>
@@ -1509,7 +1509,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                     />
 
                     <div
-                      className={`md:col-span-2 rounded-[9px] border px-4 py-3.5 transition-all duration-200 ${
+                      className={`lg:col-span-2 rounded-[9px] border px-4 py-3.5 transition-all duration-200 ${
                         watchedIsReferred ? "border-[#C3CBE8] bg-[#F7F9FF]" : "border-[#E4E7F1] bg-[#F7F8FC]"
                       }`}>
                       <div className="flex items-center justify-between">
@@ -1565,7 +1565,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                       </div>
 
                       {watchedIsReferred && (
-                        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-[#D3D9F7] pt-4 md:grid-cols-2">
+                        <div className="mt-4 grid grid-cols-1 gap-4 border-t border-[#D3D9F7] pt-4 lg:grid-cols-2">
                           <div>
                             <Label required>Referrer Name</Label>
                             <Input
@@ -1670,15 +1670,15 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                     title="Personal Information"
                     subtitle="Your personal details and identification"
                   />
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <ApplicationFormField name="full_name" />
                     <ApplicationFormField name="preferredname" />
                     <ApplicationFormField name="residentialstatus" />
                     <ApplicationFormField name="nationalities" />
 
                     {watchedResidentialStatus === "Foreigner" && (
-                      <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5 p-5 bg-[#F7F9FF] border border-[#D3D9F7] rounded-xl">
-                        <div className="flex items-start gap-2.5 md:col-span-2 mb-1">
+                      <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 bg-[#F7F9FF] border border-[#D3D9F7] rounded-xl">
+                        <div className="flex items-start gap-2.5 lg:col-span-2 mb-1">
                           <svg
                             className="w-4 h-4 text-[#1E2FA8] flex-shrink-0 mt-0.5"
                             fill="none"
@@ -1708,13 +1708,13 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                     <ApplicationFormField name="latest_degree" />
 
                     <ApplicationFormField name="passportno" />
-                    <ApplicationFormField name="placedateofissue" className="md:col-span-2" />
+                    <ApplicationFormField name="placedateofissue" className="lg:col-span-2" />
                   </div>
                 </div>
 
                 <div className={`${cardBase} px-4 py-5 sm:px-[26px] sm:py-6`}>
                   <SectionHeader number="03" title="Contact Information" subtitle="How we can reach you" />
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <ApplicationFormField name="phone_number" />
                     <ApplicationFormField name="email" />
                     <ApplicationFormField name="address" />
@@ -1729,10 +1729,10 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                     title="Person to Contact in Case of Emergency"
                     subtitle="Someone we can reach if needed"
                   />
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <ApplicationFormField name="name" />
                     <ApplicationFormField name="relationship" />
-                    {<ApplicationFormField name="address_b" className={"md:col-span-2"} />}
+                    {<ApplicationFormField name="address_b" className={"lg:col-span-2"} />}
                     <ApplicationFormField name="mobilenumber" />
                     <ApplicationFormField name="hometelephonenumber" />
                     <ApplicationFormField name="officetelephonenumber" />
@@ -1761,7 +1761,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                           {familyFields.length > 1 && <RemoveButton onClick={() => removeFamily(i)} />}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2 lg:grid-cols-3">
                           <div>
                             <Label>Name</Label>
                             <Input
@@ -1898,7 +1898,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                           {educationFields.length > 1 && <RemoveButton onClick={() => removeEducation(i)} />}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
                           <div>
                             <Label required>School / Institution</Label>
                             <Input
@@ -1994,7 +1994,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                             <ErrorText path={`educations.${i}.ended_at`} />
                           </div>
 
-                          <div className="md:col-span-2">
+                          <div className="lg:col-span-2">
                             <Label>Description</Label>
                             <Textarea
                               id={pathToFieldId(`educations.${i}.description`)}
@@ -2038,8 +2038,8 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                       title="Other Courses Currently Pursuing"
                       subtitle="Any ongoing studies or certifications"
                     />
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {<ApplicationFormField name="coursename" className={"md:col-span-2"} />}
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      {<ApplicationFormField name="coursename" className={"lg:col-span-2"} />}
                       <ApplicationFormField name="coursestartdate" />
                       <ApplicationFormField name="expectedyearofcompletion" />
                     </div>
@@ -2070,7 +2070,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                             {experienceFields.length > 1 && <RemoveButton onClick={() => removeExperience(i)} />}
                           </div>
 
-                          <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+                          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
                             <div>
                               <Label required>From</Label>
                               <Controller
@@ -2154,7 +2154,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               <ErrorText path={`experiences.${i}.other_allowances`} />
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div className="lg:col-span-2">
                               <Label>Reason for Leaving</Label>
                               <Textarea
                                 id={pathToFieldId(`experiences.${i}.reason_for_leaving`)}
@@ -2166,7 +2166,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               <ErrorText path={`experiences.${i}.reason_for_leaving`} />
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div className="lg:col-span-2">
                               <Controller
                                 control={control}
                                 name={`experiences.${i}.is_current_employer`}
@@ -2385,7 +2385,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                           {referenceFields.length > MIN_REFERENCES && <RemoveButton onClick={() => removeReference(i)} />}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2 lg:grid-cols-3">
                           <div>
                             <Label required>Name</Label>
                             <Input
