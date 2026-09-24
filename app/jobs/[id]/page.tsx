@@ -3,7 +3,7 @@ import Navbar from "@/components/navbar";
 import { getJob, getPublishedJobs } from "@/lib/jobs.server";
 import type { JobDetail } from "@/lib/types/job";
 import { absoluteUrl, jsonLdScript, OG_IMAGE, SITE_NAME, SITE_URL } from "@/lib/seo";
-import { formatEmploymentType, parseJobDescription } from "@/lib/utils";
+import { formatEmploymentType, jobLocation, parseJobDescription } from "@/lib/utils";
 import { ArrowRight, Briefcase, CheckCircle2, ChevronLeft, Clock, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -31,20 +31,6 @@ export async function generateStaticParams() {
   return jobs.filter((job) => job.id).map((job) => ({ id: String(job.id) }));
 }
 
-/**
- * Where the role is. Manatal returns `city` and `country` and leaves
- * `location` null on every posting we have, so reading `location` alone left
- * both the page and its JobPosting with no location at all -- and a JobPosting
- * without one is not eligible for Google's job results.
- */
-function jobLocation(job: JobDetail) {
-  if (job.is_remote) return "Remote";
-
-  const parts = [job.city, job.country].filter(Boolean);
-  const unique = [...new Set(parts)];
-
-  return unique.join(", ") || job.location || "";
-}
 
 /** Google prefers an ISO country code to a name. */
 const COUNTRY_CODES: Record<string, string> = {

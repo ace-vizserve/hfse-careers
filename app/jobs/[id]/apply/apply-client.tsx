@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
 import { StyledSelect } from "@/components/ui/styled-select";
 import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
+import { JobHeader } from "@/components/job-header";
 import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
 import {
@@ -25,13 +26,12 @@ import {
   generateDeclarationList,
 } from "@/lib/utils";
 import { createManatalIdResolver, MANATAL_FIELDS, type ManatalLiveField } from "@/lib/forms/application-fields";
+import { SUBMITTED_EMAIL_KEY } from "./submitted/submitted-email";
 import { type ApplicationDraft, useApplicationFormStore } from "@/lib/stores/application-form-store";
 import type { JobDetail } from "@/lib/types/job";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, ChevronLeft, MapPin, ShieldCheck } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, ChevronDown, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -1326,7 +1326,21 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       savingStoppedRef.current = true;
       clearTimeout(saveTimerRef.current);
       clearDraft();
+
+      // Handed to the confirmation route in sessionStorage rather than on the
+      // URL: an address in a query string lands in history, in referrers and in
+      // analytics. Failing to store it only costs that one line on the page.
+      try {
+        sessionStorage.setItem(`${SUBMITTED_EMAIL_KEY}:${jobId}`, values.email.trim());
+      } catch {
+        // Private mode or blocked storage.
+      }
+
+      // Before navigating: `usePreventRefresh` is still armed on a dirty form,
+      // and would otherwise ask the candidate to confirm leaving the page their
+      // own submission is taking them off.
       setSubmitSuccess(true);
+      router.replace(`/jobs/${jobId}/apply/submitted`);
     } catch (err: any) {
       console.error("Submission error:", err);
       setError({
@@ -1354,56 +1368,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
         data-checking-step={checkingStep}>
         {/* The navy job bar is this page's header; the stepper rides with it */}
         <div className="sticky top-0 z-40">
-        <div className="bg-[#1B2A8F] px-4 py-4 shadow-[0_1px_0_#E1E5F0] sm:px-[30px] sm:py-7">
-          <div className="mx-auto flex max-w-[1060px] flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-[7px] text-[13px] font-medium text-white transition-colors hover:text-[#C3C9DC]">
-              <ChevronLeft className="size-[15px]" />
-              Back to listings
-            </Link>
-
-            <div className="flex items-center gap-4 sm:gap-5">
-              <div className="min-w-0 flex-1 sm:flex-none sm:text-right">
-                <h1 className="truncate text-[18px] font-semibold leading-[1.2] tracking-[-0.03em] text-white sm:text-[22px]">
-                  {job?.position_name || "Open Position"}
-                </h1>
-                <div className="mt-[5px] flex flex-wrap items-center gap-[9px] text-[12px] text-white sm:justify-end sm:text-[13px]">
-                  {job?.org_website ? (
-                    <Link href={job.org_website} target="_blank" className="font-medium text-white hover:underline">
-                      {job?.org_name || "Company"}
-                    </Link>
-                  ) : (
-                    <span className="font-medium">{job?.org_name || "Company"}</span>
-                  )}
-                  {job?.location && (
-                    <>
-                      <span className="text-[#C3C9DC]">&middot;</span>
-                      <span className="inline-flex items-center gap-[5px]">
-                        <MapPin className="size-3 text-white" />
-                        {job.location}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex size-12 flex-shrink-0 items-center justify-center rounded-[10px] border sm:size-14 border-[#E3E6F0] bg-white shadow-[0_1px_3px_rgba(16,22,43,0.08)]">
-                {job?.org_logo ? (
-                  <Image
-                    src={job.org_logo}
-                    alt={job.org_name ?? "Organization logo"}
-                    width={40}
-                    height={40}
-                    className="h-10 w-10 object-contain"
-                  />
-                ) : (
-                  <span className="text-[17px] font-semibold text-[#6C7591]">{job?.org_name?.charAt(0) || "C"}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <JobHeader job={job} />
 
         {/* Stepper band — the second half of the page header */}
         {!submitSuccess && (
@@ -1471,31 +1436,11 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
         <div className="mx-auto max-w-[1120px] px-4 pb-8 pt-4 sm:px-[30px] sm:pb-10 sm:pt-[26px]">
 
           {submitSuccess ? (
-            <div className={`${cardBase} p-16 text-center`}>
-              <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-full border-4 border-[#CDEFE1] bg-[#E7F6EF]">
-                <svg
-                  className="size-10 text-[#10A56B]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={1.5}>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h2 className="mb-2 text-[22px] font-semibold tracking-[-0.03em] text-[#10162B]">Application Submitted!</h2>
-              <p className="mb-8 text-[13px] leading-[1.65] text-[#4A5273]">
-                Thank you for applying. We&apos;ll review your application and be in touch soon.
-              </p>
-              <button
-                onClick={() => router.push("/")}
-                className="inline-flex min-h-[40px] items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-[26px] py-2.5 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110">
-                Browse More Jobs
-                <ArrowUpRight className="size-4" />
-              </button>
+            // The confirmation is its own route now; this only holds the page
+            // still for the frame between the POST resolving and the router
+            // arriving there.
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <Spinner className="size-5 text-[#1E2FA8] opacity-70" />
             </div>
           ) : (
             <>
@@ -2645,7 +2590,11 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                 Back
               </button>
 
-              <span className="text-[12px] text-[#6C7591]">
+              {/* Back, this counter and Continue do not fit across a 360px
+                  phone, and the counter is the one that is already on screen --
+                  the stepper band above shows the current step as its menu
+                  label. It returns with the room for it. */}
+              <span className="hidden text-[12px] text-[#6C7591] sm:inline">
                 Step {activeStep + 1} of {STEPS.length}
               </span>
 
@@ -2657,7 +2606,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                   // looked inert for the length of a round trip and a second
                   // click queued a second check.
                   disabled={checkingStep}
-                  className="inline-flex min-h-[40px] items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-[26px] py-2.5 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#8D97C9] disabled:bg-none disabled:shadow-none">
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-4 py-2.5 sm:px-[26px] text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#8D97C9] disabled:bg-none disabled:shadow-none">
                   {checkingStep ? (
                     <>
                       <Spinner className="size-4" />
@@ -2675,7 +2624,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                   type="submit"
                   form={FORM_ID}
                   disabled={submitting || !isValid}
-                  className="inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-[30px] py-2.5 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#8D97C9] disabled:bg-none disabled:shadow-none">
+                  className="inline-flex min-h-[40px] cursor-pointer items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-4 py-2.5 sm:px-[30px] text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#8D97C9] disabled:bg-none disabled:shadow-none">
                   {submitting ? (
                     <>
                       <Spinner className="size-4" />

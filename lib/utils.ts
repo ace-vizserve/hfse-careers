@@ -1,9 +1,25 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { JobDetail } from "./types/job";
 import { JobApplicationFormValues } from "./validators/job-application";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Where the role is. Manatal returns `city` and `country` and leaves
+ * `location` null on every posting we have, so reading `location` alone left
+ * both the page and its JobPosting with no location at all -- and a JobPosting
+ * without one is not eligible for Google's job results.
+ */
+export function jobLocation(job: JobDetail) {
+  if (job.is_remote) return "Remote";
+
+  const parts = [job.city, job.country].filter(Boolean);
+  const unique = [...new Set(parts)];
+
+  return unique.join(", ") || job.location || "";
 }
 
 export function formatEmploymentType(contractDetails?: string, employmentType?: string, fallback = "Full-Time") {
