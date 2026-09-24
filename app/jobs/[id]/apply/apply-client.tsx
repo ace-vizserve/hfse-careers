@@ -917,6 +917,18 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
     let problems: { id: string; message: string }[];
 
+    // Raised here rather than in `goToStep`, so it appears only when a request
+    // is actually going out -- not on a step with nothing to check, and not on
+    // a move backwards. The Continue button has a spinner of its own, but the
+    // step rail does not, and a jump from there is the same round trip.
+    const toastId = sileo.show({
+      type: "loading",
+      title: "Checking your answers",
+      description: `Step ${step + 1} of ${STEPS.length}`,
+      // Held open until the answer arrives; nothing else dismisses it.
+      duration: null,
+    });
+
     try {
       const response = await fetch("/api/applications/validate", {
         method: "POST",
@@ -932,6 +944,8 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       problems = Array.isArray(result.problems) ? result.problems : [];
     } catch {
       return true;
+    } finally {
+      sileo.dismiss(toastId);
     }
 
     if (problems.length === 0) return true;
@@ -969,9 +983,16 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   const goToStep = async (target: number) => {
     if (target === activeStep) return;
 
-    // A step check is a round trip, and the rail stays clickable during it. Two
-    // overlapping walks would fight over which step is active.
+    // Two overlapping walks would fight over which step is active.
     if (checkingStep) return;
+
+    // Only a forward move is checked; going back validates nothing, so it must
+    // not put the controls into a waiting state for a frame.
+    if (target < activeStep) {
+      setActiveStep(target);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
     setCheckingStep(true);
 
@@ -1425,6 +1446,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                   }}
                   completedSteps={completedSteps}
                   invalidSteps={invalidSteps}
+                  busy={checkingStep}
                   maxNavigableStep={maxVisitedStep}
                 />
               </PopoverContent>
@@ -1438,6 +1460,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                 completedSteps={completedSteps}
                 invalidSteps={invalidSteps}
                 maxNavigableStep={maxVisitedStep}
+                busy={checkingStep}
                 className="mx-auto w-full max-w-[1060px]"
               />
             </div>

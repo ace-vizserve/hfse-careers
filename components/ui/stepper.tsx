@@ -19,6 +19,12 @@ type StepperProps = {
   invalidSteps?: number[];
   /** Furthest step the user is allowed to jump to. Defaults to the active step. */
   maxNavigableStep?: number;
+  /**
+   * A step's answers are being checked, so no marker may be clicked. Leaving a
+   * step is a round trip now, and without this the rail stayed live and
+   * swallowed the click with nothing on screen to say why.
+   */
+  busy?: boolean;
   /** Vertical reads as a table of contents in a side rail; horizontal as a bar. */
   orientation?: "horizontal" | "vertical";
   className?: string;
@@ -31,6 +37,7 @@ function Stepper({
   completedSteps = [],
   invalidSteps = [],
   maxNavigableStep,
+  busy = false,
   orientation = "horizontal",
   className,
 }: StepperProps) {
@@ -49,7 +56,7 @@ function Stepper({
         const isCompleted = completedSteps.includes(index) || (completedSteps.length === 0 && index < activeStep);
         // The step underfoot stays highlighted as active; red is for steps left behind.
         const isInvalid = invalidSteps.includes(index) && !isActive;
-        const isNavigable = index <= furthest;
+        const isNavigable = index <= furthest && !busy;
 
         return (
           <li
