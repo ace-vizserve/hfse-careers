@@ -1,7 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { getApplicationField } from "../lib/forms/application-fields";
 import { applicant, formFieldsFixture, JOB_ID, JOB_ORGANIZATION_NAME, jobFixture } from "./support/fixtures";
-import { fillText, fillValidApplication, gotoApplyPage, submitButton } from "./support/application-form";
+import {
+  field,
+  fillAboutYou,
+  fillText,
+  fillValidApplication,
+  gotoApplyPage,
+  settleStepCheck,
+  submitButton,
+} from "./support/application-form";
 import { installApiMocks } from "./support/mock-api";
 
 test.describe("job application submission", () => {
@@ -99,6 +107,58 @@ test.describe("job application submission", () => {
 
     // The control must carry its id at all, and be what the page focused.
     await expect(firstInvalid).toBeFocused();
+  });
+
+  /**
+   * Manatal rejects 11 digits or more on its numeric fields, and only at
+   * submission -- a candidate filled in the whole form and was told "Expected
+   * Salary should be a numerical value" at the very end, with nothing on screen
+   * to explain it. The input stops at the ceiling instead.
+   */
+  test("a salary too large for Manatal cannot be typed in the first place", async ({ page }) => {
+    await installApiMocks(page);
+    await gotoApplyPage(page);
+
+    const salary = field(page, "expected_salary");
+    await salary.fill("");
+    await salary.pressSequentially("123456789012");
+
+    await expect(salary).toHaveValue("1234567890");
+
+    const experience = field(page, "years_of_experience");
+    await experience.fill("");
+    await experience.pressSequentially("123456789012");
+
+    await expect(experience).toHaveValue("1234567890");
+  });
+
+  /**
+   * The schema cannot know what Manatal will take, so a value it dislikes used
+   * to travel all the way to submission: the candidate filled in four steps,
+   * pressed Submit, and was told their step 1 salary was wrong. Each step is
+   * now put to Manatal before it is left, so the answer arrives on the field.
+   */
+  test("a value Manatal will not take stops the step that owns it", async ({ page }) => {
+    const api = await installApiMocks(page);
+    await gotoApplyPage(page);
+
+    await fillAboutYou(page);
+
+    // Religion is a plain text box here and a 255-character field to Manatal.
+    // Nothing in the form knows that ceiling, which is the whole point: this is
+    // a value the schema is perfectly happy with and only Manatal refuses.
+    await fillText(page, "religion", "a".repeat(300));
+
+    await page.getByRole("button", { name: "Continue" }).click();
+    await settleStepCheck(page);
+
+    // Still on step 1, with Manatal's own words against the field that caused
+    // it -- rather than three steps later, as a toast, at submission.
+    await expect(page.getByRole("heading", { name: "Application Information" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Family Particulars" })).toBeHidden();
+    await expect(page.getByText(/Religion field may not be greater than 255 characters/i)).toBeVisible();
+
+    expect(api.submissions).toHaveLength(0);
   });
 
   test("an incomplete application names what is missing instead of silently doing nothing", async ({ page }) => {

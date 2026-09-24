@@ -22,6 +22,36 @@ const applicationFormFixture = formFieldsFixture.map((field) => ({
   options: field.options ?? [],
 }));
 
+/**
+ * The value rules Manatal enforces, in its own words. Confirmed against the
+ * live API: char caps at 255, an integer field takes at most 10 digits, and a
+ * date must be yyyy-mm-dd. Manatal reports one complaint at a time.
+ */
+function firstValueComplaint(data: Record<string, unknown>): string | undefined {
+  for (const field of applicationFormFixture) {
+    const value = data[String(field.id)];
+    if (typeof value !== "string" || value === "") continue;
+
+    if (field.type === "integer") {
+      if (!/^\d+$/.test(value) || value.length > 10) {
+        return `Field ${field.label} should be a numerical value and be less than 11 digits`;
+      }
+    }
+
+    if (field.type === "date" || field.type === "datetime") {
+      if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(value)) {
+        return `Type of ${field.label} should be in yyyy-mm-dd format and not null`;
+      }
+    }
+
+    if ((field.type === "text" || field.type === "char") && value.length > 255) {
+      return `The ${field.label} field may not be greater than 255 characters.`;
+    }
+  }
+
+  return undefined;
+}
+
 export function startManatalMock(port = MANATAL_MOCK_PORT): Promise<Server> {
   const server = createServer((req, res) => {
     const path = (req.url ?? "").split("?")[0];
@@ -35,7 +65,33 @@ export function startManatalMock(port = MANATAL_MOCK_PORT): Promise<Server> {
 
     if (path === `/jobs/${JOB_ID}/`) return json(jobFixture);
 
-    if (path.endsWith(`/jobs/${JOB_ID}/application-form/`)) return json(applicationFormFixture);
+    if (path.endsWith(`/jobs/${JOB_ID}/application-form/`)) {
+      if (req.method !== "POST") return json(applicationFormFixture);
+
+      // A POST here is the step-validation probe. Manatal answers it by
+      // validating the values it was given and, failing that, listing what is
+      // still missing -- never with a 200, because the probe always withholds
+      // a required field. Mirroring that is what lets a test drive the real
+      // path instead of a stub that says yes to everything.
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        let data: Record<string, unknown> = {};
+        try {
+          data = JSON.parse(body)?.application_data ?? {};
+        } catch {
+          // An unparseable body is still a rejection, just an uninformative one.
+        }
+
+        const complaint = firstValueComplaint(data);
+
+        if (complaint) return json({ application_data: [complaint] }, 400);
+
+        return json({ detail: "Missing required fields: Resume" }, 400);
+      });
+
+      return;
+    }
 
     // Any other job id is genuinely unknown, which is what the page expects to
     // see for a role that has been taken down.

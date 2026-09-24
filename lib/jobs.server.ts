@@ -97,12 +97,28 @@ export async function getJob(id: string | number): Promise<JobDetail | null> {
   }
 }
 
-export type JobSectionField = { id: string | number; name?: string; label?: string };
+export type JobSectionField = {
+  id: string | number;
+  name?: string;
+  label?: string;
+  /** Manatal's own type: char, longtext, integer, datetime, boolean. */
+  type?: string;
+  /**
+   * Whether Manatal requires it. The step-validation route uses this to prove
+   * its probe is incomplete, so a validation call can never file a real
+   * application.
+   */
+  isRequired?: boolean;
+};
 
 /**
- * The job's Manatal application form. The apply page renders its own fields and
- * only consults this for the education and experience section ids, so the
- * response is reduced to those three keys.
+ * The job's Manatal application form.
+ *
+ * The apply page resolves every custom-field id from this, and checks each
+ * answer against the type Manatal declares for it. Carrying `type` is what
+ * lets a value Manatal would reject be caught on the step that owns the field,
+ * rather than at submit -- a candidate used to reach step 4 and be told their
+ * step 1 salary was too long.
  */
 export async function getJobSectionFields(id: string | number): Promise<JobSectionField[]> {
   const clientSlug = process.env.MANATAL_CLIENT_SLUG;
@@ -123,11 +139,23 @@ export async function getJobSectionFields(id: string | number): Promise<JobSecti
       return [];
     }
 
-    const fields: { id: string | number; slug?: string; label?: string }[] = await res.json();
+    const fields: {
+      id: string | number;
+      slug?: string;
+      label?: string;
+      type?: string;
+      is_required?: boolean;
+    }[] = await res.json();
 
     if (!Array.isArray(fields)) return [];
 
-    return fields.map((field) => ({ id: field.id, name: field.slug, label: field.label }));
+    return fields.map((field) => ({
+      id: field.id,
+      name: field.slug,
+      label: field.label,
+      type: field.type,
+      isRequired: field.is_required,
+    }));
   } catch (error) {
     console.error("Manatal application-form error:", error);
     return [];

@@ -254,6 +254,50 @@ export function generateDeclarationList(declarations: Record<number, Declaration
 `.trim();
 }
 
+/**
+ * Pull the readable sentences out of a Manatal error body.
+ *
+ * A rejected application used to reach the candidate verbatim, so the toast
+ * read `{"application_data":["Field Expected Salary should be a numerical
+ * value and be less than 11 digits"]}`. Manatal nests its messages differently
+ * depending on what failed -- a bare `detail` string for missing fields, an
+ * array under the offending key for a bad value -- so collect every string in
+ * the body rather than reaching for one shape.
+ */
+export function readManatalError(body: string): string | undefined {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return undefined;
+  }
+
+  const messages: string[] = [];
+
+  const collect = (value: unknown) => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed && !messages.includes(trimmed)) messages.push(trimmed);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(collect);
+      return;
+    }
+    if (value && typeof value === "object") {
+      Object.values(value).forEach(collect);
+    }
+  };
+
+  collect(parsed);
+
+  if (messages.length === 0) return undefined;
+
+  // Manatal does not punctuate, and several messages run together unreadably.
+  return messages.map((message) => (/[.!?]$/.test(message) ? message : `${message}.`)).join(" ");
+}
+
 export function normalizeApplicationData(applicationData: Record<string, unknown>) {
   return Object.fromEntries(
     Object.entries(applicationData).filter(([_, value]) => value !== "" && value !== null && value !== undefined),

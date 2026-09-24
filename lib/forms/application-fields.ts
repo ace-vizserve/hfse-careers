@@ -88,6 +88,9 @@ export const APPLICATION_FIELDS = [
     manatalId: "1741684",
     required: true,
     placeholder: "e.g. 3500",
+    // Manatal rejects 11 digits or more on its numeric fields, and says so only
+    // after the candidate has filled in the whole form.
+    maxLength: 10,
   },
   {
     key: "linkedin",
@@ -103,6 +106,8 @@ export const APPLICATION_FIELDS = [
     widget: "digits",
     manatalId: "1741703",
     required: true,
+    // Same 11-digit ceiling as Expected Salary.
+    maxLength: 10,
   },
   { key: "resume", label: "Resume", widget: "resume", manatalId: "1741683", required: true },
   {
@@ -282,7 +287,14 @@ export const MANATAL_FIELDS = (APPLICATION_FIELDS as readonly ApplicationField[]
 );
 
 /** One entry of Manatal's application-form response. */
-export type ManatalLiveField = { id: string | number; slug?: string; name?: string; label?: string };
+export type ManatalLiveField = {
+  id: string | number;
+  slug?: string;
+  name?: string;
+  label?: string;
+  /** Manatal's own type: char, longtext, integer, datetime, boolean. */
+  type?: string;
+};
 
 const normalizeName = (value?: string | number | null) =>
   String(value ?? "")
@@ -305,18 +317,26 @@ const normalizeName = (value?: string | number | null) =>
  * for when that fetch fails and the list arrives empty, which must not stop a
  * candidate submitting.
  */
-export function createManatalIdResolver(live: readonly ManatalLiveField[]) {
-  const byName = new Map<string, string>();
-  const byLabel = new Map<string, string>();
+export function createManatalFieldLookup(live: readonly ManatalLiveField[]) {
+  const byName = new Map<string, ManatalLiveField>();
+  const byLabel = new Map<string, ManatalLiveField>();
 
   for (const field of live) {
-    const id = String(field.id);
     for (const name of [field.slug, field.name]) {
-      if (name && !byName.has(normalizeName(name))) byName.set(normalizeName(name), id);
+      if (name && !byName.has(normalizeName(name))) byName.set(normalizeName(name), field);
     }
-    if (field.label && !byLabel.has(normalizeName(field.label))) byLabel.set(normalizeName(field.label), id);
+    if (field.label && !byLabel.has(normalizeName(field.label))) byLabel.set(normalizeName(field.label), field);
   }
 
-  return (slug: string, label: string | undefined, fallback: string): string =>
-    byName.get(normalizeName(slug)) ?? (label ? byLabel.get(normalizeName(label)) : undefined) ?? fallback;
+  return (slug: string, label?: string): ManatalLiveField | undefined =>
+    byName.get(normalizeName(slug)) ?? (label ? byLabel.get(normalizeName(label)) : undefined);
+}
+
+export function createManatalIdResolver(live: readonly ManatalLiveField[]) {
+  const lookup = createManatalFieldLookup(live);
+
+  return (slug: string, label: string | undefined, fallback: string): string => {
+    const field = lookup(slug, label);
+    return field ? String(field.id) : fallback;
+  };
 }

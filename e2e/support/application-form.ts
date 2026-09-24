@@ -338,6 +338,21 @@ export async function jumpToStep(page: Page, index: number) {
   // visible and clicks a marker that is being detached underneath it. Off the
   // popover, only the one hidden rail is ever in the DOM.
   await expect(page.locator("[data-step-rail]")).toHaveCount(1);
+
+  await settleStepCheck(page);
+}
+
+/**
+ * Wait for a step boundary to finish being put to Manatal.
+ *
+ * Leaving a step is a round trip now, so a jump no longer lands the moment the
+ * click returns. Reading the step indicator straight afterwards catches the
+ * form mid-transition and reports the step it is leaving.
+ */
+export async function settleStepCheck(page: Page) {
+  await expect(page.locator("[data-checking-step]")).toHaveAttribute("data-checking-step", "false", {
+    timeout: 30_000,
+  });
 }
 
 /** Which step is on screen, read off the footer's own counter. */

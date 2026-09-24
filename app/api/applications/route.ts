@@ -1,6 +1,6 @@
 // app/api/applications/route.ts
 
-import { normalizeApplicationData } from "@/lib/utils";
+import { normalizeApplicationData, readManatalError } from "@/lib/utils";
 
 export async function POST(request: Request) {
   const MANATAL_API_KEY = process.env.MANATAL_API_KEY;
@@ -134,10 +134,16 @@ export async function POST(request: Request) {
     const submitText = await submitResponse.text();
 
     if (!submitResponse.ok) {
+      // The raw body used to go straight to the candidate, who got a toast full
+      // of JSON. It still belongs in the server log, where it is useful.
+      console.error("Manatal application submit failed:", submitResponse.status, submitText);
+
       return Response.json(
         {
           error: "Failed to submit application",
-          details: submitText,
+          details:
+            readManatalError(submitText) ??
+            "Please try again. If the problem continues, contact us before re-submitting.",
           status: submitResponse.status,
         },
         { status: submitResponse.status },

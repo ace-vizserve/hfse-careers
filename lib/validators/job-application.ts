@@ -5,6 +5,13 @@ const textField = z.string().trim();
 const optionalText = z.string().trim().optional().default("");
 
 const digitsOnly = /^\d+$/;
+
+/**
+ * Manatal's integer custom fields reject a value of 11 digits or more, and only
+ * at submission, after the whole form has been filled in. Keep the form's own
+ * ceiling in step with theirs.
+ */
+export const MANATAL_NUMERIC_MAX_DIGITS = 10;
 const postalCodeRegex = /^\d{6}$/;
 const phoneRegex = /^[0-9+\-\s()]+$/;
 const nricFinRegex = /^[STFGM]\d{7}[A-Z]$/i;
@@ -103,7 +110,11 @@ export const jobApplicationSchema = z
       .string()
       .trim()
       .min(1, "Expected salary is required")
-      .refine((v) => digitsOnly.test(v), "Expected salary must contain numbers only"),
+      .refine((v) => digitsOnly.test(v), "Expected salary must contain numbers only")
+      // Manatal rejects 11 digits or more, and only once the whole form has been
+      // submitted. The input caps typing at 10; this catches a draft written
+      // before that cap existed, so the candidate is told here instead.
+      .refine((v) => v.length <= MANATAL_NUMERIC_MAX_DIGITS, "Expected salary is too large"),
 
     expected_salary_currency: salaryCurrencyEnum.default("SGD"),
 
@@ -114,7 +125,8 @@ export const jobApplicationSchema = z
       .string()
       .trim()
       .min(1, "Years of experience is required")
-      .refine((v) => digitsOnly.test(v), "Years of experience must contain numbers only"),
+      .refine((v) => digitsOnly.test(v), "Years of experience must contain numbers only")
+      .refine((v) => v.length <= MANATAL_NUMERIC_MAX_DIGITS, "Years of experience is too large"),
 
     resume: requiredText("Please upload a resume file"),
 

@@ -34,7 +34,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { Controller, FieldErrors, FormProvider, useFieldArray, useForm, useFormContext } from "react-hook-form";
+import {
+  Controller,
+  FieldErrors,
+  FormProvider,
+  useFieldArray,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
 import { sileo } from "sileo";
 
 
@@ -488,6 +495,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
    */
   const manatalId = useMemo(() => createManatalIdResolver(sectionFields), [sectionFields]);
 
+
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
     path: `${jobId}/${uploadFolder}`,
@@ -513,6 +521,8 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   const [submitting, setSubmitting] = useState(false);
   /** The compact step menu shown in place of the full rail on phones. */
   const [stepMenuOpen, setStepMenuOpen] = useState(false);
+  /** A step's answers are with Manatal; leaving is on hold until it answers. */
+  const [checkingStep, setCheckingStep] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<{ error: string; details?: string } | null>(null);
 
@@ -533,6 +543,8 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     reset,
     setValue,
     getValues,
+    // Aliased: `setError` is already the page's own submit-error state.
+    setError: setFormError,
     watch,
     trigger,
     clearErrors,
@@ -872,11 +884,106 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     ).length;
   }, [watchedReferences]);
 
+  /**
+   * Put one step's answers to Manatal and surface anything it will not take.
+   *
+   * The schema knows what this form requires; only Manatal knows what its own
+   * fields accept, and it used to say so at submission -- a value typed on
+   * step 1 was rejected on step 4, once the candidate thought they had
+   * finished. Asking per step moves that answer to the field it is about.
+   *
+   * Returns true when the step may be left. A check that could not be run --
+   * Manatal unreachable, the field list missing -- returns true as well: a
+   * candidate who has done nothing wrong is never held up by our dependency,
+   * and submission remains the backstop it has always been.
+   */
+  const manatalAcceptsStep = async (step: number): Promise<boolean> => {
+    const stepKeys = new Set(STEP_FIELDS[step] as string[]);
+    const values = getValues() as Record<string, unknown>;
+    const payload: Record<string, unknown> = {};
+
+    for (const field of MANATAL_FIELDS) {
+      if (!stepKeys.has(field.key)) continue;
+
+      const raw = values[field.key];
+      const value = Array.isArray(raw) ? raw.join(",") : raw;
+
+      if (typeof value !== "string" || value.trim() === "") continue;
+
+      payload[manatalId(field.key, field.label, field.manatalId)] = value.trim();
+    }
+
+    if (Object.keys(payload).length === 0) return true;
+
+    let problems: { id: string; message: string }[];
+
+    try {
+      const response = await fetch("/api/applications/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId, application_data: payload }),
+      });
+
+      if (!response.ok) return true;
+
+      const result = await response.json();
+      if (!result?.checked) return true;
+
+      problems = Array.isArray(result.problems) ? result.problems : [];
+    } catch {
+      return true;
+    }
+
+    if (problems.length === 0) return true;
+
+    // Manatal names the field by id; the form knows it by key.
+    const keyById = new Map(
+      MANATAL_FIELDS.map((field) => [manatalId(field.key, field.label, field.manatalId), field.key]),
+    );
+
+    let attached = false;
+
+    for (const problem of problems) {
+      const key = keyById.get(problem.id);
+
+      // A complaint we cannot pin to a field still has to be said out loud
+      // rather than swallowed, or the step would refuse to advance in silence.
+      if (!key || !stepKeys.has(key)) continue;
+
+      setFormError(key as never, { type: "manatal", message: problem.message });
+      attached = true;
+    }
+
+    if (!attached) {
+      setError({
+        error: "This step could not be accepted",
+        details: problems.map((problem) => problem.message).join(" "),
+      });
+    }
+
+    return false;
+  };
+
   // A step may only be left once its own fields validate, so the candidate is
   // never carried past a mistake and told about it pages later.
   const goToStep = async (target: number) => {
     if (target === activeStep) return;
 
+    // A step check is a round trip, and the rail stays clickable during it. Two
+    // overlapping walks would fight over which step is active.
+    if (checkingStep) return;
+
+    setCheckingStep(true);
+
+    try {
+      await walkForwardTo(target);
+    } finally {
+      setCheckingStep(false);
+    }
+  };
+
+  /** The forward walk, so `goToStep` can hold `checkingStep` across all of it. */
+  const walkForwardTo = async (target: number) => {
     if (target > activeStep) {
       // Every step being skipped, not just the one underfoot. The rail allows a
       // jump to any step already visited, so going back to fix something and
@@ -884,6 +991,21 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       // leaving Submit disabled with nothing to say why.
       for (let step = activeStep; step < target; step++) {
         const valid = await trigger(STEP_FIELDS[step] as never);
+
+        // The schema is satisfied; ask Manatal whether it will actually take
+        // these answers. Only then is the step genuinely behind the candidate.
+        if (valid && !(await manatalAcceptsStep(step))) {
+          markStepIncomplete(step);
+          if (step !== activeStep) setActiveStep(step);
+
+          const stepPaths = new Set(STEP_FIELDS[step] as string[]);
+          const onThisStep = flattenErrors(methods.formState.errors)
+            .map((item) => item.path)
+            .filter((path) => stepPaths.has(path.split(".")[0]));
+
+          requestAnimationFrame(() => focusFirstInvalidField(onThisStep));
+          return;
+        }
 
         if (valid) {
           markStepCompleted(step);
@@ -1203,7 +1325,12 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       {/* `data-interactive` is read by a rule in globals.css that holds clicks
           off every button until React has attached. It sits here rather than on
           the form because the Back/Continue/Submit bar lives outside it. */}
-      <div className="min-h-screen bg-[#EFF1F6]" data-interactive={interactive}>
+      {/* `data-checking-step` says a step is being put to Manatal, so a test can
+          wait the round trip out rather than reading a step mid-transition. */}
+      <div
+        className="min-h-screen bg-[#EFF1F6]"
+        data-interactive={interactive}
+        data-checking-step={checkingStep}>
         {/* The navy job bar is this page's header; the stepper rides with it */}
         <div className="sticky top-0 z-40">
         <div className="bg-[#1B2A8F] px-4 py-4 shadow-[0_1px_0_#E1E5F0] sm:px-[30px] sm:py-7">
@@ -2503,9 +2630,22 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                 <button
                   type="button"
                   onClick={() => goToStep(activeStep + 1)}
-                  className="inline-flex min-h-[40px] items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-[26px] py-2.5 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110">
-                  Continue
-                  <ArrowRight className="size-4" />
+                  // Leaving a step now waits on Manatal. Without this the button
+                  // looked inert for the length of a round trip and a second
+                  // click queued a second check.
+                  disabled={checkingStep}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-[26px] py-2.5 text-[13px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:bg-[#8D97C9] disabled:bg-none disabled:shadow-none">
+                  {checkingStep ? (
+                    <>
+                      <Spinner className="size-4" />
+                      Checking
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ArrowRight className="size-4" />
+                    </>
+                  )}
                 </button>
               ) : (
                 <button
