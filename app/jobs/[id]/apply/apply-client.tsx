@@ -24,7 +24,7 @@ import {
   formatReferencesToHTML,
   generateDeclarationList,
 } from "@/lib/utils";
-import { MANATAL_FIELDS } from "@/lib/forms/application-fields";
+import { createManatalIdResolver, MANATAL_FIELDS, type ManatalLiveField } from "@/lib/forms/application-fields";
 import { type ApplicationDraft, useApplicationFormStore } from "@/lib/stores/application-form-store";
 import type { JobDetail } from "@/lib/types/job";
 import { JobApplicationFormValues, jobApplicationSchema } from "@/lib/validators/job-application";
@@ -75,11 +75,12 @@ const normalize = (value?: string | number | null) =>
 
 
 /**
- * Scalar fields come from APPLICATION_FIELDS. Only the education and experience
- * section ids still have to be resolved from Manatal's response, because their
- * custom-field ids are not documented anywhere in this repo.
+ * Every custom-field id is resolved from this response, with the ids in
+ * APPLICATION_FIELDS as the fallback for when the fetch fails and the list
+ * arrives empty. The table was wrong for a long time and nothing caught it,
+ * because Manatal accepts a mis-filed string without complaint.
  */
-type ManatalSectionField = { id: string | number; slug?: string; name?: string; label?: string };
+type ManatalSectionField = ManatalLiveField;
 
 const matchesSection = (field: ManatalSectionField, ...names: string[]) => {
   const pool = [normalize(field.slug), normalize(field.name), normalize(field.label)];
@@ -478,6 +479,14 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   // record then pointed at the second candidate's document. A per-application
   // folder makes that impossible and keeps the URLs unguessable.
   const uploadFolder = useMemo(() => crypto.randomUUID(), []);
+
+  /**
+   * Manatal's own id for a field, by slug or label, with the id in
+   * APPLICATION_FIELDS as the fallback. Every id in the payload goes through
+   * this, so the ATS is the source of truth and the table is only a safety net
+   * for a failed fetch.
+   */
+  const manatalId = useMemo(() => createManatalIdResolver(sectionFields), [sectionFields]);
 
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
@@ -1029,7 +1038,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
           finalValue = value;
         }
 
-        applicationData[field.manatalId] = finalValue;
+        applicationData[manatalId(field.key, field.label, field.manatalId)] = finalValue;
       });
 
       const trimmedFamilyMembers = normalizedValues.family_members
@@ -1043,10 +1052,14 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
           company: m.company.trim(),
         }));
 
-      applicationData["1741709"] = formatFamilyParticularsToHTML(trimmedFamilyMembers);
-      applicationData["1771366"] = normalizedValues.skipbackgroundcheck;
-      applicationData["1771465"] = normalizedValues.rcbcrequestissued;
-      applicationData["1771466"] = normalizedValues.bcrequestissued;
+      applicationData[manatalId("familyparticulars", "Family Particulars", "1741709")] =
+        formatFamilyParticularsToHTML(trimmedFamilyMembers);
+      applicationData[manatalId("skipbackgroundcheck", "Skip Background Check", "1771366")] =
+        normalizedValues.skipbackgroundcheck;
+      applicationData[manatalId("rcbcrequestissued", "RC/BC Request Issued", "1771465")] =
+        normalizedValues.rcbcrequestissued;
+      applicationData[manatalId("bcrequestissued", "BC Request Issued", "1771466")] =
+        normalizedValues.bcrequestissued;
 
       const formattedEducations = formatEducations(normalizedValues.educations);
 
@@ -1091,7 +1104,8 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
         return;
       }
 
-      applicationData["1741707"] = formatReferencesToHTML(validReferences);
+      applicationData[manatalId("referencedetails", "Character References", "1741707")] =
+        formatReferencesToHTML(validReferences);
 
       const declarationMap = normalizedValues.declarations.reduce<
         Record<number, { answer: "Yes" | "No"; details?: string }>
@@ -1103,23 +1117,25 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
         return acc;
       }, {});
 
-      applicationData["1741708"] = generateDeclarationList(declarationMap);
+      applicationData[manatalId("declarationdetails", "Declaration", "1741708")] =
+        generateDeclarationList(declarationMap);
 
       if (normalizedValues.resume?.trim()) {
-        applicationData["1741683"] = normalizedValues.resume.trim();
+        applicationData[manatalId("resume", "Resume", "1741683")] = normalizedValues.resume.trim();
       } else {
         throw new Error("Please upload a resume file");
       }
 
       if (normalizedValues.workpermitpass?.trim()) {
-        applicationData["1741698"] = normalizedValues.workpermitpass.trim();
+        applicationData[manatalId("workpermitpass", "Work Pass", "1741698")] = normalizedValues.workpermitpass.trim();
       }
 
       if (normalizedValues.overseasaddress?.trim()) {
-        applicationData["1741691"] = normalizedValues.overseasaddress.trim();
+        applicationData[manatalId("overseasaddress", "Overseas Complete Address", "1741691")] =
+          normalizedValues.overseasaddress.trim();
       }
 
-      applicationData["1741702"] = values.industries.join(",");
+      applicationData[manatalId("industries", "Work Industry", "1741702")] = values.industries.join(",");
 
       applicationData.organization_name = job?.org_name ?? "";
       applicationData.position_name = job?.position_name ?? "";
@@ -1134,6 +1150,10 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
       formDataToSend.append("application_data", JSON.stringify(applicationData));
       formDataToSend.append("jobId", jobId);
+      // The route swaps the nationality demonym for Manatal's numeric id, so it
+      // needs to know which key holds it. Sent from here because the resolved id
+      // is only known on this side.
+      formDataToSend.append("nationality_field_id", manatalId("nationalities", "Nationality", "1742127"));
 
       if (normalizedValues.is_applying_for_teacher && normalizedValues.preferredsubjectsandlevels?.trim()) {
         formDataToSend.append("Preferred Subjects and Levels", normalizedValues.preferredsubjectsandlevels.trim());

@@ -81,12 +81,19 @@ export async function POST(request: Request) {
       }
     };
 
-    // Check if field 1742127 (Nationality) needs to be converted
-    if (applicationData["1742127"] && typeof applicationData["1742127"] === "string") {
-      const nationalityName = applicationData["1742127"];
+    // Which key holds the nationality. The page resolves Manatal's ids at
+    // request time now, so it sends the one it used rather than leaving this
+    // side to assume; the literal is the fallback for a payload without it.
+    const nationalityFieldValue = formData.get("nationality_field_id");
+    const nationalityField =
+      typeof nationalityFieldValue === "string" && nationalityFieldValue ? nationalityFieldValue : "1742127";
+
+    // Check if the Nationality field needs to be converted
+    if (applicationData[nationalityField] && typeof applicationData[nationalityField] === "string") {
+      const nationalityName = applicationData[nationalityField];
       const nationalityId = await getNationalityId(nationalityName);
       if (nationalityId) {
-        applicationData["1742127"] = String(nationalityId);
+        applicationData[nationalityField] = String(nationalityId);
       } else {
         return Response.json(
           {

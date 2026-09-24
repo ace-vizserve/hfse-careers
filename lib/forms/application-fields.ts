@@ -280,3 +280,43 @@ export function getApplicationField(key: ApplicationFieldKey): ApplicationField 
 export const MANATAL_FIELDS = (APPLICATION_FIELDS as readonly ApplicationField[]).filter(
   (field): field is ApplicationField & { manatalId: string } => Boolean(field.manatalId),
 );
+
+/** One entry of Manatal's application-form response. */
+export type ManatalLiveField = { id: string | number; slug?: string; name?: string; label?: string };
+
+const normalizeName = (value?: string | number | null) =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+/**
+ * Resolve a Manatal custom-field id from the list the ATS itself returned,
+ * falling back to the id hardcoded above.
+ *
+ * The ids in this file were wrong for a long time and nothing caught it: the
+ * date of birth was posted to the Gender field, which accepts any string, so
+ * the payload was silently mis-filed rather than rejected. Manatal knows its
+ * own ids and the apply page already fetches them for the education and
+ * experience sections, so ask it rather than trusting this table.
+ *
+ * Matching is by slug first -- every scalar key here is also Manatal's slug --
+ * then by label, because Resume, LinkedIn Profile URL, Educational Profile and
+ * Experiences come back with no slug at all. The table stays as the fallback
+ * for when that fetch fails and the list arrives empty, which must not stop a
+ * candidate submitting.
+ */
+export function createManatalIdResolver(live: readonly ManatalLiveField[]) {
+  const byName = new Map<string, string>();
+  const byLabel = new Map<string, string>();
+
+  for (const field of live) {
+    const id = String(field.id);
+    for (const name of [field.slug, field.name]) {
+      if (name && !byName.has(normalizeName(name))) byName.set(normalizeName(name), id);
+    }
+    if (field.label && !byLabel.has(normalizeName(field.label))) byLabel.set(normalizeName(field.label), id);
+  }
+
+  return (slug: string, label: string | undefined, fallback: string): string =>
+    byName.get(normalizeName(slug)) ?? (label ? byLabel.get(normalizeName(label)) : undefined) ?? fallback;
+}

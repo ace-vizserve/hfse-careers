@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { applicant, JOB_ID, JOB_ORGANIZATION_NAME, jobFixture } from "./support/fixtures";
+import { getApplicationField } from "../lib/forms/application-fields";
+import { applicant, formFieldsFixture, JOB_ID, JOB_ORGANIZATION_NAME, jobFixture } from "./support/fixtures";
 import { fillText, fillValidApplication, gotoApplyPage, submitButton } from "./support/application-form";
 import { installApiMocks } from "./support/mock-api";
 
@@ -61,6 +62,24 @@ test.describe("job application submission", () => {
 
     // The resume travels as a URL rather than the file itself.
     expect(sent).toMatch(/https?:\/\/\S+/);
+
+    // Which custom-field id each answer is filed under, not just that the value
+    // was sent. The ids in APPLICATION_FIELDS were wrong for a long time and
+    // nothing noticed: the date of birth went under Manatal's Gender id, which
+    // takes any string, so the ATS filed it without complaint and left Date of
+    // Birth null. The page asks Manatal for its ids now and falls back to the
+    // table only when that list arrives empty.
+    //
+    // The stub advertises a different id for Date of Birth than the table
+    // carries, so whichever id the date lands under says which source won.
+    const advertised = String(formFieldsFixture.find((field) => field.name === "birth_date")!.id);
+    const hardcoded = getApplicationField("birth_date").manatalId!;
+
+    // Guards this assertion itself: if the two ever agree, it proves nothing.
+    expect(advertised).not.toBe(hardcoded);
+
+    expect(payload[advertised]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(payload[hardcoded]).not.toBe(payload[advertised]);
   });
 
   test("a failed step sends the candidate to the field that needs fixing", async ({ page }) => {
