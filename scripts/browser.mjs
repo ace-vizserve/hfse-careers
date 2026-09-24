@@ -6,6 +6,7 @@
  *   node scripts/browser.mjs safari
  *   node scripts/browser.mjs safari --mobile
  *   node scripts/browser.mjs firefox --url http://localhost:3000/jobs/123/apply
+ *   node scripts/browser.mjs safari --viewport=1440,900
  *
  * Starts `npm run dev` only if nothing is already serving the port, and stops
  * it again when you close the browser.
@@ -30,6 +31,20 @@ const mobile = args.includes("--mobile");
 const mock = args.includes("--mock");
 const urlArg = args.find((a) => a.startsWith("--url="))?.slice("--url=".length);
 const fileArg = args.find((a) => a.startsWith("--file="))?.slice("--file=".length);
+const viewportArg = args.find((a) => a.startsWith("--viewport="))?.slice("--viewport=".length);
+
+// --viewport=1440,900 (or 1440x900) sizes the desktop window, the way
+// `playwright wk --viewport-size` would. A mobile device already carries its
+// own viewport, so --mobile wins.
+const viewport = (() => {
+  if (!viewportArg) return null;
+  const [width, height] = viewportArg.split(/[x,]/).map((n) => Number(n.trim()));
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    console.error(`Could not read --viewport="${viewportArg}". Use --viewport=1440,900.`);
+    process.exit(1);
+  }
+  return { width, height };
+})();
 
 // Playwright always suppresses the OS file dialog, so without a file on hand the
 // resume upload is untestable. Default to a bundled sample; --file= overrides it
@@ -59,7 +74,7 @@ const isUp = async () => {
 let devServer = null;
 
 if (await isUp()) {
-  console.log(`Using the dev server already running at ${url}`);
+  console.log(`Using whatever is already serving ${url}`);
 } else {
   console.log(`Starting the dev server on port ${port}...`);
   devServer = spawn("npm", ["run", "dev", "--", "--port", String(port)], {
@@ -82,7 +97,7 @@ if (mobile && !engine.device) {
   console.log("Firefox has no mobile emulation in Playwright; opening desktop Firefox instead.");
 }
 
-const emulate = mobile && engine.device ? devices[engine.device] : {};
+const emulate = mobile && engine.device ? devices[engine.device] : viewport ? { viewport } : {};
 
 const browser = await engine.launcher.launch({ headless: false });
 const context = await browser.newContext({ ...emulate });
@@ -130,7 +145,12 @@ await page.goto(url);
 
 console.log("");
 console.log(`  ${engine.label}${mobile && engine.device ? ` - ${engine.device}` : ""} is open.`);
-console.log(`  Local link: ${url}`);
+console.log(`  Open at: ${url}`);
+if (viewport && !mobile) {
+  console.log(`  Viewport: ${viewport.width}x${viewport.height}`);
+} else if (viewport && mobile) {
+  console.log(`  --viewport was ignored: ${engine.device} brings its own viewport.`);
+}
 if (uploadFile) {
   const label = fileArg ? uploadFile : `${uploadFile} (bundled sample; pass --file= to use your own)`;
   console.log(`  Upload button will attach: ${label}`);
