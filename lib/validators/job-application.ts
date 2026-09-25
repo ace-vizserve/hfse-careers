@@ -6,12 +6,6 @@ const optionalText = z.string().trim().optional().default("");
 
 const digitsOnly = /^\d+$/;
 
-/**
- * Manatal's integer custom fields reject a value of 11 digits or more, and only
- * at submission, after the whole form has been filled in. Keep the form's own
- * ceiling in step with theirs.
- */
-export const MANATAL_NUMERIC_MAX_DIGITS = 10;
 const postalCodeRegex = /^\d{6}$/;
 const phoneRegex = /^[0-9+\-\s()]+$/;
 const nricFinRegex = /^[STFGM]\d{7}[A-Z]$/i;
@@ -106,27 +100,18 @@ const characterReferenceSchema = z.object({
 
 export const jobApplicationSchema = z
   .object({
-    expected_salary: z
-      .string()
-      .trim()
-      .min(1, "Expected salary is required")
-      .refine((v) => digitsOnly.test(v), "Expected salary must contain numbers only")
-      // Manatal rejects 11 digits or more, and only once the whole form has been
-      // submitted. The input caps typing at 10; this catches a draft written
-      // before that cap existed, so the candidate is told here instead.
-      .refine((v) => v.length <= MANATAL_NUMERIC_MAX_DIGITS, "Expected salary is too large"),
+    // Only presence is checked here. What counts as a valid salary or number of
+    // years is Manatal's rule, not ours: the step check puts the value to
+    // Manatal before the candidate moves on, so a copy kept here could only
+    // fall behind it -- and a stale copy would block a value Manatal accepts.
+    expected_salary: requiredText("Expected salary is required"),
 
     expected_salary_currency: salaryCurrencyEnum.default("SGD"),
 
     linkedin: z.url().optional().or(z.literal("")),
 
     industries: z.array(z.string()).nonempty("Work industry is required"),
-    years_of_experience: z
-      .string()
-      .trim()
-      .min(1, "Years of experience is required")
-      .refine((v) => digitsOnly.test(v), "Years of experience must contain numbers only")
-      .refine((v) => v.length <= MANATAL_NUMERIC_MAX_DIGITS, "Years of experience is too large"),
+    years_of_experience: requiredText("Years of experience is required"),
 
     resume: requiredText("Please upload a resume file"),
 

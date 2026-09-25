@@ -22,6 +22,7 @@ export type FieldWidget =
   | "url"
   | "date"
   | "digits"
+  | "number"
   | "salary"
   | "postalcode"
   | "nricfin"
@@ -88,9 +89,6 @@ export const APPLICATION_FIELDS = [
     manatalId: "1741684",
     required: true,
     placeholder: "e.g. 3500",
-    // Manatal rejects 11 digits or more on its numeric fields, and says so only
-    // after the candidate has filled in the whole form.
-    maxLength: 10,
   },
   {
     key: "linkedin",
@@ -103,11 +101,9 @@ export const APPLICATION_FIELDS = [
   {
     key: "years_of_experience",
     label: "Years of Experience",
-    widget: "digits",
+    widget: "number",
     manatalId: "1741703",
     required: true,
-    // Same 11-digit ceiling as Expected Salary.
-    maxLength: 10,
   },
   { key: "resume", label: "Resume", widget: "resume", manatalId: "1741683", required: true },
   {

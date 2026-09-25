@@ -36,7 +36,7 @@ type FixtureField = {
 };
 
 export const formFieldsFixture: FixtureField[] = [
-  { id: 1741678, name: "expected_salary", label: "Expected Salary", type: "text", required: true },
+  { id: 1741678, name: "expected_salary", label: "Expected Salary", type: "integer", required: true },
   { id: 1741681, name: "linkedin", label: "LinkedIn Profile URL", type: "url", fieldCategory: "social_media" },
   { id: 1741702, name: "industries", label: "Work Industry", type: "text", required: true },
   { id: 1741682, name: "years_of_experience", label: "Years of Experience", type: "integer", required: true },

@@ -110,26 +110,30 @@ test.describe("job application submission", () => {
   });
 
   /**
-   * Manatal rejects 11 digits or more on its numeric fields, and only at
-   * submission -- a candidate filled in the whole form and was told "Expected
-   * Salary should be a numerical value" at the very end, with nothing on screen
-   * to explain it. The input stops at the ceiling instead.
+   * The form used to carry its own copy of Manatal's number rules -- digits
+   * only, at most 10 -- which could only ever fall behind Manatal's. The rule
+   * is Manatal's alone now: the value goes through as typed, and the step
+   * check brings Manatal's answer back to the field before the candidate
+   * leaves step 1.
    */
-  test("a salary too large for Manatal cannot be typed in the first place", async ({ page }) => {
-    await installApiMocks(page);
+  test("a salary Manatal will not take is refused on its own step, in Manatal's words", async ({ page }) => {
+    const api = await installApiMocks(page);
     await gotoApplyPage(page);
 
+    await fillAboutYou(page);
+
     const salary = field(page, "expected_salary");
-    await salary.fill("");
-    await salary.pressSequentially("123456789012");
+    await salary.fill("123456789012");
+    await expect(salary).toHaveValue("123456789012");
 
-    await expect(salary).toHaveValue("1234567890");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await settleStepCheck(page);
 
-    const experience = field(page, "years_of_experience");
-    await experience.fill("");
-    await experience.pressSequentially("123456789012");
+    await expect(page.getByRole("heading", { name: "Application Information" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Family Particulars" })).toBeHidden();
+    await expect(page.getByText(/Expected Salary should be a numerical value/i)).toBeVisible();
 
-    await expect(experience).toHaveValue("1234567890");
+    expect(api.submissions).toHaveLength(0);
   });
 
   /**

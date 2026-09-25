@@ -103,13 +103,11 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
             type="text"
             inputMode="numeric"
             value={text}
-            onChange={(event) => {
-              const digits = event.target.value.replace(/\D/g, "");
-              onChange(field.maxLength ? digits.slice(0, field.maxLength) : digits);
-            }}
+            // Typed as entered: whether a value is an acceptable salary is
+            // Manatal's to say, and the step check asks it before moving on.
+            onChange={(event) => onChange(event.target.value)}
             onBlur={onBlur}
             placeholder={field.placeholder}
-            maxLength={field.maxLength}
             className="h-auto min-h-[40px] w-full rounded-none border-0 bg-white px-3 py-2.5 text-[13px] text-[#10162B] shadow-none placeholder:text-[#8A92AB] focus-visible:ring-0 md:text-[13px]"
           />
         </div>
@@ -140,6 +138,23 @@ function FieldControl({ field, value, onChange, onBlur, ...a11y }: ControlProps)
         />
       );
     }
+
+    case "number":
+      // A number whose rules belong to Manatal: the keyboard is numeric, but
+      // nothing is stripped or capped, so the value Manatal judges is the one
+      // the candidate typed.
+      return (
+        <Input
+          {...a11y}
+          type="text"
+          inputMode="numeric"
+          value={text}
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
+          placeholder={field.placeholder}
+          className={inputBase}
+        />
+      );
 
     case "phone":
       return (
