@@ -57,10 +57,10 @@ const ALL_VALUE = "__all__";
 const FilterTriggerButton = ({ count, ...props }: React.ComponentProps<"button"> & { count: number }) => (
   <button
     aria-label="Filter positions"
-    className="relative flex min-h-[42px] flex-shrink-0 items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-3.5 py-3 text-[15px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110 sm:min-h-[46px] md:px-7"
+    className="relative flex min-h-[42px] flex-shrink-0 items-center gap-2 rounded-[7px] bg-gradient-to-b from-[#2A3CC4] to-[#1E2FA8] px-3.5 py-3 text-[15px] font-semibold text-white shadow-[0_1px_0_rgba(255,255,255,0.2)_inset,0_3px_10px_rgba(30,47,168,0.28)] transition-all duration-200 hover:brightness-110 sm:min-h-[46px] lg:px-7"
     {...props}>
     <Filter className="h-[18px] w-[18px]" />
-    <span className="hidden md:inline">Filter Positions</span>
+    <span className="hidden lg:inline">Filter Positions</span>
     {count > 0 && (
       <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-md border border-white bg-[#1E2FA8] text-[11px] font-semibold text-white shadow-[0_1px_3px_rgba(30,47,168,0.3)] sm:-right-2.5 sm:-top-2.5 sm:h-7 sm:w-7">
         {count}
@@ -249,7 +249,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 priority
               />
             </a>
-            <div className="hidden md:flex items-center gap-5 text-[13px] font-medium text-[#C3C9DC]">
+            <div className="hidden lg:flex items-center gap-5 text-[13px] font-medium text-[#C3C9DC]">
               <a
                 href="mailto:teamwork@hfse.edu.sg"
                 className="flex items-center gap-2 hover:text-white transition-colors">
@@ -303,13 +303,13 @@ const Navbar: React.FC<NavbarProps> = ({
                   <button
                     onClick={onBack}
                     aria-label="Back"
-                    className="flex-shrink-0 rounded-lg p-2 text-[#4A5273] transition-colors hover:bg-white md:hidden">
+                    className="flex-shrink-0 rounded-lg p-2 text-[#4A5273] transition-colors hover:bg-white lg:hidden">
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                 )}
 
-                <div className="flex w-full items-center gap-2 md:w-auto md:gap-4">
-                  <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[7px] border border-[#D5DAE8] bg-[#F5F6FA] px-3 shadow-[inset_0_1px_2px_rgba(16,22,43,0.05)] sm:px-4 md:w-[520px] md:flex-none">
+                <div className="flex w-full items-center gap-2 lg:w-auto lg:gap-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[7px] border border-[#D5DAE8] bg-[#F5F6FA] px-3 shadow-[inset_0_1px_2px_rgba(16,22,43,0.05)] sm:px-4 lg:w-[520px] lg:flex-none">
                     <Search className="h-[18px] w-[18px] flex-shrink-0 text-[#6C7591]" />
                     <input
                       type="text"
@@ -325,7 +325,7 @@ const Navbar: React.FC<NavbarProps> = ({
                       screen, clipped, scrolling inside itself -- so the phone
                       gets a sheet instead. Both stay mounted; only one is
                       reachable, which is what keeps their open states apart. */}
-                  <div className="hidden md:block">
+                  <div className="hidden lg:block">
                     <Popover open={showFilters} onOpenChange={setShowFilters}>
                       <PopoverTrigger asChild>
                         <FilterTriggerButton count={activeFilterCount} />
@@ -340,7 +340,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     </Popover>
                   </div>
 
-                  <div className="md:hidden">
+                  <div className="lg:hidden">
                     <BottomSheet open={showFilterSheet} onOpenChange={setShowFilterSheet}>
                       <BottomSheetTrigger asChild>
                         <FilterTriggerButton count={activeFilterCount} />

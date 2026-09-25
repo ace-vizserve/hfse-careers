@@ -198,14 +198,14 @@ export default function BoardShell({
             column is pinned under the chrome and scrolls within itself, so a
             long description never drags the list along with it. */}
         <div
-          className="mx-auto flex max-w-[1680px] flex-col gap-6 px-4 pb-8 pt-4 sm:px-6 md:flex-row md:items-start md:px-10 md:pt-6"
+          className="mx-auto flex max-w-[1680px] flex-col gap-6 px-4 pb-8 pt-4 sm:px-6 lg:flex-row lg:items-start lg:px-10 lg:pt-6"
           style={
             {
               "--chrome": `${NAVBAR_HEIGHT}px`,
               "--chrome-mobile": `${MOBILE_NAVBAR_HEIGHT}px`,
             } as React.CSSProperties
           }>
-          <div className="min-w-0 flex-1 md:w-[41%] md:flex-none">
+          <div className="min-w-0 flex-1 lg:w-[41%] lg:flex-none">
             <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-white px-6 py-[18px] shadow-[0_1px_2px_rgba(16,22,43,0.05)]">
               <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#6C7591]">
                 {filteredJobs.length === 1 ? "Role available" : "Roles available"}
@@ -305,9 +305,9 @@ export default function BoardShell({
             </div>
           </div>
 
-          {/* Hidden below md: there the detail is its own page. */}
+          {/* Hidden below lg: there the detail is its own page. */}
           <div
-            className="hidden min-w-0 flex-1 md:sticky md:block md:overflow-y-auto md:rounded-xl md:bg-white md:shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]"
+            className="hidden min-w-0 flex-1 lg:sticky lg:block lg:overflow-y-auto lg:rounded-xl lg:bg-white lg:shadow-[0_1px_2px_rgba(16,22,43,0.05),0_8px_24px_rgba(16,22,43,0.07)]"
             style={{ top: `calc(var(--chrome) + 1.5rem)`, maxHeight: `calc(100vh - var(--chrome) - 3rem)` }}>
             {detail}
           </div>
