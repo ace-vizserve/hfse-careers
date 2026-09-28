@@ -19,14 +19,33 @@ type SubmissionLogEntry = {
   positionName: string | null;
 };
 
-function readBrowser(userAgent: string) {
+/**
+ * Apps that open links in their own browser. Job posts get shared on these, and
+ * their in-app browsers are where uploads and saved drafts most often misbehave,
+ * so they are worth telling apart from the browser underneath.
+ */
+const IN_APP_BROWSERS: [RegExp, string][] = [
+  [/Instagram/i, "Instagram"],
+  [/FBAN|FBAV|FB_IAB/, "Facebook"],
+  [/LinkedInApp/i, "LinkedIn"],
+  [/musical_ly|BytedanceWebview|TikTok/i, "TikTok"],
+  [/MicroMessenger/i, "WeChat"],
+  [/\bLine\//, "LINE"],
+  [/\bGSA\//, "Google app"],
+];
+
+export function readBrowser(userAgent: string) {
   const parsed = Bowser.parse(userAgent);
-  const label = (name?: string, version?: string) => (name ? [name, version].filter(Boolean).join(" ") : null);
+  const major = Number.parseInt(parsed.browser.version ?? "", 10);
 
   return {
-    browser: label(parsed.browser.name, parsed.browser.version),
-    os: label(parsed.os.name, parsed.os.versionName ?? parsed.os.version),
-    device: parsed.platform.type ?? null,
+    browser_name: parsed.browser.name ?? null,
+    browser_version: parsed.browser.version ?? null,
+    browser_major: Number.isNaN(major) ? null : major,
+    os_name: parsed.os.name ?? null,
+    os_version: parsed.os.version ?? null,
+    device_type: parsed.platform.type ?? null,
+    in_app: IN_APP_BROWSERS.find(([pattern]) => pattern.test(userAgent))?.[1] ?? null,
   };
 }
 
