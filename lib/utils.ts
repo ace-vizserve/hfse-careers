@@ -212,7 +212,7 @@ export function formatReferencesToHTML(refs: Reference[]): string {
   return `<ol>${refs
     .map(
       (ref) =>
-        `<li><ul><li>Name : ${escapeHtml(ref.name)}</li><li>Email : ${escapeHtml(ref.email)}</li><li>Contact Number : ${escapeHtml(ref.contact_no)}</li><li>Occupation & Company : ${escapeHtml(ref.company_occupation)}</li><li>Relationship to Applicant : ${escapeHtml(ref.relationship)}</li><li>Years Known : ${escapeHtml(ref.years_known)}</li><li>Work-related Reference : No</li><li>Reference Consent : ${escapeHtml(ref.consent_to_contact)}</li></ul></li>`,
+        `<li><ul><li>Name : ${escapeHtml(ref.name)}</li><li>Email : ${escapeHtml(ref.email)}</li><li>Contact Number : ${escapeHtml(ref.contact_no)}</li><li>Occupation & Company : ${escapeHtml(ref.company_occupation)}</li><li>Relationship to Applicant : ${escapeHtml(ref.relationship)}</li><li>Years Known : ${escapeHtml(ref.years_known)}</li><li>Work-related Reference : ${escapeHtml(ref.is_work_related)}</li><li>Reference Consent : ${escapeHtml(ref.consent_to_contact)}</li></ul></li>`,
     )
     .join("")}</ol>`;
 }

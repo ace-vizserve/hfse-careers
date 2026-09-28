@@ -250,7 +250,7 @@ const buildDefaultValues = (): FormValues => ({
     contact_no: "",
     company_occupation: "",
     relationship: "",
-    is_work_related: "No",
+    is_work_related: "" as never,
     years_known: "",
     consent_to_contact: "I agree",
   })),
@@ -2363,6 +2363,56 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                             <ErrorText path={`references.${i}.years_known`} />
                           </div>
 
+                          {/* The reference automation reads this answer to choose
+                              which documents the referee is sent. It was removed
+                              in March and hardcoded to "No", so every referee got
+                              the non-work set. */}
+                          <div className="mt-4 col-span-2">
+                            <Label required>Is this a work-related reference?</Label>
+                            <div
+                              id={pathToFieldId(`references.${i}.is_work_related`)}
+                              tabIndex={-1}
+                              className="flex gap-3 pt-1">
+                              {[
+                                { value: "Yes", label: "Yes" },
+                                { value: "No", label: "No" },
+                              ].map(({ value, label }) => {
+                                const current = watch(`references.${i}.is_work_related`);
+                                const isSelected = String(current) === value;
+
+                                return (
+                                  <UiLabel
+                                    key={value}
+                                    className={`flex min-h-[40px] cursor-pointer select-none items-center gap-2 rounded-md border px-[18px] text-[12px] font-semibold transition-colors ${
+                                      isSelected
+                                        ? "border-[#1E2FA8] bg-[#1E2FA8] text-white shadow-[0_1px_3px_rgba(30,47,168,0.3)]"
+                                        : "border-[#D5DAE8] bg-white text-[#4A5273] hover:border-[#C8CEE0]"
+                                    }`}>
+                                    <input
+                                      type="radio"
+                                      value={value}
+                                      {...register(`references.${i}.is_work_related`, {
+                                        setValueAs: (v) => v,
+                                      })}
+                                      className="sr-only"
+                                    />
+                                    {isSelected && (
+                                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+                                        <path
+                                          fillRule="evenodd"
+                                          clipRule="evenodd"
+                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        />
+                                      </svg>
+                                    )}
+                                    {label}
+                                  </UiLabel>
+                                );
+                              })}
+                            </div>
+                            <ErrorText path={`references.${i}.is_work_related`} />
+                          </div>
+
                           <div className="mt-4 col-span-2">
                             <Label required>
                               Do you agree to send this reference the appropriate verification form based on your answer
@@ -2426,7 +2476,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                             contact_no: "",
                             company_occupation: "",
                             relationship: "",
-                            is_work_related: "No",
+                            is_work_related: "" as never,
                             years_known: "",
                             consent_to_contact: "I agree",
                           },

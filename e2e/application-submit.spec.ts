@@ -71,6 +71,12 @@ test.describe("job application submission", () => {
       expect(sent).toContain(referee);
     }
 
+    // The reference automation reads this line to choose each referee's
+    // documents. It was hardcoded to "No" for months; it must carry the
+    // candidate's answer, in exactly this wording.
+    expect(sent).toContain("Work-related Reference : Yes");
+    expect(sent).toContain("Work-related Reference : No");
+
     // The resume travels as a URL rather than the file itself.
     expect(sent).toMatch(/https?:\/\/\S+/);
 

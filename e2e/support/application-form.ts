@@ -208,6 +208,12 @@ export async function fillDeclarations(page: Page, { skipReference }: { skipRefe
     await fillText(page, `references.${i}.company_occupation`, "Head of Department, Raffles Institution");
     await fillText(page, `references.${i}.relationship`, "Former manager");
     await fillText(page, `references.${i}.years_known`, "6");
+
+    // Asked of every referee, with no default. Referee 1 is a work reference
+    // and the rest are not, so the payload can show each answer is its own.
+    await field(page, `references.${i}.is_work_related`)
+      .getByText(i === 0 ? "Yes" : "No", { exact: true })
+      .click();
   }
 
   // Declarations default to "No" and references default to "I agree", so only

@@ -92,7 +92,9 @@ const characterReferenceSchema = z.object({
   contact_no: requiredText("Contact number is required").refine((v) => phoneRegex.test(v), "Contact number is invalid"),
   company_occupation: requiredText("Occupation & company is required"),
   relationship: requiredText("Relationship is required"),
-  is_work_related: z.enum(["Yes", "No"]),
+  // Read by the reference automation to pick which documents the referee is
+  // sent, so it is asked, never assumed.
+  is_work_related: z.enum(["Yes", "No"], { message: "Please say whether this is a work-related reference" }),
   years_known: z.string().trim().regex(digitsOnly, "Years known must contain numbers only"),
   consent_to_contact: z.enum(["I agree", "I don't agree"]),
 });
