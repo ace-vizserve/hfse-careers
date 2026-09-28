@@ -183,6 +183,20 @@ export const formatExperiences = (experiences: ExperienceFormItem[]): Experience
     });
 };
 
+/**
+ * Candidate text on its way into the HTML lists Manatal files. Unescaped, a
+ * "<" in a declaration or a referee's company is read as the start of a tag,
+ * and what HR sees in Manatal is garbled or cut short.
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 type Reference = {
   name: string;
   email: string;
@@ -198,7 +212,7 @@ export function formatReferencesToHTML(refs: Reference[]): string {
   return `<ol>${refs
     .map(
       (ref) =>
-        `<li><ul><li>Name : ${ref.name}</li><li>Email : ${ref.email}</li><li>Contact Number : ${ref.contact_no}</li><li>Occupation & Company : ${ref.company_occupation}</li><li>Relationship to Applicant : ${ref.relationship}</li><li>Years Known : ${ref.years_known}</li><li>Work-related Reference : No</li><li>Reference Consent : ${ref.consent_to_contact}</li></ul></li>`,
+        `<li><ul><li>Name : ${escapeHtml(ref.name)}</li><li>Email : ${escapeHtml(ref.email)}</li><li>Contact Number : ${escapeHtml(ref.contact_no)}</li><li>Occupation & Company : ${escapeHtml(ref.company_occupation)}</li><li>Relationship to Applicant : ${escapeHtml(ref.relationship)}</li><li>Years Known : ${escapeHtml(ref.years_known)}</li><li>Work-related Reference : No</li><li>Reference Consent : ${escapeHtml(ref.consent_to_contact)}</li></ul></li>`,
     )
     .join("")}</ol>`;
 }
@@ -220,12 +234,12 @@ export function formatFamilyParticularsToHTML(refs: FamilyParticulars[]): string
       (ref) => `
     <li>
       <ul>
-        <li><strong>Name:</strong> ${ref.name}</li>
-        <li><strong>Relationship:</strong> ${ref.relationship}</li>
-        <li><strong>Nationality:</strong> ${ref.nationality}</li>
-        <li><strong>Age:</strong> ${ref.age}</li>
-        <li><strong>Occupation:</strong> ${ref.occupation}</li>
-        <li><strong>Company:</strong> ${ref.company}</li>
+        <li><strong>Name:</strong> ${escapeHtml(ref.name)}</li>
+        <li><strong>Relationship:</strong> ${escapeHtml(ref.relationship)}</li>
+        <li><strong>Nationality:</strong> ${escapeHtml(ref.nationality)}</li>
+        <li><strong>Age:</strong> ${escapeHtml(ref.age)}</li>
+        <li><strong>Occupation:</strong> ${escapeHtml(ref.occupation)}</li>
+        <li><strong>Company:</strong> ${escapeHtml(ref.company)}</li>
       </ul>
     </li>
   `,
@@ -259,8 +273,8 @@ export function generateDeclarationList(declarations: Record<number, Declaration
     <li>
       ${question}
       <ul>
-        <li><strong>Answer:</strong> ${data?.answer || "-"}</li>
-        ${data?.answer === "Yes" && data.details?.trim() ? `<li><strong>Details:</strong> ${data.details}</li>` : ""}
+        <li><strong>Answer:</strong> ${escapeHtml(data?.answer || "-")}</li>
+        ${data?.answer === "Yes" && data.details?.trim() ? `<li><strong>Details:</strong> ${escapeHtml(data.details)}</li>` : ""}
       </ul>
     </li>
   `;
