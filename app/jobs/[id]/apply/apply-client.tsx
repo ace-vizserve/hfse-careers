@@ -19,14 +19,8 @@ import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
 import { JobHeader } from "@/components/job-header";
 import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
-import {
-  formatEducations,
-  formatExperiences,
-  formatFamilyParticularsToHTML,
-  formatReferencesToHTML,
-  generateDeclarationList,
-} from "@/lib/utils";
-import { createManatalIdResolver, MANATAL_FIELDS, type ManatalLiveField } from "@/lib/forms/application-fields";
+import { createManatalIdResolver, type ManatalLiveField } from "@/lib/forms/application-fields";
+import { buildManatalEntries, hasAnswer, type ManatalIds } from "@/lib/forms/manatal-payload";
 import { SUBMITTED_EMAIL_KEY } from "./submitted/submitted-email";
 import { type ApplicationDraft, useApplicationFormStore } from "@/lib/stores/application-form-store";
 import type { JobDetail } from "@/lib/types/job";
@@ -497,6 +491,23 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
    */
   const manatalId = useMemo(() => createManatalIdResolver(sectionFields), [sectionFields]);
 
+  // Education and experience have no fallback id: they are resolved from the
+  // live list or not sent at all.
+  const manatalIds = useMemo<ManatalIds>(() => {
+    const educationField = sectionFields.find((field) =>
+      matchesSection(field, "educations", "education", "educational_profile", "educationalprofile"),
+    );
+    const experienceField = sectionFields.find((field) =>
+      matchesSection(field, "experiences", "experience", "employment_history", "employmenthistory", "work_experience"),
+    );
+
+    return {
+      resolve: manatalId,
+      educationId: educationField ? String(educationField.id) : undefined,
+      experienceId: experienceField ? String(experienceField.id) : undefined,
+    };
+  }, [sectionFields, manatalId]);
+
 
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
@@ -901,21 +912,16 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
    */
   const manatalAcceptsStep = async (step: number): Promise<boolean> => {
     const stepKeys = new Set(STEP_FIELDS[step] as string[]);
-    const values = getValues() as Record<string, unknown>;
-    const payload: Record<string, unknown> = {};
 
-    for (const field of MANATAL_FIELDS) {
-      if (!stepKeys.has(field.key)) continue;
+    // This step's share of the payload submission would send, built by the
+    // same function -- the sections as well as the single-value fields.
+    const entries = buildManatalEntries(getValues() as FormValues, manatalIds).filter(
+      (entry) => stepKeys.has(entry.key) && hasAnswer(entry),
+    );
 
-      const raw = values[field.key];
-      const value = Array.isArray(raw) ? raw.join(",") : raw;
+    if (entries.length === 0) return true;
 
-      if (typeof value !== "string" || value.trim() === "") continue;
-
-      payload[manatalId(field.key, field.label, field.manatalId)] = value.trim();
-    }
-
-    if (Object.keys(payload).length === 0) return true;
+    const payload = Object.fromEntries(entries.map((entry) => [entry.id, entry.value]));
 
     let problems: { id: string; message: string }[];
 
@@ -953,27 +959,28 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     if (problems.length === 0) return true;
 
     // Manatal names the field by id; the form knows it by key.
-    const keyById = new Map(
-      MANATAL_FIELDS.map((field) => [manatalId(field.key, field.label, field.manatalId), field.key]),
-    );
-
-    let attached = false;
+    const entryById = new Map(entries.map((entry) => [entry.id, entry]));
+    const unattached: string[] = [];
 
     for (const problem of problems) {
-      const key = keyById.get(problem.id);
+      const entry = entryById.get(problem.id);
 
-      // A complaint we cannot pin to a field still has to be said out loud
-      // rather than swallowed, or the step would refuse to advance in silence.
-      if (!key || !stepKeys.has(key)) continue;
+      // Only a single-value field has an input to hang the message on. A
+      // section -- education, references -- or a complaint we cannot pin to a
+      // field is said out loud instead, or the step would refuse to advance in
+      // silence.
+      if (!entry?.scalar) {
+        unattached.push(problem.message);
+        continue;
+      }
 
-      setFormError(key as never, { type: "manatal", message: problem.message });
-      attached = true;
+      setFormError(entry.key as never, { type: "manatal", message: problem.message });
     }
 
-    if (!attached) {
+    if (unattached.length) {
       setError({
         error: "This step could not be accepted",
-        details: problems.map((problem) => problem.message).join(" "),
+        details: unattached.join(" "),
       });
     }
 
@@ -1154,85 +1161,11 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       const formDataToSend = new FormData();
       const applicationData: Record<string, any> = {};
 
-      const normalizedValues: FormValues = {
-        ...values,
-        experiences: values.experiences.map((exp) => ({
-          ...exp,
-          ended_at: exp.is_current_employer ? today : exp.ended_at,
-        })),
-      };
-
-      const dynamicValues = normalizedValues as FormValues;
-
-      MANATAL_FIELDS.forEach((field) => {
-        const value = dynamicValues[field.key];
-        let finalValue: any = "";
-
-        if (typeof value === "string") {
-          finalValue = value.trim();
-        } else if (typeof value === "number" || typeof value === "boolean") {
-          finalValue = value;
-        } else if (value == null) {
-          finalValue = "";
-        } else {
-          finalValue = value;
-        }
-
-        applicationData[manatalId(field.key, field.label, field.manatalId)] = finalValue;
-      });
-
-      const trimmedFamilyMembers = normalizedValues.family_members
-        .filter((m) => m.name.trim())
-        .map((m) => ({
-          name: m.name.trim(),
-          relationship: m.relationship.trim(),
-          nationality: m.nationality.trim(),
-          age: m.age.trim(),
-          occupation: m.occupation.trim(),
-          company: m.company.trim(),
-        }));
-
-      applicationData[manatalId("familyparticulars", "Family Particulars", "1741709")] =
-        formatFamilyParticularsToHTML(trimmedFamilyMembers);
-      applicationData[manatalId("skipbackgroundcheck", "Skip Background Check", "1771366")] =
-        normalizedValues.skipbackgroundcheck;
-      applicationData[manatalId("rcbcrequestissued", "RC/BC Request Issued", "1771465")] =
-        normalizedValues.rcbcrequestissued;
-      applicationData[manatalId("bcrequestissued", "BC Request Issued", "1771466")] =
-        normalizedValues.bcrequestissued;
-
-      const formattedEducations = formatEducations(normalizedValues.educations);
-
-      const educationField = sectionFields.find((field) =>
-        matchesSection(field, "educations", "education", "educational_profile", "educationalprofile"),
+      // Counted as the payload counts them: a row with only a company filled in
+      // is not a reference Manatal would be given.
+      const validReferences = values.references.filter(
+        (ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim(),
       );
-
-      if (educationField && formattedEducations.length) {
-        applicationData[String(educationField.id)] = formattedEducations;
-      }
-
-      const formattedExperiences = formatExperiences(normalizedValues.experiences);
-
-      const experienceField = sectionFields.find((field) =>
-        matchesSection(field, "experiences", "experience", "employment_history", "employmenthistory", "work_experience"),
-      );
-
-      if (experienceField && formattedExperiences.length) {
-        applicationData[String(experienceField.id)] = formattedExperiences;
-      }
-
-      const validReferences = normalizedValues.references
-        .filter((ref) => ref.name.trim() || ref.email.trim() || ref.contact_no.trim())
-        .map((ref) => ({
-          name: ref.name.trim(),
-          email: ref.email.trim(),
-          contact_no: ref.contact_no.trim(),
-          company_occupation: ref.company_occupation.trim(),
-          relationship: ref.relationship.trim(),
-          years_known: ref.years_known.trim(),
-          is_work_related: ref.is_work_related,
-          consent_to_contact: ref.consent_to_contact,
-        }));
 
       if (validReferences.length < 3) {
         setError({
@@ -1244,48 +1177,25 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
         return;
       }
 
-      applicationData[manatalId("referencedetails", "Character References", "1741707")] =
-        formatReferencesToHTML(validReferences);
-
-      const declarationMap = normalizedValues.declarations.reduce<
-        Record<number, { answer: "Yes" | "No"; details?: string }>
-      >((acc, item, index) => {
-        acc[index] = {
-          answer: item.answer,
-          details: item.details || "",
-        };
-        return acc;
-      }, {});
-
-      applicationData[manatalId("declarationdetails", "Declaration", "1741708")] =
-        generateDeclarationList(declarationMap);
-
-      if (normalizedValues.resume?.trim()) {
-        applicationData[manatalId("resume", "Resume", "1741683")] = normalizedValues.resume.trim();
-      } else {
+      if (!values.resume?.trim()) {
         throw new Error("Please upload a resume file");
       }
 
-      if (normalizedValues.workpermitpass?.trim()) {
-        applicationData[manatalId("workpermitpass", "Work Pass", "1741698")] = normalizedValues.workpermitpass.trim();
+      // The same builder the step check uses, so Manatal is given at submission
+      // exactly what it was asked about along the way.
+      for (const entry of buildManatalEntries(values, manatalIds)) {
+        applicationData[entry.id] = entry.value;
       }
-
-      if (normalizedValues.overseasaddress?.trim()) {
-        applicationData[manatalId("overseasaddress", "Overseas Complete Address", "1741691")] =
-          normalizedValues.overseasaddress.trim();
-      }
-
-      applicationData[manatalId("industries", "Work Industry", "1741702")] = values.industries.join(",");
 
       applicationData.organization_name = job?.org_name ?? "";
       applicationData.position_name = job?.position_name ?? "";
       applicationData.job_id = jobId;
       applicationData.job_portal = readJobPortal();
-      applicationData.referrer_email = normalizedValues.is_referred
-        ? (normalizedValues.referrer_details?.referrer_email ?? "")
+      applicationData.referrer_email = values.is_referred
+        ? (values.referrer_details?.referrer_email ?? "")
         : "";
-      applicationData.referrer_name = normalizedValues.is_referred
-        ? (normalizedValues.referrer_details?.referrer_name ?? "")
+      applicationData.referrer_name = values.is_referred
+        ? (values.referrer_details?.referrer_name ?? "")
         : "";
 
       formDataToSend.append("application_data", JSON.stringify(applicationData));
@@ -1295,8 +1205,8 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       // field id is only known on this side.
       formDataToSend.append("nationality_field_id", manatalId("nationalities", "Nationality", "1742127"));
 
-      if (normalizedValues.is_applying_for_teacher && normalizedValues.preferredsubjectsandlevels?.trim()) {
-        formDataToSend.append("Preferred Subjects and Levels", normalizedValues.preferredsubjectsandlevels.trim());
+      if (values.is_applying_for_teacher && values.preferredsubjectsandlevels?.trim()) {
+        formDataToSend.append("Preferred Subjects and Levels", values.preferredsubjectsandlevels.trim());
       }
 
       const response = await fetch("/api/applications", {

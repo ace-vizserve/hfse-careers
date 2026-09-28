@@ -47,6 +47,13 @@ function firstValueComplaint(data: Record<string, unknown>): string | undefined 
     if ((field.type === "text" || field.type === "char") && value.length > 255) {
       return `The ${field.label} field may not be greater than 255 characters.`;
     }
+
+    // A stand-in, not a rule Manatal is known to have: what it refuses in a
+    // longtext section has not been seen live. The marker lets a test drive a
+    // section complaint through the step check without guessing at one.
+    if (field.type === "longtext" && value.includes("E2E-REJECT")) {
+      return `The ${field.label} field is invalid.`;
+    }
   }
 
   return undefined;

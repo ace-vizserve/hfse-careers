@@ -78,6 +78,9 @@ export const formFieldsFixture: FixtureField[] = [
   { id: 1741715, name: "educations", label: "Education", type: "section" },
   { id: 1741716, name: "experiences", label: "Employment History", type: "section" },
 
+  // Filed as an HTML list built from the family rows on step 2.
+  { id: 1741709, name: "familyparticulars", label: "Family Particulars", type: "longtext" },
+
   { id: 1741710, name: "coursename", label: "Course Name", type: "text" },
   { id: 1741711, name: "coursestartdate", label: "Course Start Date", type: "date" },
   { id: 1741712, name: "expectedyearofcompletion", label: "Expected Year of Completion", type: "integer" },

@@ -3,8 +3,10 @@ import { nationalities } from "../app/constants";
 import { getApplicationField } from "../lib/forms/application-fields";
 import { applicant, formFieldsFixture, JOB_ID, JOB_ORGANIZATION_NAME, jobFixture } from "./support/fixtures";
 import {
+  continueToNextStep,
   field,
   fillAboutYou,
+  fillFamilyAndEducation,
   fillText,
   fillValidApplication,
   gotoApplyPage,
@@ -168,6 +170,31 @@ test.describe("job application submission", () => {
     await expect(page.getByRole("heading", { name: "Application Information" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Family Particulars" })).toBeHidden();
     await expect(page.getByText(/Religion field may not be greater than 255 characters/i)).toBeVisible();
+
+    expect(api.submissions).toHaveLength(0);
+  });
+
+  /**
+   * The step check used to send only the single-value fields, so the sections
+   * built from rows -- family, education, experience, references,
+   * declarations -- met Manatal for the first time at submission. They are put
+   * to it on their own step now, in the shape submission sends.
+   */
+  test("a section Manatal will not take stops the step that owns it", async ({ page }) => {
+    const api = await installApiMocks(page);
+    await gotoApplyPage(page);
+
+    await fillAboutYou(page);
+    await continueToNextStep(page, "Family Particulars");
+
+    await fillFamilyAndEducation(page);
+    await fillText(page, "family_members.0.company", "E2E-REJECT");
+
+    await page.getByRole("button", { name: "Continue" }).click();
+    await settleStepCheck(page);
+
+    await expect(page.getByRole("heading", { name: "Family Particulars" })).toBeVisible();
+    await expect(page.getByText(/Family Particulars field is invalid/i).first()).toBeVisible();
 
     expect(api.submissions).toHaveLength(0);
   });
