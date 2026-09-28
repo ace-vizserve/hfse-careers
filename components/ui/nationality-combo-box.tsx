@@ -25,9 +25,9 @@ interface NationalityComboboxProps {
 }
 
 /**
- * Popover + Command, replacing a hand-rolled listbox. The stored value stays the
- * demonym, as the Manatal payload expects; the common name is only shown to help
- * a candidate find the right row.
+ * Popover + Command, replacing a hand-rolled listbox. The stored value is
+ * Manatal's nationality id, not the demonym: demonyms are shared ("Dominican"
+ * is two countries), so only the id says which row was picked.
  */
 export const NationalityCombobox = ({
   value,
@@ -37,7 +37,7 @@ export const NationalityCombobox = ({
   id,
 }: NationalityComboboxProps) => {
   const [open, setOpen] = useState(false);
-  const selected = nationalities.find((n) => n.demonym === value);
+  const selected = nationalities.find((n) => String(n.id) === value);
 
   return (
     <Popover
@@ -95,12 +95,12 @@ export const NationalityCombobox = ({
                   key={option.id}
                   value={`${option.demonym} ${option.common_name}`}
                   onSelect={() => {
-                    onChange(option.demonym);
+                    onChange(String(option.id));
                     setOpen(false);
                   }}
                   className="text-[13px] text-[#10162B] data-[selected=true]:bg-[#E7EAFB] data-[selected=true]:text-[#1B2A8F]">
                   <Check
-                    className={cn("size-4 text-[#1E2FA8]", option.demonym === value ? "opacity-100" : "opacity-0")}
+                    className={cn("size-4 text-[#1E2FA8]", String(option.id) === value ? "opacity-100" : "opacity-0")}
                   />
                   {option.demonym}
                   <span className="ml-1 text-[#6C7591]">({option.common_name})</span>

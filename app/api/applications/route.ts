@@ -1,5 +1,6 @@
 // app/api/applications/route.ts
 
+import { toNationalityId } from "@/lib/forms/nationality";
 import { normalizeApplicationData, readManatalError } from "@/lib/utils";
 
 export async function POST(request: Request) {
@@ -55,32 +56,6 @@ export async function POST(request: Request) {
       }
     }
 
-    const getNationalityId = async (nationalityName: string): Promise<number | null> => {
-      try {
-        const response = await fetch(
-          `https://api.manatal.com/open/v3/nationalities/?search=${encodeURIComponent(nationalityName)}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.length > 0) {
-            return data[0].id;
-          }
-        }
-        console.warn(`⚠️ Nationality "${nationalityName}" not found`);
-        return null;
-      } catch (error) {
-        console.error("Error fetching nationality:", error);
-        return null;
-      }
-    };
-
     // Which key holds the nationality. The page resolves Manatal's ids at
     // request time now, so it sends the one it used rather than leaving this
     // side to assume; the literal is the fallback for a payload without it.
@@ -88,21 +63,24 @@ export async function POST(request: Request) {
     const nationalityField =
       typeof nationalityFieldValue === "string" && nationalityFieldValue ? nationalityFieldValue : "1742127";
 
-    // Check if the Nationality field needs to be converted
-    if (applicationData[nationalityField] && typeof applicationData[nationalityField] === "string") {
-      const nationalityName = applicationData[nationalityField];
-      const nationalityId = await getNationalityId(nationalityName);
-      if (nationalityId) {
-        applicationData[nationalityField] = String(nationalityId);
-      } else {
+    // The page sends Manatal's id. This used to search Manatal for a demonym
+    // and take the first hit, which filed some candidates under the wrong
+    // country; see toNationalityId. A value that is neither an id nor a
+    // demonym only one country carries is refused rather than guessed at.
+    if (applicationData[nationalityField]) {
+      const nationalityId = toNationalityId(applicationData[nationalityField]);
+
+      if (!nationalityId) {
         return Response.json(
           {
-            error: `Nationality "${nationalityName}" not found in Manatal system`,
-            details: "Please provide a valid nationality",
+            error: "Nationality could not be recognised",
+            details: "Please choose your nationality again on the first step, then submit.",
           },
           { status: 400 },
         );
       }
+
+      applicationData[nationalityField] = nationalityId;
     }
 
     // Get expected_currency from formData

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { nationalities } from "../app/constants";
 import { getApplicationField } from "../lib/forms/application-fields";
 import { applicant, formFieldsFixture, JOB_ID, JOB_ORGANIZATION_NAME, jobFixture } from "./support/fixtures";
 import {
@@ -88,6 +89,12 @@ test.describe("job application submission", () => {
 
     expect(payload[advertised]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(payload[hardcoded]).not.toBe(payload[advertised]);
+
+    // Nationality leaves the page as Manatal's id for the row picked. It used
+    // to leave as the demonym, which the route looked up by fuzzy search and
+    // filed some candidates under the wrong country.
+    const singapore = nationalities.find((n) => n.demonym === applicant.nationality)!;
+    expect(payload["1742127"]).toBe(String(singapore.id));
   });
 
   test("a failed step sends the candidate to the field that needs fixing", async ({ page }) => {

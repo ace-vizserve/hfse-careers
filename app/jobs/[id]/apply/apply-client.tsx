@@ -10,6 +10,7 @@ import { ConsentDeclarations } from "@/components/ui/consent-declarations";
 import { DatePicker } from "@/components/ui/date-picker";
 import { IndustryCombobox } from "@/components/ui/industry-combo-box";
 import { NationalityCombobox } from "@/components/ui/nationality-combo-box";
+import { toNationalityId } from "@/lib/forms/nationality";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
 import { Stepper, type StepperStep } from "@/components/ui/stepper";
@@ -314,6 +315,9 @@ const mergeDraft = (defaults: FormValues, draft: ApplicationDraft): FormValues =
 
     merged[key] = value;
   });
+
+  // Drafts saved before the form stored ids hold a demonym here.
+  merged.nationalities = toNationalityId(merged.nationalities);
 
   return merged;
 };
@@ -1293,9 +1297,9 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
       formDataToSend.append("application_data", JSON.stringify(applicationData));
       formDataToSend.append("jobId", jobId);
-      // The route swaps the nationality demonym for Manatal's numeric id, so it
-      // needs to know which key holds it. Sent from here because the resolved id
-      // is only known on this side.
+      // The route checks the nationality id before it goes to Manatal, so it
+      // needs to know which key holds it. Sent from here because the resolved
+      // field id is only known on this side.
       formDataToSend.append("nationality_field_id", manatalId("nationalities", "Nationality", "1742127"));
 
       if (normalizedValues.is_applying_for_teacher && normalizedValues.preferredsubjectsandlevels?.trim()) {
