@@ -62,7 +62,7 @@ Required in `.env.local`:
 - `MANATAL_API_KEY`, `MANATAL_CLIENT_SLUG` — Manatal API access (server-only)
 - `NEXT_PUBLIC_MANATAL_API_KEY` — Client-side Manatal access
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase config
-- `SUPABASE_SERVICE_ROLE_KEY` — server-only; writes the browser log (`lib/submission-log.server.ts`, table in `supabase/submission_log.sql`)
+- `SUPABASE_SERVICE_ROLE_KEY` — server-only; writes the browser log (`lib/submission-log.server.ts`, table in `supabase/migrations/20260929000000_submission_log.sql`)
 - `N8N_PROD_WEBHOOK_URL` — Post-submission webhook
 - `ALLOWED_PARENT_DOMAINS` — CSP for embed iframe
 - `NEXT_PUBLIC_SITE_URL` — Canonical site URL

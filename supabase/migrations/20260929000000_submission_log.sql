@@ -1,5 +1,5 @@
 -- Browser log for application submissions, written by
--- lib/submission-log.server.ts. Run once in the Supabase SQL Editor.
+-- lib/submission-log.server.ts. Applied with `npx supabase db push`.
 --
 -- Names and versions are separate columns so a report can group by browser
 -- alone ("Safari") or by release ("Safari 18") without string parsing.

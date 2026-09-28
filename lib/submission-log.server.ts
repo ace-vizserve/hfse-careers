@@ -2,7 +2,7 @@
  * Server-only log of which browser each application was submitted from.
  *
  * One row per successful submission goes to the `submission_log` table in
- * Supabase (see supabase/submission_log.sql), read in the Table Editor. It
+ * Supabase (see supabase/migrations/20260929000000_submission_log.sql), read in the Table Editor. It
  * holds the Manatal candidate id rather than the candidate's details, so the
  * log itself carries no personal data beyond the browser string.
  *
