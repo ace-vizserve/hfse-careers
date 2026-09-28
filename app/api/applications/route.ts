@@ -1,32 +1,11 @@
 // app/api/applications/route.ts
 
-import Bowser from "bowser";
-
 import { toNationalityId } from "@/lib/forms/nationality";
+import { logSubmission } from "@/lib/submission-log.server";
 import { normalizeApplicationData, readManatalError } from "@/lib/utils";
 
 /** Manatal's currency id for the Singapore dollar (GET /open/v3/currencies/). */
 const MANATAL_CURRENCY_SGD = 13;
-
-/**
- * The browser the candidate submitted from, for the notification webhook only.
- * It stays out of Manatal so it never lands on the candidate record. The raw
- * string goes along too, since browsers now trim it and the parse can miss.
- */
-function readBrowser(request: Request) {
-  const userAgent = request.headers.get("user-agent") ?? "";
-  if (!userAgent) return { browser: null, os: null, device: null, user_agent: null };
-
-  const parsed = Bowser.parse(userAgent);
-  const label = (name?: string, version?: string) => (name ? [name, version].filter(Boolean).join(" ") : null);
-
-  return {
-    browser: label(parsed.browser.name, parsed.browser.version),
-    os: label(parsed.os.name, parsed.os.versionName ?? parsed.os.version),
-    device: parsed.platform.type ?? null,
-    user_agent: userAgent,
-  };
-}
 
 export async function POST(request: Request) {
   const MANATAL_API_KEY = process.env.MANATAL_API_KEY;
@@ -180,7 +159,6 @@ export async function POST(request: Request) {
             candidate_email: appData["1741680"],
             organization_name,
             position_name,
-            ...readBrowser(request),
           },
         }),
       });
@@ -195,6 +173,12 @@ export async function POST(request: Request) {
     } catch (webhookError) {
       console.error(`Notification webhook threw for candidate ${result.id}:`, webhookError);
     }
+
+    await logSubmission(request, {
+      candidateId: result.id ?? null,
+      jobId: String(jobId),
+      positionName: typeof position_name === "string" ? position_name : null,
+    });
 
     return Response.json({
       success: true,
