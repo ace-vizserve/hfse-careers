@@ -33,7 +33,7 @@ const draftWith = (values: Record<string, unknown>, overrides: Record<string, un
     values,
     ...overrides,
   },
-  version: 1,
+  version: 2,
 });
 
 test.describe("draft persistence", () => {

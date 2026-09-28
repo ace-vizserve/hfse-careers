@@ -44,8 +44,11 @@ const emptyDraft = {
  * fields that fail validation with nothing on screen to explain why. Dropping
  * the draft costs them their typing once. Merging a stale one costs them the
  * application.
+ *
+ * 2: references gained a required "work-related" answer; a v1 draft carries a
+ *    "No" the candidate never chose.
  */
-const DRAFT_VERSION = 1;
+const DRAFT_VERSION = 2;
 
 /** Stands in wherever real storage cannot be reached, so nothing has to branch. */
 const noopStorage: StateStorage = {
