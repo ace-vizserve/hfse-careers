@@ -187,14 +187,13 @@ export const formatExperiences = (experiences: ExperienceFormItem[]): Experience
  * Candidate text on its way into the HTML lists Manatal files. Unescaped, a
  * "<" in a declaration or a referee's company is read as the start of a tag,
  * and what HR sees in Manatal is garbled or cut short.
+ *
+ * Only the characters that break element text are touched. Quotes and
+ * apostrophes are left alone: nothing here goes in an attribute, and the
+ * reference automation parses these lists, so "O'Brien" must stay "O'Brien".
  */
 export function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 type Reference = {
