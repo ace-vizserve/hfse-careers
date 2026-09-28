@@ -110,7 +110,6 @@ const STEPS: StepperStep[] = [
 const STEP_FIELDS: (keyof JobApplicationFormValues)[][] = [
   [
     "expected_salary",
-    "expected_salary_currency",
     "linkedin",
     "industries",
     "years_of_experience",
@@ -159,7 +158,6 @@ const STEP_FIELDS: (keyof JobApplicationFormValues)[][] = [
 
 const buildDefaultValues = (): FormValues => ({
   expected_salary: "",
-  expected_salary_currency: "SGD",
   linkedin: "",
   industries: [],
   years_of_experience: "",
@@ -1155,7 +1153,6 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
       const formDataToSend = new FormData();
       const applicationData: Record<string, any> = {};
-      let expectedCurrencyId: string | null = null;
 
       const normalizedValues: FormValues = {
         ...values,
@@ -1173,10 +1170,6 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
         if (typeof value === "string") {
           finalValue = value.trim();
-
-          if (field.key === "expected_salary" && finalValue) {
-            expectedCurrencyId = "13";
-          }
         } else if (typeof value === "number" || typeof value === "boolean") {
           finalValue = value;
         } else if (value == null) {
@@ -1304,10 +1297,6 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
       if (normalizedValues.is_applying_for_teacher && normalizedValues.preferredsubjectsandlevels?.trim()) {
         formDataToSend.append("Preferred Subjects and Levels", normalizedValues.preferredsubjectsandlevels.trim());
-      }
-
-      if (expectedCurrencyId) {
-        formDataToSend.append("expected_currency", expectedCurrencyId);
       }
 
       const response = await fetch("/api/applications", {

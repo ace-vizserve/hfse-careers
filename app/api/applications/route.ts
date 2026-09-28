@@ -3,6 +3,9 @@
 import { toNationalityId } from "@/lib/forms/nationality";
 import { normalizeApplicationData, readManatalError } from "@/lib/utils";
 
+/** Manatal's currency id for the Singapore dollar (GET /open/v3/currencies/). */
+const MANATAL_CURRENCY_SGD = 13;
+
 export async function POST(request: Request) {
   const MANATAL_API_KEY = process.env.MANATAL_API_KEY;
   const MANATAL_CLIENT_SLUG = process.env.MANATAL_CLIENT_SLUG;
@@ -83,17 +86,11 @@ export async function POST(request: Request) {
       applicationData[nationalityField] = nationalityId;
     }
 
-    // Get expected_currency from formData
-    const expectedCurrencyValue = formData.get("expected_currency");
-    const expectedCurrency = typeof expectedCurrencyValue === "string" ? expectedCurrencyValue : null;
-
-    // Add expected_currency directly to application_data at root level
-    if (expectedCurrency) {
-      applicationData.expected_currency = parseInt(expectedCurrency);
-    } else {
-      // Default to SGD (ID: 11) if not provided
-      applicationData.expected_currency = 11;
-    }
+    // The form takes salary in SGD only -- the input carries a fixed SGD
+    // prefix -- so the currency is set here rather than sent by the page. The
+    // old fallback here was 11, commented as SGD; in Manatal's list 11 is the
+    // Philippine peso.
+    applicationData.expected_currency = MANATAL_CURRENCY_SGD;
 
     const { job_id, job_portal, referrer_email, referrer_name, organization_name, position_name, ...appData } =
       applicationData;

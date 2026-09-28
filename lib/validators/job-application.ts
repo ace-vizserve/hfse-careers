@@ -10,7 +10,6 @@ const postalCodeRegex = /^\d{6}$/;
 const phoneRegex = /^[0-9+\-\s()]+$/;
 const nricFinRegex = /^[STFGM]\d{7}[A-Z]$/i;
 
-const salaryCurrencyEnum = z.enum(["SGD", "USD", "EUR", "GBP", "PHP"]);
 const residentialStatusEnum = z.enum(["Singaporean", "PR", "Foreigner"]);
 const declarationAnswerEnum = z.enum(["Yes", "No"]);
 
@@ -105,8 +104,6 @@ export const jobApplicationSchema = z
     // Manatal before the candidate moves on, so a copy kept here could only
     // fall behind it -- and a stale copy would block a value Manatal accepts.
     expected_salary: requiredText("Expected salary is required"),
-
-    expected_salary_currency: salaryCurrencyEnum.default("SGD"),
 
     linkedin: z.url().optional().or(z.literal("")),
 
