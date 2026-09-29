@@ -55,6 +55,10 @@ export default defineConfig({
       MANATAL_BASE_URL: `http://127.0.0.1:${MANATAL_MOCK_PORT}`,
       MANATAL_API_KEY: "e2e-key",
       MANATAL_CLIENT_SLUG: "e2e-slug",
+      // Empty rather than absent: Next fills an unset variable from .env,
+      // which holds the real key, and the issue and submission logs would then
+      // write test runs into the live tables. The loggers skip on an empty key.
+      SUPABASE_SERVICE_ROLE_KEY: "",
     },
   },
 });

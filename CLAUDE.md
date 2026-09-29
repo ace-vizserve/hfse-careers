@@ -39,6 +39,8 @@ Next.js 15 App Router (TypeScript strict) career portal for HFSE International S
 - `/embed/jobs` — Embeddable iframe widget with CSP headers and `postMessage` resize
 - `/api/applications` — POST: validates, deduplicates, submits to Manatal, triggers n8n
 - `/api/nationalities/[search]` — GET: proxies Manatal nationality autocomplete
+- `/api/applications/issues` — POST: the apply page reports failures the server never saw (network, upload, form refusals) to `submission_issues`
+- `/api/applications/report` — POST: the "Report a problem" form (`components/report-problem-dialog.tsx`); saves to `problem_reports`, read in the `problem_reports_open` view
 
 **UI stack:** Tailwind CSS 4, Radix UI primitives, Shadcn component conventions (`components/ui/`), Lucide icons, Embla Carousel, Sileo toasts.
 
@@ -49,6 +51,8 @@ Next.js 15 App Router (TypeScript strict) career portal for HFSE International S
 **Manatal field IDs:** Hardcoded numeric IDs (e.g., `1741683` for Resume, `1742127` for Nationality) map form fields to Manatal custom fields. Do not change these without explicit instruction.
 
 **HTML payloads:** Multi-entry fields (Family Particulars, References, Declarations) are formatted as HTML strings (`<ol><li><ul>` structure) via helpers in `lib/utils.ts` (`formatReferencesToHTML`, `formatFamilyParticularsToHTML`, `generateDeclarationList`).
+
+**Issue tracking:** each visit to the apply page gets a session id (`lib/submission-issues.ts`), sent as `x-application-session` on its requests and with every issue and problem report. `select * from submission_issues where session_id = '…'` shows what went wrong behind a report.
 
 **Duplicate prevention:** `hasAlreadyAppliedToJob()` in `lib/utils.ts` checks Manatal for existing candidates by email or name before submission.
 
@@ -62,7 +66,7 @@ Required in `.env.local`:
 - `MANATAL_API_KEY`, `MANATAL_CLIENT_SLUG` — Manatal API access (server-only)
 - `NEXT_PUBLIC_MANATAL_API_KEY` — Client-side Manatal access
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase config
-- `SUPABASE_SERVICE_ROLE_KEY` — server-only; writes the browser log (`lib/submission-log.server.ts`, table in `supabase/migrations/20260929000000_submission_log.sql`)
+- `SUPABASE_SERVICE_ROLE_KEY` — server-only; writes the browser log of successful submissions (`submission_log`) and the log of applications that failed or were blocked (`submission_issues`), both via `lib/submission-log.server.ts`. Tables in `supabase/migrations/`; the page reports browser-side issues to `/api/applications/issues`, stages listed in `lib/submission-issues.ts`
 - `N8N_PROD_WEBHOOK_URL` — Post-submission webhook
 - `ALLOWED_PARENT_DOMAINS` — CSP for embed iframe
 - `NEXT_PUBLIC_SITE_URL` — Canonical site URL

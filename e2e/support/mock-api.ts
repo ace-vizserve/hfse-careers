@@ -7,6 +7,12 @@ export type ApiMocks = {
   submittedFields: Record<string, string>[];
   /** `application_data` parsed back out of JSON: the payload Manatal is handed. */
   submittedPayloads: Record<string, unknown>[];
+  /** Issue reports the page sent to /api/applications/issues, parsed. */
+  issueReports: { jobId?: string; sessionId?: string; stage?: string; error?: string }[];
+  /** Bodies sent by the "Report a problem" form. */
+  problemReports: Record<string, string>[];
+  /** The session header on each POST to /api/applications. */
+  submissionSessions: (string | undefined)[];
 };
 
 /**
@@ -57,6 +63,9 @@ export async function installApiMocks(page: Page): Promise<ApiMocks> {
   const submissions: string[] = [];
   const submittedFields: Record<string, string>[] = [];
   const submittedPayloads: Record<string, unknown>[] = [];
+  const issueReports: ApiMocks["issueReports"] = [];
+  const problemReports: ApiMocks["problemReports"] = [];
+  const submissionSessions: ApiMocks["submissionSessions"] = [];
 
   // Supabase storage. getPublicUrl() builds its string locally, so only the
   // upload itself needs answering.
@@ -66,6 +75,26 @@ export async function installApiMocks(page: Page): Promise<ApiMocks> {
       json: { Id: "e2e-object-id", Key: `resumes/${Date.now()}-resume.pdf` },
     }),
   );
+
+  // Recorded from the request event, not the route: WebKit does not pass
+  // `sendBeacon` through `page.route`, so a beacon would go unseen there. One
+  // that slips past the route reaches the dev server, whose empty service key
+  // (playwright.config.ts) means it writes nothing.
+  page.on("request", (request) => {
+    if (request.method() !== "POST" || !/\/api\/applications\/issues/.test(request.url())) return;
+    try {
+      issueReports.push(JSON.parse(request.postData() ?? "null") ?? {});
+    } catch {
+      issueReports.push({});
+    }
+  });
+
+  await page.route(/\/api\/applications\/issues/, (route) => route.fulfill({ status: 204 }));
+
+  await page.route(/\/api\/applications\/report/, async (route, request) => {
+    problemReports.push(JSON.parse(request.postData() ?? "{}"));
+    await route.fulfill({ json: { id: 42 } });
+  });
 
   await page.route(/\/api\/applications\/check-duplicate/, (route) =>
     route.fulfill({
@@ -78,6 +107,7 @@ export async function installApiMocks(page: Page): Promise<ApiMocks> {
 
     const body = request.postData() ?? "";
     submissions.push(body);
+    submissionSessions.push(request.headers()["x-application-session"]);
 
     const fields = parseMultipart(body, request.headers()["content-type"] ?? "");
     submittedFields.push(fields);
@@ -96,5 +126,5 @@ export async function installApiMocks(page: Page): Promise<ApiMocks> {
     });
   });
 
-  return { submissions, submittedFields, submittedPayloads };
+  return { submissions, submittedFields, submittedPayloads, issueReports, problemReports, submissionSessions };
 }

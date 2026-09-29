@@ -1,28 +1,46 @@
 // app/api/applications/route.ts
 
 import { toNationalityId } from "@/lib/forms/nationality";
-import { logSubmission } from "@/lib/submission-log.server";
+import type { IssueStage } from "@/lib/submission-issues";
+import { logIssue, logSubmission } from "@/lib/submission-log.server";
 import { normalizeApplicationData, readManatalError } from "@/lib/utils";
 
 /** Manatal's currency id for the Singapore dollar (GET /open/v3/currencies/). */
 const MANATAL_CURRENCY_SGD = 13;
 
 export async function POST(request: Request) {
+  // Filled in once the form data is read, so a failure after that point is
+  // logged against its job.
+  let jobIdForLog: string | null = null;
+
+  // Every way out that is not a submission goes through here, so the issue log
+  // sees exactly what the candidate was told.
+  const fail = async (stage: IssueStage, status: number, body: Record<string, unknown>, error?: string) => {
+    await logIssue(request, {
+      stage,
+      outcome: "failed",
+      jobId: jobIdForLog,
+      httpStatus: status,
+      error: error ?? String(body.error ?? ""),
+    });
+    return Response.json(body, { status });
+  };
+
   const MANATAL_API_KEY = process.env.MANATAL_API_KEY;
   const MANATAL_CLIENT_SLUG = process.env.MANATAL_CLIENT_SLUG;
 
   const WEBHOOK_URL = process.env.N8N_PROD_WEBHOOK_URL;
 
   if (!WEBHOOK_URL) {
-    return Response.json({ error: "Webhook URL not configured" }, { status: 500 });
+    return fail("config", 500, { error: "Webhook URL not configured" });
   }
 
   if (!MANATAL_API_KEY) {
-    return Response.json({ error: "API key not configured" }, { status: 500 });
+    return fail("config", 500, { error: "API key not configured" });
   }
 
   if (!MANATAL_CLIENT_SLUG) {
-    return Response.json({ error: "Client slug not configured" }, { status: 500 });
+    return fail("config", 500, { error: "Client slug not configured" });
   }
 
   try {
@@ -30,19 +48,21 @@ export async function POST(request: Request) {
     const jobId = formData.get("jobId");
 
     if (!jobId) {
-      return Response.json({ error: "Job ID is required" }, { status: 400 });
+      return fail("payload", 400, { error: "Job ID is required" });
     }
+
+    jobIdForLog = String(jobId);
 
     const applicationDataStr = formData.get("application_data");
     if (!applicationDataStr || typeof applicationDataStr !== "string") {
-      return Response.json({ error: "Application data is required" }, { status: 400 });
+      return fail("payload", 400, { error: "Application data is required" });
     }
 
     let applicationData: Record<string, any>;
     try {
       applicationData = JSON.parse(applicationDataStr);
     } catch (e) {
-      return Response.json({ error: "Invalid application data format" }, { status: 400 });
+      return fail("payload", 400, { error: "Invalid application data format" });
     }
 
     if (applicationData["1741683"]) {
@@ -50,13 +70,10 @@ export async function POST(request: Request) {
       if (resume) {
         applicationData["1741683"] = String(resume);
       } else {
-        return Response.json(
-          {
-            error: `Resume: "${resume}" not found in Manatal system`,
-            details: "Please provide a valid nationality",
-          },
-          { status: 400 },
-        );
+        return fail("payload", 400, {
+          error: `Resume: "${resume}" not found in Manatal system`,
+          details: "Please provide a valid nationality",
+        });
       }
     }
 
@@ -75,13 +92,10 @@ export async function POST(request: Request) {
       const nationalityId = toNationalityId(applicationData[nationalityField]);
 
       if (!nationalityId) {
-        return Response.json(
-          {
-            error: "Nationality could not be recognised",
-            details: "Please choose your nationality again on the first step, then submit.",
-          },
-          { status: 400 },
-        );
+        return fail("nationality", 400, {
+          error: "Nationality could not be recognised",
+          details: "Please choose your nationality again on the first step, then submit.",
+        });
       }
 
       applicationData[nationalityField] = nationalityId;
@@ -114,15 +128,19 @@ export async function POST(request: Request) {
       // of JSON. It still belongs in the server log, where it is useful.
       console.error("Manatal application submit failed:", submitResponse.status, submitText);
 
-      return Response.json(
+      const manatalMessage = readManatalError(submitText);
+
+      // Manatal's own words go in the log, not its raw body: the body can
+      // repeat back what the candidate typed.
+      return fail(
+        "manatal",
+        submitResponse.status,
         {
           error: "Failed to submit application",
-          details:
-            readManatalError(submitText) ??
-            "Please try again. If the problem continues, contact us before re-submitting.",
+          details: manatalMessage ?? "Please try again. If the problem continues, contact us before re-submitting.",
           status: submitResponse.status,
         },
-        { status: submitResponse.status },
+        manatalMessage ?? `Manatal returned ${submitResponse.status}`,
       );
     }
 
@@ -131,12 +149,11 @@ export async function POST(request: Request) {
       result = JSON.parse(submitText);
     } catch (e) {
       console.error("Failed to parse Manatal response:", submitText);
-      return Response.json(
-        {
-          error: "Invalid response from Manatal",
-          details: submitText,
-        },
-        { status: 500 },
+      return fail(
+        "manatal",
+        500,
+        { error: "Invalid response from Manatal", details: submitText },
+        "Manatal's reply was not JSON",
       );
     }
 
@@ -187,12 +204,11 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("❌ Application submission error:", error);
-    return Response.json(
-      {
-        error: "Failed to submit application",
-        message: (error as Error).message,
-      },
-      { status: 500 },
+    return fail(
+      "submit",
+      500,
+      { error: "Failed to submit application", message: (error as Error).message },
+      `${(error as Error).name}: ${(error as Error).message}`,
     );
   }
 }

@@ -1,5 +1,6 @@
 /**
- * Server-only log of which browser each application was submitted from.
+ * Server-only log of which browser each application was submitted from, and of
+ * the applications that did not make it (`logIssue`).
  *
  * One row per successful submission goes to the `submission_log` table in
  * Supabase (see supabase/migrations/20260929000000_submission_log.sql), read in the Table Editor. It
@@ -12,6 +13,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Bowser from "bowser";
+import { ISSUE_ERROR_MAX, type IssueStage, isSessionId, SESSION_HEADER, type SubmissionOutcome } from "./submission-issues";
 
 type SubmissionLogEntry = {
   candidateId: number | string | null;
@@ -55,30 +57,74 @@ export function readBrowser(userAgent: string) {
  * application.
  */
 export async function logSubmission(request: Request, entry: SubmissionLogEntry) {
+  await insertRow("submission_log", request, {
+    candidate_id: entry.candidateId == null ? null : String(entry.candidateId),
+    job_id: entry.jobId,
+    position_name: entry.positionName,
+  });
+}
+
+type IssueEntry = {
+  stage: IssueStage;
+  outcome: Exclude<SubmissionOutcome, "submitted">;
+  jobId: string | null;
+  httpStatus?: number | null;
+  error?: string | null;
+  /** Defaults to the session header the apply page sends on its requests. */
+  sessionId?: string | null;
+};
+
+/**
+ * Records an application that stopped short of Manatal, in `submission_issues`
+ * (supabase/migrations/20260929010000_submission_issues.sql). Called on the way
+ * out of an error, so like `logSubmission` it never throws: the candidate should
+ * see the error they hit, not one from the log.
+ */
+export async function logIssue(request: Request, entry: IssueEntry) {
+  const sessionId = entry.sessionId ?? request.headers.get(SESSION_HEADER);
+
+  await insertRow("submission_issues", request, {
+    session_id: isSessionId(sessionId) ? sessionId : null,
+    outcome: entry.outcome,
+    stage: entry.stage,
+    job_id: entry.jobId,
+    http_status: entry.httpStatus ?? null,
+    error: entry.error ? entry.error.slice(0, ISSUE_ERROR_MAX) : null,
+  });
+}
+
+/** A Supabase client on the service role key, or null when it is not configured. */
+export function serviceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !serviceKey) {
-    console.error("Submission log skipped: SUPABASE_SERVICE_ROLE_KEY is not configured");
+  if (!url || !serviceKey) return null;
+
+  return createClient(url, serviceKey, { auth: { persistSession: false } });
+}
+
+/**
+ * The browser columns every log table shares. The raw string is kept alongside
+ * the parse, since browsers now trim it and the parse can miss.
+ */
+export function browserColumns(request: Request) {
+  const userAgent = request.headers.get("user-agent");
+  return { ...(userAgent ? readBrowser(userAgent) : {}), user_agent: userAgent };
+}
+
+async function insertRow(table: string, request: Request, row: Record<string, unknown>) {
+  const supabase = serviceClient();
+
+  if (!supabase) {
+    console.error(`${table} skipped: SUPABASE_SERVICE_ROLE_KEY is not configured`);
     return;
   }
 
-  // The raw string is kept alongside the parse, since browsers now trim it and
-  // the parse can miss.
-  const userAgent = request.headers.get("user-agent");
-
   try {
-    const supabase = createClient(url, serviceKey, { auth: { persistSession: false } });
-    const { error } = await supabase.from("submission_log").insert({
-      candidate_id: entry.candidateId == null ? null : String(entry.candidateId),
-      job_id: entry.jobId,
-      position_name: entry.positionName,
-      ...(userAgent ? readBrowser(userAgent) : {}),
-      user_agent: userAgent,
-    });
+    const { error } = await supabase.from(table).insert({ ...row, ...browserColumns(request) });
 
-    if (error) console.error("Submission log insert failed:", error.message);
+    if (error) console.error(`${table} insert failed:`, error.message);
   } catch (logError) {
-    console.error("Submission log threw:", logError);
+    console.error(`${table} insert threw:`, logError);
   }
 }

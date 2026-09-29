@@ -17,7 +17,9 @@ import { Stepper, type StepperStep } from "@/components/ui/stepper";
 import { StyledSelect } from "@/components/ui/styled-select";
 import { SubmittingOverlay } from "@/components/ui/submitting-overlay";
 import { JobHeader } from "@/components/job-header";
+import { ReportProblemDialog } from "@/components/report-problem-dialog";
 import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
+import { type ClientIssueStage, newSessionId, reportSubmissionIssue, SESSION_HEADER } from "@/lib/submission-issues";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
 import { createManatalIdResolver, type ManatalLiveField } from "@/lib/forms/application-fields";
 import { buildManatalEntries, hasAnswer, type ManatalIds } from "@/lib/forms/manatal-payload";
@@ -509,6 +511,11 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   }, [sectionFields, manatalId]);
 
 
+  // Ties this visit's failures to a problem report sent from it; see
+  // lib/submission-issues.ts. Fixed for the life of the page.
+  const [sessionId] = useState(newSessionId);
+  const [reportOpen, setReportOpen] = useState(false);
+
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
     path: `${jobId}/${uploadFolder}`,
@@ -831,6 +838,15 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     }
   }, [resumeProps.successes, setValue, getValues]);
 
+  // An upload that Supabase refused never touches our server, so the page is
+  // the only thing that knows. A rejected file (wrong type, too big) is not
+  // here: that is the dropzone's own check, not a failure.
+  useEffect(() => {
+    for (const uploadError of resumeProps.errors) {
+      reportSubmissionIssue({ jobId, sessionId, stage: "resume_upload", error: uploadError.message });
+    }
+  }, [resumeProps.errors, jobId, sessionId]);
+
   // Submit-time failures render in a banner at the top of a very long form, so
   // bring it into view and mirror it as a toast instead of leaving the user at
   // the submit button with no visible feedback.
@@ -1126,11 +1142,15 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
     setSubmitting(true);
     setError(null);
 
+    // Which request is in flight, so an exception says where it happened. A
+    // thrown fetch or an unreadable reply never reached our server's own log.
+    let stage: ClientIssueStage = "duplicate_check";
+
     try {
       // Runs server-side so the browser never talks to api.manatal.com directly.
       const duplicateCheckResponse = await fetch("/api/applications/check-duplicate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", [SESSION_HEADER]: sessionId },
         body: JSON.stringify({
           jobPk: Number(jobId),
           email: values.email,
@@ -1140,6 +1160,18 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
       if (!duplicateCheckResponse.ok) {
         const duplicateCheckError = await duplicateCheckResponse.json().catch(() => null);
+
+        // A reply without our JSON came from the platform (a timeout page),
+        // not the route, so the route has no record of it.
+        if (!duplicateCheckError) {
+          reportSubmissionIssue({
+            jobId,
+            sessionId,
+            stage: "duplicate_check",
+            error: `HTTP ${duplicateCheckResponse.status} without a JSON body`,
+          });
+        }
+
         setError({
           error: duplicateCheckError?.error || "Unable to check for an existing application",
           details: "Please try again. If the problem continues, contact us before re-submitting.",
@@ -1150,6 +1182,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       const existingMatch = await duplicateCheckResponse.json();
 
       if (existingMatch.alreadyApplied) {
+        reportSubmissionIssue({ jobId, sessionId, stage: "already_applied" });
         sileo.error({
           title: "You have already applied for this job.",
           description: "Please wait for the employer to review your application.",
@@ -1157,6 +1190,10 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
         setSubmitting(false);
         return;
       }
+
+      // Past the duplicate check, anything thrown belongs to building or
+      // sending the application.
+      stage = "submit";
 
       const formDataToSend = new FormData();
       const applicationData: Record<string, any> = {};
@@ -1168,6 +1205,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       );
 
       if (validReferences.length < 3) {
+        reportSubmissionIssue({ jobId, sessionId, stage: "references", error: `${validReferences.length} references` });
         setError({
           error: "Please provide at least 3 character references.",
           details: "Add at least 3 references before submitting your application.",
@@ -1178,7 +1216,9 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       }
 
       if (!values.resume?.trim()) {
-        throw new Error("Please upload a resume file");
+        reportSubmissionIssue({ jobId, sessionId, stage: "resume" });
+        setError({ error: "Please upload a resume file" });
+        return;
       }
 
       // The same builder the step check uses, so Manatal is given at submission
@@ -1211,10 +1251,13 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
 
       const response = await fetch("/api/applications", {
         method: "POST",
+        headers: { [SESSION_HEADER]: sessionId },
         body: formDataToSend,
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => {
+        throw new Error(`HTTP ${response.status} without a JSON body`);
+      });
 
       if (!response.ok) {
         setError({
@@ -1246,6 +1289,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
       router.replace(`/jobs/${jobId}/apply/submitted`);
     } catch (err: any) {
       console.error("Submission error:", err);
+      reportSubmissionIssue({ jobId, sessionId, stage, error: err });
       setError({
         error: err.message || "Failed to submit application",
         details: err.details || undefined,
@@ -1259,6 +1303,19 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   return (
     <>
       {submitting && <SubmittingOverlay />}
+
+      <ReportProblemDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        jobId={jobId}
+        positionName={job?.position_name}
+        sessionId={sessionId}
+        step={`Step ${activeStep + 1} of ${STEPS.length}: ${STEPS[activeStep]?.title ?? ""}`}
+        shownError={error ? [error.error, error.details].filter(Boolean).join(" ") : undefined}
+        // Read when it opens, so it has what the candidate has typed by then.
+        defaultName={reportOpen ? (getValues("full_name") ?? "") : ""}
+        defaultEmail={reportOpen ? (getValues("email") ?? "") : ""}
+      />
 
       {/* `data-interactive` is read by a rule in globals.css that holds clicks
           off every button until React has attached. It sits here rather than on
@@ -1348,7 +1405,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
           ) : (
             <>
               <div className="mb-4">
-                <ApplicationNote />
+                <ApplicationNote onReportProblem={() => setReportOpen(true)} />
               </div>
               {/* noValidate: validation is owned by Zod + react-hook-form. Native
                   constraint validation would cancel submission before the submit
@@ -1366,6 +1423,12 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                     className="flex flex-col gap-1 rounded-[9px] border border-[#F6D6B8] bg-[#FDECD9] p-4 text-[13px] text-[#8A3D0B]">
                     <div className="font-semibold">{error.error}</div>
                     {error.details && <div className="text-[#A4551C]">{error.details}</div>}
+                    <button
+                      type="button"
+                      onClick={() => setReportOpen(true)}
+                      className="mt-1 self-start text-[12px] font-semibold text-[#1E2FA8] hover:text-[#16217A] hover:underline">
+                      Stuck? Report this problem
+                    </button>
                   </div>
                 )}
 

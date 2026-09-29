@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { logSubmission, readBrowser } from "../lib/submission-log.server";
+import { POST as reportIssue } from "../app/api/applications/issues/route";
+import { logIssue, logSubmission, readBrowser } from "../lib/submission-log.server";
 
 /**
  * The browser log runs after the candidate is already in Manatal, so it has two
@@ -137,6 +138,67 @@ test.describe("submission browser log", () => {
         "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36 LinkedInApp/9.30",
       ).in_app,
     ).toBe("LinkedIn");
+  });
+
+  test("an issue goes to its own table, not the submission log", async () => {
+    await logIssue(submitRequest(IPHONE_SAFARI), {
+      stage: "manatal",
+      outcome: "failed",
+      jobId: "999001",
+      httpStatus: 400,
+      error: "Enter a valid email address.",
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(new URL(calls[0].url).pathname).toBe("/rest/v1/submission_issues");
+    expect(calls[0].body).toMatchObject({
+      outcome: "failed",
+      stage: "manatal",
+      job_id: "999001",
+      http_status: 400,
+      error: "Enter a valid email address.",
+      browser_name: "Safari",
+      in_app: null,
+      user_agent: IPHONE_SAFARI,
+    });
+  });
+
+  test("an issue's error is capped, and a failing insert does not throw", async () => {
+    respond = () => {
+      throw new TypeError("fetch failed");
+    };
+
+    await expect(
+      logIssue(submitRequest(), { stage: "submit", outcome: "failed", jobId: null, error: "x".repeat(5000) }),
+    ).resolves.toBeUndefined();
+    expect((calls[0].body as { error: string }).error).toHaveLength(300);
+  });
+
+  const pageReport = (body: unknown) =>
+    new Request("http://127.0.0.1/api/applications/issues", {
+      method: "POST",
+      headers: { "content-type": "application/json", "user-agent": IPHONE_SAFARI },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    });
+
+  test("the page's report is logged with an outcome the server decides", async () => {
+    const response = await reportIssue(
+      pageReport({ jobId: "999001", stage: "already_applied", outcome: "failed", error: "TypeError: Load failed" }),
+    );
+
+    expect(response.status).toBe(204);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toMatchObject({ stage: "already_applied", outcome: "blocked", job_id: "999001" });
+  });
+
+  test("the page cannot log an unknown stage, a server stage, or a made-up job id", async () => {
+    expect((await reportIssue(pageReport({ jobId: "999001", stage: "anything" }))).status).toBe(400);
+    expect((await reportIssue(pageReport({ jobId: "999001", stage: "manatal" }))).status).toBe(400);
+    expect((await reportIssue(pageReport("not json"))).status).toBe(400);
+    expect(calls).toHaveLength(0);
+
+    await reportIssue(pageReport({ jobId: "<script>", stage: "submit" }));
+    expect(calls[0].body).toMatchObject({ stage: "submit", outcome: "failed", job_id: null });
   });
 
   test("Supabase being unreachable does not throw", async () => {

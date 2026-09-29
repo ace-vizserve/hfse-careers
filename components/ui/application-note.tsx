@@ -1,4 +1,9 @@
-export const ApplicationNote = () => (
+type ApplicationNoteProps = {
+  /** Opens the "Report a problem" form. Without it, the note falls back to email alone. */
+  onReportProblem?: () => void;
+};
+
+export const ApplicationNote = ({ onReportProblem }: ApplicationNoteProps) => (
   <div className="rounded-xl border border-[#F6D6B8] bg-[#FDECD9] p-5">
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-lg bg-[#FBDEC3] border border-[#F6D6B8] flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -16,16 +21,30 @@ export const ApplicationNote = () => (
           Kindly review the application form and ensure that all required information has been provided, especially the
           fields marked with <span className="font-bold text-[#C2410C]">red asterisks</span> or{" "}
           <span className="font-bold text-[#C2410C]">red borders</span>, which need to be filled out. If you encounter a
-          problem submitting the application, kindly copy the link and paste it into a different browser and provide us
-          with a screenshot if the issue occurs again.
+          problem submitting the application, kindly copy the link and paste it into a different browser, and let us know
+          if the issue occurs again.
         </p>
         <p className="text-[13px] leading-[1.65] text-[#414A66]">
-          For assistance, please contact{" "}
+          {onReportProblem ? (
+            <>
+              Having trouble?{" "}
+              <button
+                type="button"
+                onClick={onReportProblem}
+                className="font-semibold text-[#1E2FA8] transition-colors hover:text-[#16217A] hover:underline">
+                Report a problem
+              </button>{" "}
+              or email{" "}
+            </>
+          ) : (
+            <>For assistance, please contact </>
+          )}
           <a
             href="mailto:support@hfse.edu.sg"
             className="text-[#1E2FA8] hover:text-[#16217A] font-medium hover:underline transition-colors">
             support@hfse.edu.sg
           </a>
+          {onReportProblem && "."}
         </p>
       </div>
     </div>
