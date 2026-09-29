@@ -25,6 +25,54 @@ create table if not exists public.submission_log (
   user_agent      text    -- the raw string, for anything the parse missed
 );
 
+-- Upgrade a table left by the first version of this script (pasted into the
+-- SQL Editor, so not in migration history): it had combined `browser`, `os`
+-- and `device` labels such as "Chrome 140.0.0.0" and "Windows 10". `create
+-- table if not exists` skips such a table, so add the new columns, split the
+-- old labels into them, then drop the old ones. A no-op on a fresh table.
+alter table public.submission_log
+  add column if not exists browser_name    text,
+  add column if not exists browser_version text,
+  add column if not exists browser_major   int,
+  add column if not exists os_name         text,
+  add column if not exists os_version      text,
+  add column if not exists device_type     text,
+  add column if not exists in_app          text;
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'submission_log' and column_name = 'browser'
+  ) then
+    execute $upgrade$
+      update public.submission_log set
+        browser_name    = nullif(regexp_replace(browser, '\s+[0-9][0-9.]*$', ''), ''),
+        browser_version = substring(browser from '([0-9][0-9.]*)$'),
+        browser_major   = substring(browser from '([0-9]+)[0-9.]*$')::int,
+        os_name         = coalesce(substring(os from '^(Windows|macOS|iOS|iPadOS|Android|Chrome OS|Linux)'), os),
+        os_version      = nullif(trim(substring(os from '^(?:Windows|macOS|iOS|iPadOS|Android|Chrome OS|Linux)(.*)$')), ''),
+        device_type     = device,
+        -- Same patterns as IN_APP_BROWSERS in lib/submission-log.server.ts.
+        in_app = case
+          when user_agent ~* 'Instagram'                             then 'Instagram'
+          when user_agent ~  'FBAN|FBAV|FB_IAB'                      then 'Facebook'
+          when user_agent ~* 'LinkedInApp'                           then 'LinkedIn'
+          when user_agent ~* 'musical_ly|BytedanceWebview|TikTok'    then 'TikTok'
+          when user_agent ~* 'MicroMessenger'                        then 'WeChat'
+          when user_agent ~  '\mLine/'                               then 'LINE'
+          when user_agent ~  '\mGSA/'                                then 'Google app'
+        end
+      where browser_name is null
+    $upgrade$;
+
+    alter table public.submission_log
+      drop column browser,
+      drop column os,
+      drop column device;
+  end if;
+end $$;
+
 create index if not exists submission_log_submitted_at_idx on public.submission_log (submitted_at desc);
 
 -- RLS on with no policies: the anon key can neither read nor write, and the
