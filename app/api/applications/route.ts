@@ -1,5 +1,6 @@
 // app/api/applications/route.ts
 
+import { looksGarbled } from "@/lib/forms/garbled-text";
 import { toNationalityId } from "@/lib/forms/nationality";
 import type { IssueStage } from "@/lib/submission-issues";
 import { findCandidateIdByEmailOrName } from "@/lib/manatal.server";
@@ -100,6 +101,28 @@ export async function POST(request: Request) {
       }
 
       applicationData[nationalityField] = nationalityId;
+    }
+
+    // The form refuses a reference typed backwards ("dneirF"), but a page
+    // cached from before that rule, or a request not sent by the form, would
+    // still carry one. The references reach this route as the HTML list the
+    // page builds, so the check reads that list rather than a field id.
+    const backwardsReference = Object.values(applicationData)
+      .filter((value): value is string => typeof value === "string")
+      .flatMap((value) => [...value.matchAll(/<li>(?:Name|Relationship to Applicant) : ([^<]*)<\/li>/g)])
+      .some((match) => looksGarbled(match[1]));
+
+    if (backwardsReference) {
+      // Logged without the value: it is a referee's name.
+      return fail(
+        "references",
+        400,
+        {
+          error: "A reference looks typed backwards",
+          details: "Go back to the Declaration step, retype the reference names and relationships, then submit.",
+        },
+        "Reference Name or Relationship typed backwards",
+      );
     }
 
     // The form takes salary in SGD only -- the input carries a fixed SGD
