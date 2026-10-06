@@ -63,7 +63,7 @@ const declarationQuestions = [
   "Have you been discharged or dismissed from the service of your previous employers?",
   "Have you been convicted in a Court of law in any country or any ongoing legal proceedings?",
   "Have you been served with a Garnishee Order by any organisation or been declared a bankrupt?",
-  "Have you any relatives and/or friends who have worked or are working in HFSE International School?",
+  "Do you have any relatives and/or friends who are currently working or have previously worked at HFSE International School?",
 ] as const;
 
 /** Rendered by ConsentDeclarations, so they have no `field-` element of their own. */
