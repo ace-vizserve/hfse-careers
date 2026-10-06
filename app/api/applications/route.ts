@@ -2,6 +2,7 @@
 
 import { toNationalityId } from "@/lib/forms/nationality";
 import type { IssueStage } from "@/lib/submission-issues";
+import { findCandidateIdByEmailOrName } from "@/lib/manatal.server";
 import { logIssue, logSubmission } from "@/lib/submission-log.server";
 import { normalizeApplicationData, readManatalError } from "@/lib/utils";
 
@@ -191,15 +192,30 @@ export async function POST(request: Request) {
       console.error(`Notification webhook threw for candidate ${result.id}:`, webhookError);
     }
 
+    // The career-page endpoint's reply carries no candidate id, so every log
+    // row was written with a null one. Look the candidate up instead; the log
+    // is best-effort, so a lookup that fails still writes the row.
+    let candidateId: number | string | null = result?.id ?? null;
+    if (candidateId == null) {
+      try {
+        candidateId = await findCandidateIdByEmailOrName({
+          email: String(appData["1741680"] ?? ""),
+          fullName: String(appData["1741679"] ?? ""),
+        });
+      } catch (lookupError) {
+        console.error("Could not look up the new candidate's id for the submission log:", lookupError);
+      }
+    }
+
     await logSubmission(request, {
-      candidateId: result.id ?? null,
+      candidateId,
       jobId: String(jobId),
       positionName: typeof position_name === "string" ? position_name : null,
     });
 
     return Response.json({
       success: true,
-      candidateId: result.id,
+      candidateId,
       message: "Application submitted successfully with resume",
     });
   } catch (error) {

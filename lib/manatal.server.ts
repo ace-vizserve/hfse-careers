@@ -94,7 +94,7 @@ async function searchCandidates(params: { email?: string; full_name?: string }):
   return data.results ?? [];
 }
 
-async function findCandidateIdByEmailOrName(input: { email?: string; fullName?: string }): Promise<number | null> {
+export async function findCandidateIdByEmailOrName(input: { email?: string; fullName?: string }): Promise<number | null> {
   const email = normalize(input.email);
   const fullName = normalize(input.fullName);
 
