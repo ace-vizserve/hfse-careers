@@ -22,6 +22,8 @@ import { usePreventRefresh } from "@/hooks/use-prevent-refresh";
 import { type ClientIssueStage, newSessionId, reportSubmissionIssue, SESSION_HEADER } from "@/lib/submission-issues";
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
 import { createManatalIdResolver, type ManatalLiveField } from "@/lib/forms/application-fields";
+import { caretGuard } from "@/lib/forms/caret-guard";
+import { looksGarbled } from "@/lib/forms/garbled-text";
 import { buildManatalEntries, hasAnswer, type ManatalIds } from "@/lib/forms/manatal-payload";
 import { SUBMITTED_EMAIL_KEY } from "./submitted/submitted-email";
 import { type ApplicationDraft, useApplicationFormStore } from "@/lib/stores/application-form-store";
@@ -336,6 +338,29 @@ const ErrorText = ({ path }: { path: string }) => {
   const fieldError = getNestedError(errors, path);
   if (!fieldError?.message) return null;
   return <p className="mt-1.5 text-[12px] font-medium text-[#C2410C]">{String(fieldError.message)}</p>;
+};
+
+/**
+ * Keyboard hints for the free-text reference fields. A reference's name is
+ * someone else's, so the browser's own-name autofill only gets in the way, and
+ * autocorrect has no business rewriting it. These are hints a phone may
+ * ignore; GarbledHint is what catches the text a keyboard typed backwards.
+ */
+const REFERENCE_TEXT_HINTS = {
+  autoComplete: "off",
+  autoCapitalize: "words",
+  autoCorrect: "off",
+  spellCheck: false,
+} as const;
+
+/** A warning, never an error: the candidate can fix the text or submit it as is. */
+const GarbledHint = ({ value }: { value?: string }) => {
+  if (!looksGarbled(value)) return null;
+  return (
+    <p className="mt-1.5 text-[12px] font-medium text-[#8A3D0B]">
+      This looks jumbled, as if typed backwards. Please check it reads correctly.
+    </p>
+  );
 };
 
 const SectionHeader = ({
@@ -2358,10 +2383,13 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               id={pathToFieldId(`references.${i}.name`)}
                               type="text"
                               {...register(`references.${i}.name`)}
+                              {...REFERENCE_TEXT_HINTS}
+                              {...caretGuard((value) => setValue(`references.${i}.name`, value, { shouldDirty: true }))}
                               className={inputBase}
                               placeholder="Full name"
                             />
                             <ErrorText path={`references.${i}.name`} />
+                            <GarbledHint value={watchedReferences?.[i]?.name} />
                           </div>
 
                           <div>
@@ -2408,10 +2436,15 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               id={pathToFieldId(`references.${i}.relationship`)}
                               type="text"
                               {...register(`references.${i}.relationship`)}
+                              {...REFERENCE_TEXT_HINTS}
+                              {...caretGuard((value) =>
+                                setValue(`references.${i}.relationship`, value, { shouldDirty: true }),
+                              )}
                               className={inputBase}
                               placeholder="e.g. Former Supervisor, Colleague"
                             />
                             <ErrorText path={`references.${i}.relationship`} />
+                            <GarbledHint value={watchedReferences?.[i]?.relationship} />
                           </div>
 
                           <div>
