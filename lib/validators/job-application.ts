@@ -1,10 +1,19 @@
 import { z } from "zod";
+import { looksGarbled } from "@/lib/forms/garbled-text";
 
 const requiredText = (message: string) => z.string().trim().min(1, message);
 const textField = z.string().trim();
 const optionalText = z.string().trim().optional().default("");
 
 const digitsOnly = /^\d+$/;
+
+/**
+ * Free text a phone keyboard can type backwards ("dneirF" for "Friend"). A
+ * capital at the end of a word never turned up in a real reference, so it is
+ * refused rather than merely flagged: see lib/forms/garbled-text.ts.
+ */
+const readableText = (message: string) =>
+  requiredText(message).refine((value) => !looksGarbled(value), "This looks typed backwards. Please retype it.");
 
 const postalCodeRegex = /^\d{6}$/;
 const phoneRegex = /^[0-9+\-\s()]+$/;
@@ -87,11 +96,11 @@ const experienceSchema = z
   });
 
 const characterReferenceSchema = z.object({
-  name: requiredText("Name is required"),
+  name: readableText("Name is required"),
   email: requiredText("Email is required").email("Invalid email"),
   contact_no: requiredText("Contact number is required").refine((v) => phoneRegex.test(v), "Contact number is invalid"),
   company_occupation: requiredText("Occupation & company is required"),
-  relationship: requiredText("Relationship is required"),
+  relationship: readableText("Relationship is required"),
   // Read by the reference automation to pick which documents the referee is
   // sent, so it is asked, never assumed.
   is_work_related: z.enum(["Yes", "No"], { message: "Please say whether this is a work-related reference" }),

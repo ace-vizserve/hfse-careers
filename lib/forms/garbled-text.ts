@@ -2,7 +2,7 @@
  * Spots text a phone keyboard typed backwards.
  *
  * Some Android keyboards put the cursor back at the start of the box after
- * every letter, so "Friend" arrives as "dneirF". Nine candidates' references
+ * every letter, so "Friend" arrives as "dneirF". Twelve candidates' references
  * reached Manatal like that between June and October 2026. Three shapes give
  * it away:
  *
@@ -13,11 +13,11 @@
  * Real names end in lower case, however their capitals fall inside: "McDonald",
  * "LeBlanc", and Burmese names written without spaces such as "PhyuPhyuMyint".
  * An all-capitals name is skipped. Checked against every reference on the
- * active jobs in October 2026: it flagged all eleven reversed applications and
+ * active jobs in October 2026: it flagged the reversed applications and
  * nothing else.
  *
- * Only ever used for a warning the candidate can ignore, so a rare false
- * positive costs a second look, not a blocked application.
+ * The application schema refuses a reference Name or Relationship that matches,
+ * so the candidate retypes it before it can reach Manatal.
  */
 
 const REFERENCE_WORDS = [

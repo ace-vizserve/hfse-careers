@@ -23,7 +23,6 @@ import { type ClientIssueStage, newSessionId, reportSubmissionIssue, SESSION_HEA
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload";
 import { createManatalIdResolver, type ManatalLiveField } from "@/lib/forms/application-fields";
 import { caretGuard } from "@/lib/forms/caret-guard";
-import { looksGarbled } from "@/lib/forms/garbled-text";
 import { buildManatalEntries, hasAnswer, type ManatalIds } from "@/lib/forms/manatal-payload";
 import { SUBMITTED_EMAIL_KEY } from "./submitted/submitted-email";
 import { type ApplicationDraft, useApplicationFormStore } from "@/lib/stores/application-form-store";
@@ -344,7 +343,7 @@ const ErrorText = ({ path }: { path: string }) => {
  * Keyboard hints for the free-text reference fields. A reference's name is
  * someone else's, so the browser's own-name autofill only gets in the way, and
  * autocorrect has no business rewriting it. These are hints a phone may
- * ignore; GarbledHint is what catches the text a keyboard typed backwards.
+ * ignore; the schema refuses text a keyboard typed backwards.
  */
 const REFERENCE_TEXT_HINTS = {
   autoComplete: "off",
@@ -353,15 +352,6 @@ const REFERENCE_TEXT_HINTS = {
   spellCheck: false,
 } as const;
 
-/** A warning, never an error: the candidate can fix the text or submit it as is. */
-const GarbledHint = ({ value }: { value?: string }) => {
-  if (!looksGarbled(value)) return null;
-  return (
-    <p className="mt-1.5 text-[12px] font-medium text-[#8A3D0B]">
-      This looks jumbled, as if typed backwards. Please check it reads correctly.
-    </p>
-  );
-};
 
 const SectionHeader = ({
   number,
@@ -2389,7 +2379,6 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               placeholder="Full name"
                             />
                             <ErrorText path={`references.${i}.name`} />
-                            <GarbledHint value={watchedReferences?.[i]?.name} />
                           </div>
 
                           <div>
@@ -2444,7 +2433,6 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               placeholder="e.g. Former Supervisor, Colleague"
                             />
                             <ErrorText path={`references.${i}.relationship`} />
-                            <GarbledHint value={watchedReferences?.[i]?.relationship} />
                           </div>
 
                           <div>
@@ -2463,7 +2451,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                               which documents the referee is sent. It was removed
                               in March and hardcoded to "No", so every referee got
                               the non-work set. */}
-                          <div className="mt-4 col-span-2">
+                          <div className="mt-4 col-span-full">
                             <Label required>Is this a work-related reference?</Label>
                             <div
                               id={pathToFieldId(`references.${i}.is_work_related`)}
@@ -2509,7 +2497,7 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
                             <ErrorText path={`references.${i}.is_work_related`} />
                           </div>
 
-                          <div className="mt-4 col-span-2">
+                          <div className="mt-4 col-span-full">
                             <Label required>
                               Do you agree to send this reference the appropriate verification form based on your answer
                               above?
