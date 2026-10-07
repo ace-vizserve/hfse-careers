@@ -62,6 +62,29 @@ type UseSupabaseUploadOptions = {
 
 type UseSupabaseUploadReturn = ReturnType<typeof useSupabaseUpload>;
 
+/**
+ * The name a file is stored under. Supabase Storage refuses an object key with
+ * anything outside a short ASCII list ("Invalid key"), so a candidate's
+ * "RESUMÉ.pdf" or "Vidhya`s CV.pdf" could never upload, however often they
+ * retried. Accents are folded to their base letter and anything else outside
+ * letters, digits, `.`, `_` and `-` becomes `-`. The page still shows the name
+ * as the candidate chose it; only the stored key changes.
+ */
+export const toStorageName = (name: string) => {
+  const dot = name.lastIndexOf(".");
+  const [stem, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  const clean = (part: string) =>
+    part
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^A-Za-z0-9._-]+/g, "-")
+      .replace(/-{2,}/g, "-")
+      .replace(/^[-.]+|[-.]+$/g, "");
+
+  // A name in a script with no ASCII form (Chinese, Thai...) cleans to nothing.
+  return `${clean(stem) || "file"}${clean(extension) ? `.${clean(extension)}` : ""}`;
+};
+
 const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
   const {
     bucketName,
@@ -142,7 +165,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
         filesToUpload.map(async (file) => {
           const { error, data } = await supabase.storage
             .from(bucketName)
-            .upload(!!path ? `${path}/${file.name}` : file.name, file, {
+            .upload(!!path ? `${path}/${toStorageName(file.name)}` : toStorageName(file.name), file, {
               cacheControl: cacheControl.toString(),
               upsert,
             });
