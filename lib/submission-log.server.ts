@@ -2,7 +2,7 @@
  * Server-only log of which browser each application was submitted from, and of
  * the applications that did not make it (`logIssue`).
  *
- * One row per successful submission goes to the `submission_log` table in
+ * One row per successful submission goes to the `careers_submission_log` table in
  * Supabase (see supabase/migrations/20260929000000_submission_log.sql), read in the Table Editor. It
  * holds the Manatal candidate id rather than the candidate's details, so the
  * log itself carries no personal data beyond the browser string.
@@ -57,7 +57,7 @@ export function readBrowser(userAgent: string) {
  * application.
  */
 export async function logSubmission(request: Request, entry: SubmissionLogEntry) {
-  await insertRow("submission_log", request, {
+  await insertRow("careers_submission_log", request, {
     candidate_id: entry.candidateId == null ? null : String(entry.candidateId),
     job_id: entry.jobId,
     position_name: entry.positionName,
@@ -75,7 +75,7 @@ type IssueEntry = {
 };
 
 /**
- * Records an application that stopped short of Manatal, in `submission_issues`
+ * Records an application that stopped short of Manatal, in `careers_submission_issues`
  * (supabase/migrations/20260929010000_submission_issues.sql). Called on the way
  * out of an error, so like `logSubmission` it never throws: the candidate should
  * see the error they hit, not one from the log.
@@ -83,7 +83,7 @@ type IssueEntry = {
 export async function logIssue(request: Request, entry: IssueEntry) {
   const sessionId = entry.sessionId ?? request.headers.get(SESSION_HEADER);
 
-  await insertRow("submission_issues", request, {
+  await insertRow("careers_submission_issues", request, {
     session_id: isSessionId(sessionId) ? sessionId : null,
     outcome: entry.outcome,
     stage: entry.stage,

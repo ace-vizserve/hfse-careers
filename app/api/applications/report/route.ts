@@ -10,9 +10,9 @@ const text = (value: unknown, max: number) => (typeof value === "string" ? value
 
 /**
  * A problem report from the apply page's "Report a problem" form. Saved to
- * `problem_reports` (supabase/migrations/20260929020000_problem_reports.sql)
+ * `careers_problem_reports` (supabase/migrations/20260929020000_problem_reports.sql)
  * with the visit's session id, which is what lines it up with the failures
- * logged in `submission_issues`. Support reads them in `problem_reports_open`.
+ * logged in `careers_submission_issues`. Support reads them in `careers_problem_reports_open`.
  *
  * The candidate is told they were heard only once the row exists.
  */
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     ...browser,
   };
 
-  const { data, error } = await supabase.from("problem_reports").insert(row).select("id").single();
+  const { data, error } = await supabase.from("careers_problem_reports").insert(row).select("id").single();
 
   if (error || !data) {
     console.error("Problem report insert failed:", error?.message);

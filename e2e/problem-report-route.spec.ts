@@ -43,7 +43,7 @@ test.describe("problem report route", () => {
       const text = await request.text();
       calls.push({ url: request.url, body: text ? JSON.parse(text) : undefined });
 
-      if (request.url.includes("/rest/v1/problem_reports")) {
+      if (request.url.includes("/rest/v1/careers_problem_reports")) {
         return saveFails
           ? new Response(JSON.stringify({ message: "boom" }), { status: 500, headers: { "content-type": "application/json" } })
           : new Response(JSON.stringify({ id: 7 }), { status: 201, headers: { "content-type": "application/json" } });
@@ -65,7 +65,7 @@ test.describe("problem report route", () => {
 
     expect(calls).toHaveLength(1);
     const [save] = calls;
-    expect(new URL(save.url).pathname).toBe("/rest/v1/problem_reports");
+    expect(new URL(save.url).pathname).toBe("/rest/v1/careers_problem_reports");
     expect(save.body).toMatchObject({
       session_id: SESSION,
       job_id: "999001",

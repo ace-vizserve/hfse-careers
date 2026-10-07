@@ -56,7 +56,7 @@ test.describe("submission browser log", () => {
     expect(calls).toHaveLength(1);
     const [call] = calls;
     expect(call.method).toBe("POST");
-    expect(new URL(call.url).pathname).toBe("/rest/v1/submission_log");
+    expect(new URL(call.url).pathname).toBe("/rest/v1/careers_submission_log");
     expect(call.headers.get("authorization")).toBe("Bearer e2e-service-key");
     expect(call.body).toEqual({
       candidate_id: "4242",
@@ -90,7 +90,7 @@ test.describe("submission browser log", () => {
 
   test("a Supabase error does not throw", async () => {
     respond = () =>
-      new Response(JSON.stringify({ message: 'relation "submission_log" does not exist' }), {
+      new Response(JSON.stringify({ message: 'relation "careers_submission_log" does not exist' }), {
         status: 404,
         headers: { "content-type": "application/json" },
       });
@@ -150,7 +150,7 @@ test.describe("submission browser log", () => {
     });
 
     expect(calls).toHaveLength(1);
-    expect(new URL(calls[0].url).pathname).toBe("/rest/v1/submission_issues");
+    expect(new URL(calls[0].url).pathname).toBe("/rest/v1/careers_submission_issues");
     expect(calls[0].body).toMatchObject({
       outcome: "failed",
       stage: "manatal",
