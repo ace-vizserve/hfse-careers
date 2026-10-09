@@ -361,8 +361,15 @@ export async function settleStepCheck(page: Page) {
   });
 }
 
-/** Which step is on screen, read off the footer's own counter. */
+/**
+ * Which step is on screen, read off the footer's own counter. The "Checking"
+ * toast repeats the same "Step n of 4" text while a jump is validated, so the
+ * toast's copy is excluded.
+ */
 export async function currentStep(page: Page) {
-  const label = await page.getByText(/^Step \d of 4$/).textContent();
+  const label = await page
+    .getByText(/^Step \d of 4$/)
+    .and(page.locator(":not([data-sileo-description])"))
+    .textContent();
   return Number(label?.match(/\d/)?.[0]) - 1;
 }
