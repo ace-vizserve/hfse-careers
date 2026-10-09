@@ -534,7 +534,9 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   const resumeProps = useSupabaseUpload({
     bucketName: "candidate-resume",
     path: `${jobId}/${uploadFolder}`,
-    upsert: false,
+    // The folder is unique to this visit, so overwriting only ever replaces the
+    // candidate's own earlier upload of the same name (removed and re-added).
+    upsert: true,
     allowedMimeTypes: ["application/pdf"],
     // Safari reports an empty file.type for PDFs picked from Files / iCloud Drive,
     // which fails a MIME-only check, so accept the extension as well.
@@ -858,7 +860,12 @@ export default function ApplyClient({ job, sectionFields }: ApplyClientProps) {
   // here: that is the dropzone's own check, not a failure.
   useEffect(() => {
     for (const uploadError of resumeProps.errors) {
-      reportSubmissionIssue({ jobId, sessionId, stage: "resume_upload", error: uploadError.message });
+      reportSubmissionIssue({
+        jobId,
+        sessionId,
+        stage: "resume_upload",
+        error: uploadError.detail ? `${uploadError.message} [${uploadError.detail}]` : uploadError.message,
+      });
     }
   }, [resumeProps.errors, jobId, sessionId]);
 

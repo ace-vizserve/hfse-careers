@@ -85,6 +85,24 @@ export const toStorageName = (name: string) => {
   return `${clean(stem) || "file"}${clean(extension) ? `.${clean(extension)}` : ""}`;
 };
 
+/**
+ * What the upload error alone cannot say. "Failed to fetch" means no reply at
+ * all, which is either the network or a file the browser could not read: on
+ * Android a PDF picked from Google Drive that was never downloaded is handed
+ * over by name but fails when the upload reads it. Reading the first byte here
+ * tells the two apart in the issue log.
+ */
+const describeFile = async (file: File) => {
+  let readable = "yes";
+  try {
+    await file.slice(0, 1).arrayBuffer();
+  } catch (error) {
+    readable = `no (${error instanceof Error ? error.name : String(error)})`;
+  }
+  const online = typeof navigator === "undefined" ? "unknown" : String(navigator.onLine);
+  return `size=${file.size} type=${file.type || "none"} readable=${readable} online=${online}`;
+};
+
 const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
   const {
     bucketName,
@@ -99,7 +117,8 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
 
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errors, setErrors] = useState<{ name: string; message: string }[]>([]);
+  // `detail` describes the file behind a failure, for the issue log only.
+  const [errors, setErrors] = useState<{ name: string; message: string; detail?: string }[]>([]);
   const [successes, setSuccesses] = useState<string[]>([]);
   const [successNames, setSuccessNames] = useState<string[]>([]);
 
@@ -170,7 +189,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
               upsert,
             });
           if (error) {
-            return { name: file.name, publicUrl: undefined, message: error.message };
+            return { name: file.name, publicUrl: undefined, message: error.message, detail: await describeFile(file) };
           } else {
             const {
               data: { publicUrl },
@@ -198,7 +217,7 @@ const useSupabaseUpload = (options: UseSupabaseUploadOptions) => {
         ...prev.filter((e) => !batchNames.includes(e.name)),
         ...responses
           .filter((x) => x.message !== undefined)
-          .map((x) => ({ name: x.name, message: x.message as string })),
+          .map((x) => ({ name: x.name, message: x.message as string, detail: x.detail })),
       ]);
 
       setLoading(false);
